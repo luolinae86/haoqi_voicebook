@@ -1,21 +1,16 @@
 # Kamal 部署配置
 # 用于将 VoiceBook 部署到阿里云服务器
 
-# 服务名称
 service: voicebook
-
-# Docker 镜像名称
 image: voicebook/voicebook
+
 # ==================== 服务器配置 ====================
 servers:
   web:
     hosts:
       - 114.215.208.190
-    labels:
-      traefik.http.routers.voicebook.rule: PathPrefix(`/`)
 
 # ==================== Docker Registry 配置 ====================
-# 使用 GitHub Container Registry 或私有 Registry
 registry:
   server: reg.ylb.im
   username:
@@ -46,13 +41,17 @@ ssh:
   keys:
     - /Users/luolin/.ssh/id_rsa
 
-# ==================== Traefik 代理 ====================
+# ==================== kamal-proxy 代理 ====================
 proxy:
-  ssl: false
-  host: 114.215.208.190
+  ssl: true
+  host: api.zheliyuedu.cn
   healthcheck:
     path: /up
+    interval: 5
+    timeout: 5
 
 # ==================== 构建配置 ====================
+# 远端构建：在阿里云服务器上 build，解决国内拉取 Docker Hub 镜像慢的问题
 builder:
   arch: amd64
+  remote: true

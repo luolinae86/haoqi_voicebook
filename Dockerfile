@@ -35,27 +35,24 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential default-libmysqlclient-dev git libyaml-dev pkg-config && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# 安装与 Gemfile.lock 匹配的 Bundler 版本
+# 安装与 Gemfile.lock 匹配的 Bundler 版本（使用阿里云镜像源加速）
 RUN gem install bundler -v 4.0.10 --source https://mirrors.aliyun.com/rubygems/ --no-document
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
 
+# 使用阿里云镜像源加速 bundle install
 RUN bundle config set frozen false && \
+    bundle config set mirror.https://rubygems.org https://mirrors.aliyun.com/rubygems/ && \
     bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
-    # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
     bundle exec bootsnap precompile -j 1 --gemfile
 
 # Copy application code
 COPY . .
 
 # Precompile bootsnap code for faster boot times.
-# -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
 RUN bundle exec bootsnap precompile -j 1 app/ lib/
-
-
-
 
 # Final stage for app image
 FROM base
