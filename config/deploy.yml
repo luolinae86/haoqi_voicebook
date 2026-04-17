@@ -5,7 +5,7 @@
 service: voicebook
 
 # Docker 镜像名称
-image: reg.ylb.im/voicebook/voicebook
+image: voicebook/voicebook
 # ==================== 服务器配置 ====================
 servers:
   web:
