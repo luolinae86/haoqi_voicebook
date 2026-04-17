@@ -13,8 +13,6 @@ servers:
       - 114.215.208.190
     labels:
       traefik.http.routers.voicebook.rule: PathPrefix(`/`)
-    options:
-      network: "kamal"
 
 # ==================== Docker Registry 配置 ====================
 # 使用 GitHub Container Registry 或私有 Registry
