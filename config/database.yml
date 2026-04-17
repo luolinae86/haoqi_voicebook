@@ -1,0 +1,28 @@
+# MySQL 数据库配置
+# 开发和测试环境使用本地 MySQL
+# 生产环境使用阿里云 RDS
+default: &default
+  adapter: mysql2
+  encoding: utf8mb4
+  collation: utf8mb4_unicode_ci
+  reconnect: true
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: root
+  password:
+  socket: /tmp/mysql.sock
+
+development:
+  <<: *default
+  database: voicebook_development
+
+test:
+  <<: *default
+  database: voicebook_test
+
+production:
+  <<: *default
+  pool: 100
+  database: <%= ENV['DATABASE_PRD_DATABASE'] %>
+  username: <%= ENV['DATABASE_PRD_USERNAME'] %>
+  password: <%= ENV['DATABASE_PRD_PASSWORD'] %>
+  host: <%= ENV['DATABASE_PRD_HOST'] %>

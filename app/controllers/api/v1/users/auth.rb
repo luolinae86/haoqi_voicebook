@@ -1,0 +1,148 @@
+# frozen_string_literal: true
+
+# 用户认证接口
+# 提供手机号+验证码登录、密码登录、注册、找回密码等功能
+module Api
+  module V1
+    module Users
+      class Auth < Grape::API
+        helpers Api::Helpers::CommonHelpers
+
+        namespace :users do
+          # ==================== 发送验证码 ====================
+          desc "发送短信验证码"
+          params do
+            requires :phone, type: String, desc: "手机号"
+          end
+          post :send_code do
+            phone = params[:phone]
+
+            # 验证手机号格式
+            unless phone.match?(/\A1[3-9]\d{9}\z/)
+              return err_response(code: 1002, message: "手机号格式不正确")
+            end
+
+            # 生成4位随机验证码
+            code = format("%04d", rand(10000))
+            expires_at = 5.minutes.from_now
+
+            # 创建验证码记录
+            SmsVerification.create!(
+              phone: phone,
+              code: code,
+              expires_at: expires_at
+            )
+
+            # TODO: 对接短信服务商发送验证码
+            Rails.logger.info("短信验证码: #{phone} => #{code}")
+
+            success_response({ expires_in: 300 }, message: "验证码已发送")
+          end
+
+          # ==================== 验证码登录 ====================
+          desc "手机号+验证码登录/注册"
+          params do
+            requires :phone, type: String, desc: "手机号"
+            requires :code, type: String, desc: "验证码"
+          end
+          post :login_by_code do
+            phone = params[:phone]
+            code = params[:code]
+
+            # 查找有效的验证码
+            verification = SmsVerification.valid_codes
+                                          .where(phone: phone, code: code)
+                                          .order(created_at: :desc)
+                                          .first
+
+            if verification.nil?
+              return err_response(code: 1002, message: "验证码无效或已过期")
+            end
+
+            # 标记验证码为已使用
+            verification.mark_verified!
+
+            # 查找或创建用户
+            user = User.find_or_create_by!(phone: phone) do |u|
+              u.nickname = "用户#{phone[-4..]}"
+            end
+
+            # 生成 JWT Token
+            token = generate_jwt_token(user)
+
+            success_response({
+              token: token,
+              user: {
+                id: user.id,
+                phone: user.phone,
+                nickname: user.nickname,
+                avatar: user.avatar,
+                grade: user.grade&.name,
+                is_vip: user.vip_active?,
+                reading_words: user.reading_words,
+                reading_minutes: user.reading_minutes,
+                books_read: user.books_read
+              }
+            }, message: "登录成功")
+          end
+
+          # ==================== 密码登录 ====================
+          desc "手机号+密码登录"
+          params do
+            requires :phone, type: String, desc: "手机号"
+            requires :password, type: String, desc: "密码"
+          end
+          post :login_by_password do
+            user = User.find_by(phone: params[:phone])
+
+            if user.nil? || !user.authenticate(params[:password])
+              return err_response(code: 1001, message: "手机号或密码错误")
+            end
+
+            token = generate_jwt_token(user)
+
+            success_response({
+              token: token,
+              user: {
+                id: user.id,
+                phone: user.phone,
+                nickname: user.nickname,
+                avatar: user.avatar,
+                grade: user.grade&.name,
+                is_vip: user.vip_active?,
+                reading_words: user.reading_words,
+                reading_minutes: user.reading_minutes,
+                books_read: user.books_read
+              }
+            }, message: "登录成功")
+          end
+
+          # ==================== 设置/重置密码 ====================
+          desc "设置或重置密码"
+          params do
+            requires :phone, type: String, desc: "手机号"
+            requires :code, type: String, desc: "验证码"
+            requires :password, type: String, desc: "新密码"
+          end
+          post :reset_password do
+            verification = SmsVerification.valid_codes
+                                          .where(phone: params[:phone], code: params[:code])
+                                          .order(created_at: :desc)
+                                          .first
+
+            if verification.nil?
+              return err_response(code: 1002, message: "验证码无效或已过期")
+            end
+
+            verification.mark_verified!
+
+            user = User.find_by!(phone: params[:phone])
+            user.update!(password: params[:password])
+
+            success_response(nil, message: "密码设置成功")
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,47 @@
+# VoiceBook 开发环境 Docker Compose 配置
+# 包含：Rails 应用 + MySQL 数据库
+
+services:
+  # ==================== MySQL 数据库 ====================
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: voicebook_dev_password
+      MYSQL_DATABASE: voicebook_development
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Rails 应用 ====================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      RAILS_ENV: production
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_USERNAME: root
+      DATABASE_PASSWORD: voicebook_dev_password
+      DATABASE_NAME: voicebook_production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-$(openssl rand -hex 64)}
+      JWT_SECRET: ${JWT_SECRET:-voicebook_jwt_secret_dev}
+    volumes:
+      - rails_storage:/rails/storage
+
+volumes:
+  mysql_data:
+  rails_storage:

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# A sample post-proxy-reboot hook
+#
+# These environment variables are available:
+# KAMAL_RECORDED_AT
+# KAMAL_PERFORMER
+# KAMAL_VERSION
+# KAMAL_HOSTS
+# KAMAL_ROLE (if set)
+# KAMAL_DESTINATION (if set)
+# KAMAL_RUNTIME
+
+echo "Post-proxy-reboot hook executed for $KAMAL_HOSTS"

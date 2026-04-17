@@ -1,0 +1,60 @@
+# Kamal 部署配置
+# 用于将 VoiceBook 部署到阿里云服务器
+
+# 服务名称
+service: voicebook
+
+# Docker 镜像名称
+image: reg.ylb.im/voicebook/voicebook
+# ==================== 服务器配置 ====================
+servers:
+  web:
+    hosts:
+      - 114.215.208.190
+    labels:
+      traefik.http.routers.voicebook.rule: PathPrefix(`/`)
+    options:
+      network: "kamal"
+
+# ==================== Docker Registry 配置 ====================
+# 使用 GitHub Container Registry 或私有 Registry
+registry:
+  server: reg.ylb.im
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# ==================== 环境变量 ====================
+env:
+  clear:
+    RAILS_ENV: production
+    WEB_CONCURRENCY: 2
+    RAILS_MAX_THREADS: 5
+  secret:
+    - RAILS_MASTER_KEY
+    - SECRET_KEY_BASE
+    - DATABASE_PRD_USERNAME
+    - DATABASE_PRD_PASSWORD
+    - DATABASE_PRD_HOST
+    - DATABASE_PRD_PORT
+    - DATABASE_PRD_DATABASE
+    - JWT_SECRET
+
+# ==================== SSH 配置 ====================
+ssh:
+  user: root
+  port: 22
+  keys:
+    - /Users/luolin/.ssh/id_rsa
+
+# ==================== Traefik 代理 ====================
+proxy:
+  ssl: false
+  host: 114.215.208.190
+  healthcheck:
+    path: /up
+
+# ==================== 构建配置 ====================
+builder:
+  arch: amd64
