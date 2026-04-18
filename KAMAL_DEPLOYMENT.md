@@ -267,7 +267,15 @@ kamal deploy
 
 **解决：** `registry.server` 不要加 `https://`，只写域名如 `reg.ylb.im`
 
-## 六、部署收益
+### 5.9 `# syntax=docker/dockerfile:1` 导致构建超时
+
+**症状：** `failed to resolve source metadata for docker.io/docker/dockerfile:1`
+
+**原因：** Dockerfile 的 `# syntax` 指令需要从 Docker Hub 拉取 buildkit 镜像，国内网络不可达
+
+**解决：** 移除 `# syntax` 指令，使用 Docker 内置的 buildkit 即可
+
+### 5.10 `db:prepare` 未执行导致数据库表缺失
 
 ### 6.1 零停机部署
 
@@ -354,7 +362,50 @@ production:
   database: <%= ENV['DATABASE_PRD_DATABASE'] %>
 ```
 
-### 5.11 日志时间戳显示 UTC 时区
+## 六、部署收益
+
+### 6.1 零停机部署
+
+Kamal 通过 kamal-proxy 实现无缝切换：
+- 新容器启动并健康检查通过后，才将流量切换过去
+- 旧容器在流量切换后优雅关闭
+- 用户完全感知不到部署过程
+
+### 6.2 一键部署
+
+一条 `kamal deploy` 命令完成：构建 → 推送 → 拉取 → 启动 → 健康检查 → 切换
+
+### 6.3 版本回滚
+
+```bash
+kamal rollback <version>
+```
+
+可以立即回滚到任意历史版本
+
+### 6.4 镜像版本管理
+
+每个部署版本对应 git commit hash，清晰可追溯，不会混淆
+
+### 6.5 环境变量隔离
+
+敏感配置通过 `.kamal/secrets` 管理，不进入代码仓库，部署时自动注入
+
+### 6.6 自动清理
+
+部署完成后自动清理旧容器和镜像，避免服务器磁盘被占满
+
+### 6.7 多环境支持
+
+通过 `--destination` 参数可支持 staging、production 等多环境部署
+
+### 6.8 资源利用
+
+- Docker 多阶段构建：编译阶段和运行阶段分离，最终镜像只包含运行时必要文件
+- jemalloc 内存优化：降低 Ruby 内存占用
+- Bootsnap 预编译：加快 Rails 启动速度
+
+### 5.12 日志时间戳显示 UTC 时区
 
 **症状：** 日志时间显示为 `2026-04-18 08:25:08 +0000` 而非北京时间
 
@@ -368,50 +419,7 @@ env:
     TZ: Asia/Shanghai
 ```
 
-## 八、部署收益
-
-### 8.1 零停机部署
-
-Kamal 通过 kamal-proxy 实现无缝切换：
-- 新容器启动并健康检查通过后，才将流量切换过去
-- 旧容器在流量切换后优雅关闭
-- 用户完全感知不到部署过程
-
-### 8.2 一键部署
-
-一条 `kamal deploy` 命令完成：构建 → 推送 → 拉取 → 启动 → 健康检查 → 切换
-
-### 8.3 版本回滚
-
-```bash
-kamal rollback <version>
-```
-
-可以立即回滚到任意历史版本
-
-### 8.4 镜像版本管理
-
-每个部署版本对应 git commit hash，清晰可追溯，不会混淆
-
-### 8.5 环境变量隔离
-
-敏感配置通过 `.kamal/secrets` 管理，不进入代码仓库，部署时自动注入
-
-### 8.6 自动清理
-
-部署完成后自动清理旧容器和镜像，避免服务器磁盘被占满
-
-### 8.7 多环境支持
-
-通过 `--destination` 参数可支持 staging、production 等多环境部署
-
-### 8.8 资源利用
-
-- Docker 多阶段构建：编译阶段和运行阶段分离，最终镜像只包含运行时必要文件
-- jemalloc 内存优化：降低 Ruby 内存占用
-- Bootsnap 预编译：加快 Rails 启动速度
-
-## 九、网络优化总结
+## 七、网络优化总结
 
 | 场景 | 默认源 | 国内替代方案 |
 |---|---|---|
@@ -420,7 +428,7 @@ kamal rollback <version>
 | Docker Hub | registry-1.docker.io | 自建 Registry reg.ylb.im |
 | Docker 基础镜像 | Docker Hub | 配置 Docker 加速器或使用远端构建 |
 
-## 十、注意事项
+## 八、注意事项
 
 1. **SSL 证书**：设置 `proxy.ssl: true` 时，kamal-proxy 会自动通过 Let's Encrypt 申请证书，需要域名 DNS 指向服务器 IP
 2. **端口一致性**：确保 Dockerfile EXPOSE、Puma port、kamal-proxy app_port 三者一致
