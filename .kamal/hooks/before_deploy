@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# 部署前在服务器上创建必要目录并设置权限
+# Kamal 会将 KAMAL_HOSTS 环境变量设置为所有目标主机（逗号分隔）
+
+IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
+for host in "${HOSTS[@]}"; do
+  echo "[$host] 创建 /voicebook/log 目录..."
+  ssh "root@$host" "mkdir -p /voicebook/log && chmod 777 /voicebook/log"
+done
