@@ -308,7 +308,94 @@ kamal rollback <version>
 - jemalloc 内存优化：降低 Ruby 内存占用
 - Bootsnap 预编译：加快 Rails 启动速度
 
-## 七、网络优化总结
+### 5.9 `db:prepare` 未执行导致数据库表缺失
+
+**症状：** 容器启动成功但接口报数据库错误（如表不存在）
+
+**原因：** 默认 `bin/docker-entrypoint` 只检测 `./bin/rails server` 启动方式，使用 `bundle exec puma` 时不会触发 `db:prepare`
+
+**解决：** 修改 `bin/docker-entrypoint`，增加对 puma 启动命令的检测：
+
+```bash
+#!/bin/bash -e
+
+# 检测 ./bin/rails server
+if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
+  ./bin/rails db:prepare
+fi
+
+# 检测 bundle exec puma
+if [[ "${@: -5:1}" == "bundle" && "${@: -4:1}" == "exec" && "${@: -3:1}" == "puma" ]]; then
+  ./bin/rails db:prepare
+fi
+
+exec "${@}"
+```
+
+### 5.10 数据库名与实际 RDS 数据库名不匹配
+
+**症状：** `Access denied for user 'voice_book'@'%' to database 'voice_book'`
+
+**原因：** `.kamal/secrets` 中 `DATABASE_PRD_DATABASE` 配置的值与 RDS 上实际创建的数据库名不一致
+
+**解决：** 确保 `DATABASE_PRD_DATABASE` 的值与 RDS 上的数据库名完全一致：
+
+```yaml
+# .kamal/secrets
+DATABASE_PRD_DATABASE=voicebook  # 必须与 RDS 上的数据库名一致
+```
+
+同时确保 `config/database.yml` 中使用了该环境变量：
+
+```yaml
+production:
+  database: <%= ENV['DATABASE_PRD_DATABASE'] %>
+```
+
+## 八、部署收益
+
+### 8.1 零停机部署
+
+Kamal 通过 kamal-proxy 实现无缝切换：
+- 新容器启动并健康检查通过后，才将流量切换过去
+- 旧容器在流量切换后优雅关闭
+- 用户完全感知不到部署过程
+
+### 8.2 一键部署
+
+一条 `kamal deploy` 命令完成：构建 → 推送 → 拉取 → 启动 → 健康检查 → 切换
+
+### 8.3 版本回滚
+
+```bash
+kamal rollback <version>
+```
+
+可以立即回滚到任意历史版本
+
+### 8.4 镜像版本管理
+
+每个部署版本对应 git commit hash，清晰可追溯，不会混淆
+
+### 8.5 环境变量隔离
+
+敏感配置通过 `.kamal/secrets` 管理，不进入代码仓库，部署时自动注入
+
+### 8.6 自动清理
+
+部署完成后自动清理旧容器和镜像，避免服务器磁盘被占满
+
+### 8.7 多环境支持
+
+通过 `--destination` 参数可支持 staging、production 等多环境部署
+
+### 8.8 资源利用
+
+- Docker 多阶段构建：编译阶段和运行阶段分离，最终镜像只包含运行时必要文件
+- jemalloc 内存优化：降低 Ruby 内存占用
+- Bootsnap 预编译：加快 Rails 启动速度
+
+## 九、网络优化总结
 
 | 场景 | 默认源 | 国内替代方案 |
 |---|---|---|
@@ -317,10 +404,12 @@ kamal rollback <version>
 | Docker Hub | registry-1.docker.io | 自建 Registry reg.ylb.im |
 | Docker 基础镜像 | Docker Hub | 配置 Docker 加速器或使用远端构建 |
 
-## 八、注意事项
+## 十、注意事项
 
 1. **SSL 证书**：设置 `proxy.ssl: true` 时，kamal-proxy 会自动通过 Let's Encrypt 申请证书，需要域名 DNS 指向服务器 IP
 2. **端口一致性**：确保 Dockerfile EXPOSE、Puma port、kamal-proxy app_port 三者一致
 3. **安全组**：阿里云安全组需开放 80、443 端口
 4. **数据库**：确保应用服务器能访问阿里云 RDS（RDS 白名单需包含应用服务器内网 IP）
-5. **内存**：Rails 8 + Puma workers 建议至少 2GB 内存
+5. **数据库名**：`DATABASE_PRD_DATABASE` 必须与 RDS 上实际创建的数据库名完全一致，否则会导致 `db:prepare` 连接失败
+6. **db:prepare**：`bin/docker-entrypoint` 必须检测 `bundle exec puma` 启动方式，否则每次部署不会自动执行数据库迁移
+7. **内存**：Rails 8 + Puma workers 建议至少 2GB 内存
