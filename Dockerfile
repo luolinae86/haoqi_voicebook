@@ -75,10 +75,10 @@ ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -f http://localhost:3000/up || exit 1
+    CMD curl -f http://localhost:80/up || exit 1
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 80
 
 # 启动 Puma 服务器
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
