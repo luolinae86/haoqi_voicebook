@@ -12,7 +12,7 @@ servers:
 
 # ==================== Docker Registry 配置 ====================
 registry:
-  server: https://reg.ylb.im
+  server: reg.ylb.im
   username:
     - KAMAL_REGISTRY_USERNAME
   password:
@@ -54,4 +54,3 @@ proxy:
 # 远端构建：在阿里云服务器上 build，解决国内拉取 Docker Hub 镜像慢的问题
 builder:
   arch: amd64
-  remote: true

@@ -4,7 +4,7 @@
 # 定义 API 的默认行为：JSON 格式、异常处理、请求日志等
 
 # 提前加载自定义异常类，确保 Grape rescue_from 可以引用
-require_relative "errors/common"
+require_relative "errors/common_error"
 
 module Api
   class Default < Grape::API
