@@ -51,6 +51,7 @@ env:
     RAILS_ENV: production
     WEB_CONCURRENCY: 2
     RAILS_MAX_THREADS: 5
+    TZ: Asia/Shanghai
   secret:
     - SECRET_KEY_BASE
     - DATABASE_PRD_USERNAME
@@ -84,6 +85,7 @@ builder:
 - 移除 `RAILS_MASTER_KEY`（项目无 Rails credentials 时不需要）
 - 移除 `servers.web.options.network: "kamal"`（与 proxy 冲突）
 - `registry.server` 不要加 `https://` 协议前缀
+- `TZ: Asia/Shanghai` 设置容器时区为北京时间，确保日志时间戳正确
 
 ### 3.2 Kamal Secrets 文件 `.kamal/secrets`
 
@@ -350,6 +352,20 @@ DATABASE_PRD_DATABASE=voicebook  # 必须与 RDS 上的数据库名一致
 ```yaml
 production:
   database: <%= ENV['DATABASE_PRD_DATABASE'] %>
+```
+
+### 5.11 日志时间戳显示 UTC 时区
+
+**症状：** 日志时间显示为 `2026-04-18 08:25:08 +0000` 而非北京时间
+
+**原因：** Ruby Logger 使用 `Time.now` 获取时间戳，它读取系统时区或 `TZ` 环境变量。`config.time_zone` 只影响 ActiveSupport 时间方法
+
+**解决：** 在 `deploy.yml` 的 `env.clear` 中添加 `TZ: Asia/Shanghai`：
+
+```yaml
+env:
+  clear:
+    TZ: Asia/Shanghai
 ```
 
 ## 八、部署收益

@@ -24,6 +24,7 @@ env:
     RAILS_ENV: production
     WEB_CONCURRENCY: 2
     RAILS_MAX_THREADS: 5
+    TZ: Asia/Shanghai
   secret:
     - SECRET_KEY_BASE
     - DATABASE_PRD_USERNAME
