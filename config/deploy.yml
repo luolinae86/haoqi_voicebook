@@ -42,6 +42,7 @@ ssh:
 
 # ==================== kamal-proxy 代理 ====================
 proxy:
+  app_port: 3000
   ssl: true
   host: api.zheliyuedu.cn
   healthcheck:
