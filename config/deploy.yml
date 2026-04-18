@@ -12,7 +12,7 @@ servers:
 
 # ==================== Docker Registry 配置 ====================
 registry:
-  server: reg.ylb.im
+  server: https://reg.ylb.im
   username:
     - KAMAL_REGISTRY_USERNAME
   password:
