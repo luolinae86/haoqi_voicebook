@@ -32,7 +32,6 @@ env:
     - DATABASE_PRD_HOST
     - DATABASE_PRD_PORT
     - DATABASE_PRD_DATABASE
-    - JWT_SECRET
 
 # ==================== SSH 配置 ====================
 ssh:

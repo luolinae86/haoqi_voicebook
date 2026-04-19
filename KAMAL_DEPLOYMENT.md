@@ -59,7 +59,6 @@ env:
     - DATABASE_PRD_HOST
     - DATABASE_PRD_PORT
     - DATABASE_PRD_DATABASE
-    - JWT_SECRET
 
 ssh:
   user: root
@@ -101,7 +100,6 @@ DATABASE_PRD_PORT=3306
 DATABASE_PRD_USERNAME=voice_book
 DATABASE_PRD_PASSWORD=你的密码
 DATABASE_PRD_DATABASE=voice_book
-JWT_SECRET=你的jwt密钥
 ```
 
 **关键点：**

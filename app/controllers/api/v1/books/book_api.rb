@@ -103,14 +103,7 @@ module Api
             requires :chapter_id, type: Integer, desc: "章节ID"
           end
           get ":id/chapters/:chapter_id" do
-            authenticate_user!
-
             chapter = Chapter.find(params[:chapter_id])
-
-            # VIP 内容需要 VIP 权限
-            if chapter.is_vip? && !current_user.vip_active?
-              return err_response(code: 1004, message: "该章节需要开通 VIP 会员")
-            end
 
             success_response({
               id: chapter.id,

@@ -198,7 +198,6 @@ SECRET_KEY_BASE=$(openssl rand -hex 64)
 RAILS_MASTER_KEY=$(cat config/master.key)
 DATABASE_USERNAME=voicebook
 DATABASE_PASSWORD=your_rds_password
-JWT_SECRET=$(openssl rand -hex 32)
 ```
 
 ### 3.5 执行部署
@@ -316,11 +315,14 @@ mysqldump -h rm-bp1eys5wpr344yf9v.mysql.rds.aliyuncs.com \
 
 ### 5.3 认证方式
 
-API 使用 JWT Token 认证。在请求头中携带：
+API 使用签名认证（access_key_id + sign 签名）。在请求中携带：
 
 ```
-Authorization: Bearer <your_jwt_token>
+X-Access-Key-Id: your_access_key_id
+X-Sign: your_signature
 ```
+
+签名生成方式：对请求参数按键排序后拼接 secret 进行 SHA1 哈希。
 
 ### 5.4 响应格式
 

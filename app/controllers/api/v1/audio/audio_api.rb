@@ -73,14 +73,7 @@ module Api
             requires :episode_id, type: Integer, desc: "节目ID"
           end
           get "episodes/:episode_id/play" do
-            authenticate_user!
-
             episode = AudioEpisode.find(params[:episode_id])
-
-            # VIP 内容需要 VIP 权限
-            if episode.is_vip? && !current_user.vip_active?
-              return err_response(code: 1004, message: "该节目需要开通 VIP 会员")
-            end
 
             # 增加播放次数
             episode.increment!(:play_count)

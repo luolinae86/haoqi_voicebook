@@ -27,10 +27,7 @@ module Api
     mount Api::V1::Audio::Mount
     mount Api::V1::Categories::Mount
     mount Api::V1::Home::Mount
-    mount Api::V1::Bookshelves::Mount
     mount Api::V1::Search::Mount
-    mount Api::V1::Memberships::Mount
-    mount Api::V1::Parental::Mount
     mount Api::V1::Rankings::Mount
   end
 end

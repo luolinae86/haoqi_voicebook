@@ -6,7 +6,6 @@ module Api
     module Users
       class Mount < Grape::API
         mount Api::V1::Users::Auth
-        mount Api::V1::Users::Profile
       end
     end
   end

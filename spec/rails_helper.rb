@@ -71,11 +71,5 @@ RSpec.configure do |config|
     def json_response
       JSON.parse(response.body, symbolize_names: true)
     end
-
-    # 生成 JWT Token 用于测试
-    def auth_headers(user)
-      token = JWT.encode({ user_id: user.id, exp: 24.hours.from_now.to_i }, Rails.application.secret_key_base, "HS256")
-      { "Authorization" => "Bearer #{token}" }
-    end
   end, type: :request)
 end

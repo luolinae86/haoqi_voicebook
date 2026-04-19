@@ -67,11 +67,7 @@ module Api
               u.nickname = "用户#{phone[-4..]}"
             end
 
-            # 生成 JWT Token
-            token = generate_jwt_token(user)
-
             success_response({
-              token: token,
               user: {
                 id: user.id,
                 phone: user.phone,
@@ -99,10 +95,7 @@ module Api
               return err_response(code: 1001, message: "手机号或密码错误")
             end
 
-            token = generate_jwt_token(user)
-
             success_response({
-              token: token,
               user: {
                 id: user.id,
                 phone: user.phone,

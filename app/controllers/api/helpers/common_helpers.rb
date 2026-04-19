@@ -69,30 +69,6 @@ module Api
         api_auth
       end
 
-      # 验证用户 JWT Token
-      # @return [User] 当前登录用户
-      def authenticate_user!
-        token = headers["Authorization"]&.gsub("Bearer ", "")
-        error!(err_response(code: 1001, message: "请先登录"), 401) if token.blank?
-
-        begin
-          decoded = JWT.decode(token, jwt_secret, true, algorithm: "HS256")
-          @current_user = User.find(decoded[0]["user_id"])
-        rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-          error!(err_response(code: 1001, message: "Token 无效或已过期"), 401)
-        end
-      end
-
-      # 获取当前登录用户
-      def current_user
-        @current_user
-      end
-
-      # 检查用户是否为 VIP
-      def require_vip!
-        error!(err_response(code: 1004, message: "需要开通 VIP 会员"), 403) unless current_user&.vip_active?
-      end
-
       private
 
       # 生成签名
@@ -102,22 +78,6 @@ module Api
         # 过滤掉签名参数本身，其余参数按键排序后拼接
         sign_params = params.except(:sign, :access_key_id, :route_info).sort.map { |k, v| "#{k}=#{v}" }.join("&")
         Digest::SHA1.hexdigest("#{sign_params}&secret=#{secret}")
-      end
-
-      # JWT 密钥
-      def jwt_secret
-        Rails.application.credentials.secret_key_base || "voicebook_jwt_secret_key"
-      end
-
-      # 生成 JWT Token
-      # @param user [User] 用户
-      # @return [String] JWT Token
-      def generate_jwt_token(user)
-        payload = {
-          user_id: user.id,
-          exp: 30.days.from_now.to_i
-        }
-        JWT.encode(payload, jwt_secret, "HS256")
       end
     end
   end
