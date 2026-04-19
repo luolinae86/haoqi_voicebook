@@ -417,7 +417,87 @@ env:
     TZ: Asia/Shanghai
 ```
 
-## 七、网络优化总结
+## 七、本地 Docker 镜像构建与测试
+
+在部署到生产服务器之前，建议在本地通过 Docker 容器完整验证构建和启动流程。
+
+#### 7.1 构建镜像
+
+```bash
+docker build -t voicebook:test .
+```
+
+#### 7.2 准备本地数据库
+
+确保本地 MySQL 正在运行，并创建生产环境数据库：
+
+```bash
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS voicebook_production;"
+```
+
+> 注意：Homebrew 安装的 MySQL 默认绑定 `127.0.0.1`，Docker 容器无法直接访问。需要修改 MySQL 配置：
+>
+> ```bash
+> # 修改 bind-address
+> sed -i '' 's/bind-address = 127.0.0.1/bind-address = 0.0.0.0/' $(brew --prefix)/etc/my.cnf
+> # 重启 MySQL
+> brew services restart mysql
+> ```
+
+#### 7.3 启动测试容器
+
+使用 `--add-host=host.docker.internal:host-gateway` 让容器能够通过特殊域名访问宿主机的 MySQL：
+
+```bash
+docker run --name voicebook-test -d \
+  --add-host=host.docker.internal:host-gateway \
+  -p 8080:80 \
+  -e RAILS_ENV=production \
+  -e SECRET_KEY_BASE=test_key_1234567890abcdef \
+  -e DATABASE_PRD_USERNAME=root \
+  -e DATABASE_PRD_PASSWORD= \
+  -e DATABASE_PRD_HOST=host.docker.internal \
+  -e DATABASE_PRD_PORT=3306 \
+  -e DATABASE_PRD_DATABASE=voicebook_production \
+  -e TZ=Asia/Shanghai \
+  voicebook:test
+```
+
+#### 7.4 验证启动
+
+```bash
+# 查看容器日志（确认 db:prepare 和 Puma 启动成功）
+docker logs voicebook-test
+
+# 测试健康检查
+curl http://localhost:8080/api/up
+
+# 测试首页
+curl http://localhost:8080/api/
+
+# 测试业务接口
+curl http://localhost:8080/api/books
+curl -X POST http://localhost:8080/api/users/send_code \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"13800138000"}'
+```
+
+#### 7.5 清理测试环境
+
+```bash
+docker stop voicebook-test && docker rm voicebook-test && docker rmi voicebook:test
+```
+
+#### 7.6 常见问题
+
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| `host.docker.internal` 无法解析 | Docker Desktop 默认未配置 | 添加 `--add-host=host.docker.internal:host-gateway` |
+| MySQL 连接被拒绝 | MySQL 绑定 `127.0.0.1` | 修改 `bind-address = 0.0.0.0` 并重启 |
+| `db:prepare` 失败 | 数据库不存在 | 手动 `CREATE DATABASE voicebook_production` |
+| 容器启动后日志无输出 | 启动超时，等 10-15 秒再查看 | `sleep 10 && docker logs voicebook-test` |
+
+## 八、网络优化总结
 
 | 场景 | 默认源 | 国内替代方案 |
 |---|---|---|
@@ -426,7 +506,7 @@ env:
 | Docker Hub | registry-1.docker.io | 自建 Registry reg.ylb.im |
 | Docker 基础镜像 | Docker Hub | 配置 Docker 加速器或使用远端构建 |
 
-## 八、注意事项
+## 九、注意事项
 
 1. **SSL 证书**：设置 `proxy.ssl: true` 时，kamal-proxy 会自动通过 Let's Encrypt 申请证书，需要域名 DNS 指向服务器 IP
 2. **端口一致性**：确保 Dockerfile EXPOSE、Puma port、kamal-proxy app_port 三者一致
