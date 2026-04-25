@@ -9,10 +9,14 @@ class Book < ApplicationRecord
   # 状态枚举
   enum :status, { draft: 0, published: 1, offline: 2 }, default: :draft
 
+  # 电子书导入状态
+  enum :import_status, { not_imported: 0, processing: 1, ready: 2, failed: 3 }, default: :not_imported
+
   # 关联关系
   belongs_to :category, optional: true               # 所属分类
   belongs_to :grade, optional: true                   # 适用年级
   has_many :chapters, dependent: :destroy              # 章节列表
+  has_many :ebook_pages, -> { order(page_number: :asc) }, dependent: :destroy # 电子书页面
   has_one :audio_album, dependent: :destroy            # 有声专辑
   has_many :collection_items, dependent: :destroy      # 合集关联
   has_many :collections, through: :collection_items    # 所属合集
@@ -28,6 +32,7 @@ class Book < ApplicationRecord
   validates :content_type, presence: true               # 内容类型必填
   validates :play_count, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :word_count, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :page_count, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :rating, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 10 }, allow_nil: true
 
   # 作用域

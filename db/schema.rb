@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_14_011041) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_21_090100) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -102,10 +102,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_011041) do
     t.string "isbn", comment: "ISBN"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "page_count", default: 0, null: false, comment: "电子书总页数"
+    t.integer "import_status", default: 0, null: false, comment: "电子书导入状态"
+    t.string "source_pdf_filename", comment: "源 PDF 文件名"
+    t.string "source_pdf_path", comment: "源 PDF 存储路径"
+    t.string "ebook_checksum", comment: "源 PDF 校验值"
+    t.datetime "imported_at", comment: "导入完成时间"
+    t.text "import_error_message", comment: "导入失败信息"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["content_type"], name: "index_books_on_content_type"
     t.index ["created_at"], name: "index_books_on_created_at"
     t.index ["grade_id"], name: "index_books_on_grade_id"
+    t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["is_free"], name: "index_books_on_is_free"
     t.index ["is_vip"], name: "index_books_on_is_vip"
     t.index ["play_count"], name: "index_books_on_play_count"
@@ -175,6 +183,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_011041) do
     t.index ["collection_type"], name: "index_collections_on_collection_type"
     t.index ["sort_order"], name: "index_collections_on_sort_order"
     t.index ["target_grade_id"], name: "index_collections_on_target_grade_id"
+  end
+
+  create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "page_number", null: false, comment: "页码"
+    t.decimal "page_width", precision: 8, scale: 2, null: false, comment: "页面宽度(pt)"
+    t.decimal "page_height", precision: 8, scale: 2, null: false, comment: "页面高度(pt)"
+    t.text "plain_text", comment: "页面纯文本"
+    t.json "rich_content", null: false, comment: "页面富文本块"
+    t.integer "word_count", default: 0, null: false, comment: "字数"
+    t.integer "block_count", default: 0, null: false, comment: "块数量"
+    t.integer "image_count", default: 0, null: false, comment: "图片数量"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
+    t.index ["book_id"], name: "index_ebook_pages_on_book_id"
   end
 
   create_table "grades", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "年级表", force: :cascade do |t|
@@ -338,4 +362,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_011041) do
     t.index ["is_vip"], name: "index_users_on_is_vip"
     t.index ["phone"], name: "index_users_on_phone", unique: true
   end
+
+  add_foreign_key "ebook_pages", "books"
 end

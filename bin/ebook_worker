@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "optparse"
+require_relative "../config/environment"
+
+options = {
+  output_dir: nil,
+  title: nil,
+  export_epub: true,
+  epub_output: nil
+}
+
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: bin/ebook_worker PDF_PATH [--output-dir DIR] [--title TITLE]"
+
+  opts.on("--output-dir DIR", "导出目录，默认 ~/Downloads/<title>") do |value|
+    options[:output_dir] = value
+  end
+
+  opts.on("--title TITLE", "导入后的书名，默认使用 PDF 文件名") do |value|
+    options[:title] = value
+  end
+
+  opts.on("--epub-output FILE", "指定 EPUB 输出文件路径，默认 <output-dir>/<title>.epub") do |value|
+    options[:epub_output] = value
+  end
+
+  opts.on("--skip-epub", "只导出 JSON/图片调试包，不生成 EPUB") do
+    options[:export_epub] = false
+  end
+end
+
+parser.parse!
+pdf_path = ARGV.shift
+raise OptionParser::MissingArgument, "PDF_PATH" if pdf_path.blank?
+
+title = options[:title].presence || File.basename(pdf_path, ".pdf")
+output_dir = options[:output_dir].presence || File.expand_path("~/Downloads/#{title}")
+
+Ebook::LocalExportWorker.new(
+  pdf_path: pdf_path,
+  output_dir: output_dir,
+  title: title,
+  source_filename: File.basename(pdf_path),
+  export_epub: options[:export_epub],
+  epub_output: options[:epub_output]
+).call

@@ -27,7 +27,10 @@ RSpec.describe "API V1 Users", type: :request do
       it "返回参数错误" do
         post "/api/users/send_code", params: { phone: "123" }
 
-        expect(json_response[:code]).not_to eq(0)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("手机号格式不正确")
+        expect(json_response[:response][:data]).to be_nil
       end
     end
 
@@ -61,7 +64,9 @@ RSpec.describe "API V1 Users", type: :request do
       it "返回错误信息" do
         post "/api/users/login_by_code", params: { phone: "13800138000", code: "9999" }
 
-        expect(json_response[:code]).not_to eq(0)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
       end
     end
 
@@ -86,7 +91,9 @@ RSpec.describe "API V1 Users", type: :request do
 
         post "/api/users/login_by_code", params: { phone: "13700137000", code: "4321" }
 
-        expect(json_response[:code]).not_to eq(0)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
       end
     end
   end
@@ -109,7 +116,9 @@ RSpec.describe "API V1 Users", type: :request do
       it "返回认证失败" do
         post "/api/users/login_by_password", params: { phone: user.phone, password: "wrong_password" }
 
-        expect(json_response[:code]).not_to eq(0)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("手机号或密码错误")
       end
     end
 
@@ -117,7 +126,9 @@ RSpec.describe "API V1 Users", type: :request do
       it "返回错误" do
         post "/api/users/login_by_password", params: { phone: "19900001111", password: "password123" }
 
-        expect(json_response[:code]).not_to eq(0)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("手机号或密码错误")
       end
     end
   end
@@ -146,6 +157,32 @@ RSpec.describe "API V1 Users", type: :request do
 
       expect(json_response[:code]).to eq(0)
       expect(json_response[:data][:token]).to be_present
+    end
+
+    context "验证码错误" do
+      it "返回错误信息" do
+        post "/api/users/reset_password", params: {
+          phone: user.phone, code: "0000", password: "new_password456"
+        }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
+      end
+    end
+
+    context "验证码已过期" do
+      it "返回错误信息" do
+        expired_sms = create(:sms_verification, :expired, phone: "13600136000", code: "7777")
+
+        post "/api/users/reset_password", params: {
+          phone: "13600136000", code: "7777", password: "new_password456"
+        }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
+      end
     end
   end
 

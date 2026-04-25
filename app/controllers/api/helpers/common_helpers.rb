@@ -23,12 +23,17 @@ module Api
       # 错误响应
       # @param code [Integer] 错误代码
       # @param message [String] 错误消息
-      def err_response(code: 1001, message: "error")
+      def err_response(code, message)
         {
           code: code,
           message: message,
           data: nil
         }
+      end
+
+      # 错误弹窗
+      def error_pop_resp(message)
+        error!({ response: err_response(ERR_CODE[:POP_UP], message) }, 200)
       end
 
       # 分页响应
@@ -79,6 +84,11 @@ module Api
         sign_params = params.except(:sign, :access_key_id, :route_info).sort.map { |k, v| "#{k}=#{v}" }.join("&")
         Digest::SHA1.hexdigest("#{sign_params}&secret=#{secret}")
       end
+
+      ERR_CODE = {
+        POP_UP: 1001,
+        UN_AUTH: 1002
+      }.freeze
     end
   end
 end

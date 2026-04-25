@@ -19,7 +19,7 @@ module Api
 
             # 验证手机号格式
             unless phone.match?(/\A1[3-9]\d{9}\z/)
-              return err_response(code: 1002, message: "手机号格式不正确")
+              error_pop_resp("手机号格式不正确")
             end
 
             # 生成4位随机验证码
@@ -56,7 +56,7 @@ module Api
                                           .first
 
             if verification.nil?
-              return err_response(code: 1002, message: "验证码无效或已过期")
+              error_pop_resp("验证码无效或已过期")
             end
 
             # 标记验证码为已使用
@@ -92,7 +92,7 @@ module Api
             user = User.find_by(phone: params[:phone])
 
             if user.nil? || !user.authenticate(params[:password])
-              return err_response(code: 1001, message: "手机号或密码错误")
+              error_pop_resp("手机号或密码错误")
             end
 
             success_response({
@@ -124,7 +124,7 @@ module Api
                                           .first
 
             if verification.nil?
-              return err_response(code: 1002, message: "验证码无效或已过期")
+              error_pop_resp("验证码无效或已过期")
             end
 
             verification.mark_verified!

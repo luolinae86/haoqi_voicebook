@@ -14,6 +14,8 @@ gem "bcrypt", "~> 3.1"
 gem "httparty"
 gem "kaminari"
 gem "kamal"
+gem "pdf-reader", "~> 2.15"
+gem "rubyzip", "~> 2.3"
 
 group :development, :test do
   gem "rspec-rails"
@@ -25,6 +27,8 @@ group :development, :test do
 end
 
 group :test do
+  gem "matrix"
   gem "webmock"
   gem "timecop"
+  gem "prawn"
 end

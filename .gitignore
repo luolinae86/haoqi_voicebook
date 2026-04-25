@@ -13,6 +13,8 @@
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
+/coverage/*
+/public/system/*
 !/log/.keep
 !/tmp/.keep
 
@@ -26,4 +28,3 @@
 .idea/
 # Ignore key files for decrypting credentials and more.
 /config/*.key
-
