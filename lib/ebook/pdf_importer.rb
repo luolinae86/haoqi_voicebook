@@ -49,7 +49,7 @@ module Ebook
             current_directory: current_directory,
             renderer: renderer
           )
-          plain_text = content[:text]
+          plain_text = sanitize_text(content[:text])
           word_count = count_words(plain_text)
 
           @book.ebook_pages.create!(
@@ -57,7 +57,7 @@ module Ebook
             page_width: page.width,
             page_height: page.height,
             plain_text: plain_text,
-            rich_content: content,
+            rich_content: sanitize_content(content),
             word_count: word_count,
             block_count: content[:lines].size + content[:images].size,
             image_count: content[:images].size
@@ -81,7 +81,7 @@ module Ebook
 
       @book
     rescue StandardError => e
-      @book.update!(import_status: :failed, import_error_message: e.message) if @book.persisted?
+      @book.update!(import_status: :failed, import_error_message: sanitize_text(e.message)) if @book.persisted?
       raise
     ensure
       renderer&.close if defined?(renderer) && renderer.respond_to?(:close)
@@ -519,6 +519,29 @@ module Ebook
         right: (left + width).round(2),
         top: (bottom + height).round(2)
       }
+    end
+
+    def sanitize_text(text)
+      return text if text.blank?
+
+      text.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?")
+    end
+
+    def sanitize_content(content)
+      return content unless content.is_a?(Hash)
+
+      content.transform_values do |v|
+        case v
+        when String
+          sanitize_text(v)
+        when Hash
+          sanitize_content(v)
+        when Array
+          v.map { |item| item.is_a?(Hash) ? sanitize_content(item) : item }
+        else
+          v
+        end
+      end
     end
 
     def median(values)
