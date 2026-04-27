@@ -124,7 +124,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
 
 # 2. 安装基础包
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl default-mysql-client libjemalloc2 && \
+    apt-get install --no-install-recommends -y curl default-mysql-client libjemalloc2 poppler-utils && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
@@ -212,6 +212,29 @@ kamal deploy
 6. **清理旧容器** - 自动清理旧的容器和镜像
 
 ## 五、常见问题与解决方案
+
+### 5.0 Ubuntu 部署时 PDF->EPUB 渲染器报错
+
+**症状：**
+
+- 启动时报 `lib/ebook/page_image_renderer.rb` 加载 CoreGraphics 失败
+- 或者 EPUB 能部署成功，但标题裁图 / 整页渲染 / 扫描版整页图像缺失
+
+**原因：**
+
+- Linux 没有 macOS 的 CoreGraphics 框架
+- 当前项目在 Ubuntu 上要靠 `pdftocairo` 来做 PDF 页面裁图和整页渲染
+
+**解决：**
+
+1. 确保镜像里安装了 `poppler-utils`
+2. 保持 `EBOOK_PDF_RENDERER_BACKEND=auto` 或显式设置为 `pdftocairo`
+3. 如果想让本地 macOS 和 Ubuntu 的裁图结果更一致，本地也安装 `poppler`
+
+**说明：**
+
+- 现在代码已经改成延迟加载 CoreGraphics，不会再因为 Linux 缺少该库而在 boot 阶段直接崩溃
+- Dockerfile 的基础依赖里必须保留 `poppler-utils`
 
 ### 5.1 `deb.debian.org` 连接失败
 

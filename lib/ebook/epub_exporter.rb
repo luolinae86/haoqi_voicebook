@@ -1144,7 +1144,7 @@ require_relative "page_image_renderer"
     end
 
     def full_page_rendered_image?(image, bbox)
-      image["source_filter"].to_s == "QuartzPageRender" &&
+      PageImageRenderer::RENDER_FILTERS.include?(image["source_filter"].to_s) &&
         dimension(bbox["left"]).zero? &&
         dimension(bbox["bottom"]).zero? &&
         dimension(bbox["width"]).positive? &&

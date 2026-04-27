@@ -119,7 +119,7 @@ bundle exec rake ebooks:build_epub \
       "id": "image-3-1",
       "role": "hero_image",
       "image_url": "/system/ebooks/book_1/page_3/image_1.png",
-      "source_filter": "QuartzPageRender"
+      "source_filter": "PdftocairoPageRender"
     }
   ],
   "directory": {
@@ -133,6 +133,42 @@ bundle exec rake ebooks:build_epub \
 ```
 
 ## 本地调试方式
+
+## 跨平台渲染要求
+
+页面包里的**标题裁图**、**整页渲染**、**扫描版整页图像导出**都依赖 `PageImageRenderer`。
+
+当前标准后端策略是：
+
+- **Ubuntu / Debian / Linux**：使用 `pdftocairo`
+- **macOS**：优先使用 `pdftocairo`；如果本机没有安装 poppler，再回退到 CoreGraphics
+
+这样做的原因是：
+
+- Linux 上没有 CoreGraphics，不能在类加载时直接绑定 macOS 框架
+- `pdftocairo` 是 Ubuntu 上稳定可部署的 PDF 渲染后端
+- 如果 macOS 和 Ubuntu 都装了 `pdftocairo`，标题裁图和整页渲染结果会更一致
+
+推荐依赖：
+
+- **Ubuntu / Debian**：`apt-get install poppler-utils`
+- **macOS**：`brew install poppler`
+
+可选环境变量：
+
+```bash
+EBOOK_PDF_RENDERER_BACKEND=auto
+EBOOK_PDF_RENDERER_BACKEND=pdftocairo
+EBOOK_PDF_RENDERER_BACKEND=core_graphics
+```
+
+说明：
+
+- `auto`：优先 `pdftocairo`，其次 macOS CoreGraphics
+- `pdftocairo`：强制走 poppler
+- `core_graphics`：只在 macOS 上有效；Ubuntu 上不会可用
+
+部署到 Ubuntu 时，标准做法是直接让服务和本地都尽量走 `pdftocairo`。
 
 ### 方式一：worker（直接传入 PDF 路径）
 
@@ -154,6 +190,7 @@ bin/ebook_worker /Users/luolin/Downloads/生肖守护神book.pdf \
 - 生成 EPUB 时，当前实现会**先写出 `manifest.json + pages + assets`，再从这份导出包反向构建 EPUB**。
 - 生成 EPUB 时会优先从**源 PDF 内嵌字体**里提取真实字体文件，再打进 `EPUB/fonts/*`，尽量保持和 PDF 一样的字形。
 - 如果能拿到源 PDF，章节标题会优先直接从 PDF 页面按标题 bbox 裁成图片，并在 EPUB 中作为标题层显示；正文仍保持文字层。
+- 如果 PDF 页面本身没有可提取文字层，则会直接把整页渲染成一张图片，保留图片里的正文、目录框文字和页码。
 
 ### 方式二：Rake
 

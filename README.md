@@ -51,3 +51,10 @@ bin/ebook_worker /path/to/book.pdf --skip-epub
 4. 如果提供源 PDF 路径，EPUB 会额外：
    - 提取 PDF 内嵌字体；
    - 将标题区域直接从 PDF 裁成图片，保证标题字形和 PDF 一致。
+
+跨平台说明：
+
+- **Ubuntu / Debian**：需要安装 `poppler-utils`，项目会用 `pdftocairo` 做 PDF 页面裁图和整页渲染。
+- **macOS**：优先使用 `pdftocairo`；如果本机没装 poppler，则回退到 CoreGraphics。
+- 如果希望 macOS 和 Ubuntu 的页面裁图结果尽量一致，推荐在 macOS 也安装 `poppler`，让两边都走 `pdftocairo`。
+- 可用环境变量 `EBOOK_PDF_RENDERER_BACKEND=auto|pdftocairo|core_graphics` 指定渲染后端。

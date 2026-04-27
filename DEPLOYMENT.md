@@ -25,6 +25,9 @@ rvm use 3.3.0
 brew install mysql
 brew services start mysql
 
+# 为了让本地 PDF->EPUB 裁图结果尽量与 Ubuntu 一致，推荐安装 poppler
+brew install poppler
+
 # Docker (可选，用于容器化运行)
 # 下载 Docker Desktop: https://www.docker.com/products/docker-desktop
 ```
@@ -87,6 +90,11 @@ docker build -t voicebook:latest .
 # 查看构建结果
 docker images | grep voicebook
 ```
+
+说明：
+
+- 生产镜像里需要 `poppler-utils`
+- 项目在 Ubuntu / Debian 上使用 `pdftocairo` 完成 PDF 页面裁图、标题裁图和扫描版整页渲染
 
 ### 2.2 使用 Docker Compose 运行
 

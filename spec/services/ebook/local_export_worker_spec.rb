@@ -154,7 +154,7 @@ RSpec.describe Ebook::LocalExportWorker do
         "type" => "image",
         "image_url" => "/system/ebooks/book_1/page_2/image_1.png",
         "mime_type" => "image/png",
-        "source_filter" => "QuartzPageRender"
+        "source_filter" => Ebook::PageImageRenderer::PDFTOCAIRO_FILTER
       }
     ]
     File.write(page_file, JSON.pretty_generate(payload))
@@ -1047,7 +1047,7 @@ RSpec.describe Ebook::LocalExportWorker do
         "type" => "image",
         "image_url" => "/system/ebooks/book_1/page_2/image_1.png",
         "mime_type" => "image/png",
-        "source_filter" => "QuartzPageRender"
+        "source_filter" => Ebook::PageImageRenderer::PDFTOCAIRO_FILTER
       }
     ]
     File.write(page_file, JSON.pretty_generate(payload))
