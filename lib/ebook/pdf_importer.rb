@@ -97,14 +97,15 @@ module Ebook
         directory_map: directory_map,
         current_directory: current_directory
       )
-      overlay_image = text_over_image_page_candidate(page, receiver.image_runs, text_content[:lines])
-      export_text_content = overlay_image ? { text: "", lines: [] } : text_content
+      page_render_image = image_only_page_candidate(page, text_content[:lines], renderer) ||
+        text_over_image_page_candidate(page, receiver.image_runs, text_content[:lines])
+      export_text_content = page_render_image ? { text: "", lines: [] } : text_content
       images = build_image_blocks(
         page,
-        overlay_image ? [overlay_image] : receiver.image_runs,
+        page_render_image ? [page_render_image] : receiver.image_runs,
         renderer: renderer,
         text_lines: text_content[:lines],
-        selected_images: overlay_image ? [overlay_image] : nil
+        selected_images: page_render_image ? [page_render_image] : nil
       )
 
       [{
@@ -477,6 +478,18 @@ module Ebook
       return 0.0 unless near_full_page?(image[:visible_box], page.width, page.height)
 
       Ebook::PageImageRenderer::DEFAULT_RIGHT_BLEED
+    end
+
+    def image_only_page_candidate(page, text_lines, renderer)
+      return unless text_lines.blank?
+      return unless renderer_available?(renderer)
+
+      {
+        visible_box: { left: 0.0, bottom: 0.0, width: page.width, height: page.height },
+        force_render: true,
+        image_mask: false,
+        image_only_page: true
+      }
     end
 
     def text_over_image_page_candidate(page, image_runs, text_lines)

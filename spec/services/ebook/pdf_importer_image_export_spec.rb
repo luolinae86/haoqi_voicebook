@@ -82,4 +82,47 @@ RSpec.describe Ebook::PdfImporter do
     expect(exporter).to have_received(:export_rendered).once
     expect(exporter).not_to have_received(:export)
   end
+
+  it "renders a full-page image when the page has no extractable text" do
+    receiver = instance_double(Ebook::PdfPageReceiver, runs: [], image_runs: [build_image(mask: false)])
+    allow(exporter).to receive(:export_rendered).and_return(
+      image_url: "/system/test/page_8/image_1.png",
+      mime_type: "image/png",
+      image_width: 428,
+      image_height: 612,
+      filter: "QuartzPageRender"
+    )
+
+    content, = importer.send(
+      :build_content,
+      page,
+      receiver,
+      directory_map: {},
+      current_directory: nil,
+      renderer: renderer
+    )
+
+    expect(content[:text]).to eq("")
+    expect(content[:lines]).to eq([])
+    expect(content[:images].size).to eq(1)
+    expect(content.dig(:images, 0, :bbox)).to eq(
+      left: 0.0,
+      bottom: 0.0,
+      width: 428.03,
+      height: 612.28,
+      right: 428.03,
+      top: 612.28
+    )
+    expect(renderer).to have_received(:render_crop).with(
+      hash_including(
+        page_number: 8,
+        page_width: 428.03,
+        page_height: 612.28,
+        bbox: { left: 0.0, bottom: 0.0, width: 428.03, height: 612.28 },
+        right_bleed: Ebook::PageImageRenderer::DEFAULT_RIGHT_BLEED
+      )
+    )
+    expect(exporter).to have_received(:export_rendered).once
+    expect(exporter).not_to have_received(:export)
+  end
 end

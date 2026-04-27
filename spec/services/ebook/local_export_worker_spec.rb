@@ -125,6 +125,57 @@ RSpec.describe Ebook::LocalExportWorker do
     end
   end
 
+  it "keeps full-page rendered image pages as image-only epub pages" do
+    described_class.new(
+      pdf_path: files[:pdf].path,
+      output_dir: output_dir,
+      title: "Worker Export Book",
+      source_filename: "worker-export.pdf"
+    ).call
+
+    page_file = output_dir.join("pages/page-0002.json")
+    payload = JSON.parse(File.read(page_file))
+    payload["page_width"] = "428.03"
+    payload["page_height"] = "220.0"
+    payload["text"] = ""
+    payload["lines"] = []
+    payload["images"] = [
+      {
+        "id" => "image-2-1",
+        "bbox" => {
+          "top" => 220.0,
+          "left" => 0.0,
+          "right" => 428.03,
+          "width" => 428.03,
+          "bottom" => 0.0,
+          "height" => 220.0
+        },
+        "role" => "hero_image",
+        "type" => "image",
+        "image_url" => "/system/ebooks/book_1/page_2/image_1.png",
+        "mime_type" => "image/png",
+        "source_filter" => "QuartzPageRender"
+      }
+    ]
+    File.write(page_file, JSON.pretty_generate(payload))
+
+    source_asset = Dir[output_dir.join("assets/*").to_s].first
+    FileUtils.cp(source_asset, output_dir.join("assets/2-image_1#{File.extname(source_asset)}")) if source_asset
+
+    epub_path = output_dir.join("image-only-page.epub")
+    Ebook::EpubExporter.new(package_dir: output_dir, output_path: epub_path).call
+
+    Zip::File.open(epub_path.to_s) do |zip|
+      page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
+
+      expect(page_xhtml).to include('meta name="viewport" content="width=492.03,height=220.0"')
+      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 0.0px;"')
+      expect(page_xhtml).to include('class="page-image-layer"')
+      expect(page_xhtml).to include('left: 0.0px; top: 0.0px; width: 492.03px; height: 220.0px;')
+      expect(page_xhtml).not_to include('class="page-text-layer')
+    end
+  end
+
   it "embeds extracted pdf fonts into epub and binds text layers to them" do
     described_class.new(
       pdf_path: files[:pdf].path,
