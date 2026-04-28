@@ -8,7 +8,8 @@ options = {
   output_dir: nil,
   title: nil,
   export_epub: true,
-  epub_output: nil
+  epub_output: nil,
+  force_image_pages: false
 }
 
 parser = OptionParser.new do |opts|
@@ -24,6 +25,10 @@ parser = OptionParser.new do |opts|
 
   opts.on("--epub-output FILE", "指定 EPUB 输出文件路径，默认 <output-dir>/<title>.epub") do |value|
     options[:epub_output] = value
+  end
+
+  opts.on("--force-image-pages", "强制按整页图片模式导出 EPUB（保留目录映射）") do
+    options[:force_image_pages] = true
   end
 
   opts.on("--skip-epub", "只导出 JSON/图片调试包，不生成 EPUB") do
@@ -44,5 +49,6 @@ Ebook::LocalExportWorker.new(
   title: title,
   source_filename: File.basename(pdf_path),
   export_epub: options[:export_epub],
-  epub_output: options[:epub_output]
+  epub_output: options[:epub_output],
+  force_image_pages: options[:force_image_pages]
 ).call

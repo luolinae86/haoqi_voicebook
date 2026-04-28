@@ -32,6 +32,30 @@ bin/ebook_worker /绝对路径/你的书.pdf \
 2. 生成中间页面包：`manifest.json + pages/*.json + assets/*`。
 3. 再根据页面包构建 fixed-layout EPUB。
 
+如果是**复杂但未转曲**的 PDF，希望直接按整页图片导出，以避免拼音、复杂排版或多层文本影响还原质量，可加：
+
+```bash
+bin/ebook_worker /绝对路径/你的书.pdf \
+  --title "书名" \
+  --output-dir ~/Downloads/书名 \
+  --epub-output ~/Downloads/书名.epub \
+  --force-image-pages
+```
+
+当前模式约定：
+
+1. **纯图片 / 转曲 PDF**：自动按整页图片导出。
+2. **普通未转曲 PDF**：按原有文字层 + 图片层导出。
+3. **复杂未转曲 PDF**：显式传 `--force-image-pages`，页面内容改为整页图片，但目录仍沿用 PDF 原生文字提取结果。
+
+`--force-image-pages` 的固定规则：
+
+- 整页图片按 PDF 的**可见页框**导出，优先使用 `CropBox`，其次 `TrimBox` / `ArtBox`，不会错误抓取 `MediaBox` 的跨页底板。
+- 导出的 page JSON / XHTML viewport 会使用这个可见页框尺寸，而不是扩宽后的画布尺寸。
+- 对于整本都由整页渲染图组成的 EPUB，会写入 `rendition:spread = none`，避免阅读器把横页自动按双页展开。
+- 整页图片页会把关键 fixed-layout 样式直接内联到每个 XHTML 页里（包括 body/canvas/frame/image 的定位与 overflow 规则），减少阅读器先按默认样式渲染、再闪一下纠正的情况。
+- 整页图片页最终使用 **SVG 固定画布** 承载页面图像，而不是普通 HTML `img` 直接铺版；这样阅读器第一次布局时就能拿到最终页面尺寸，减少图片先局部放大、再回落到整页的闪动。
+
 输出结果：
 
 ```text
@@ -68,6 +92,11 @@ bundle exec rake ebooks:build_epub \
 - API：`POST /api/books/import_pdf`
 - Rake：`bundle exec rake ebooks:import PDF_PATH=/path/to/book.pdf`
 - 本地 worker：`bin/ebook_worker /path/to/book.pdf`
+
+其中：
+
+- API `POST /api/books/import_pdf` 支持 `force_image_pages=true`
+- 本地 worker 支持 `--force-image-pages`
 
 核心类：
 

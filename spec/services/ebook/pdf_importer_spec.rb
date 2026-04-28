@@ -58,4 +58,36 @@ RSpec.describe Ebook::PdfImporter do
     expect(page_renderer).not_to have_received(:render_crop)
     expect(File).to exist(Rails.root.join("public", image_block[:image_url].delete_prefix("/")))
   end
+
+  it "can force native pdf pages to export as full-page images while keeping the chapter directory" do
+    described_class.new(
+      book: book,
+      pdf_path: files[:pdf].path,
+      source_filename: "sample-ebook.pdf",
+      storage_root: storage_root,
+      page_renderer: page_renderer,
+      force_image_pages: true
+    ).call
+
+    book.reload
+    first_page = book.ebook_pages.find_by!(page_number: 1)
+    content = first_page.rich_content.deep_symbolize_keys
+
+    expect(content[:text]).to eq("")
+    expect(content[:lines]).to eq([])
+    expect(content[:directory]).to include(title: "Chapter 1 Luminous Badge")
+    expect(content[:images]).to contain_exactly(
+      hash_including(
+        role: "hero_image",
+        mime_type: "image/png",
+        bbox: hash_including(
+          left: 0.0,
+          bottom: 0.0,
+          right: be > 0,
+          top: be > 0
+        )
+      )
+    )
+    expect(page_renderer).to have_received(:render_crop).at_least(:once)
+  end
 end

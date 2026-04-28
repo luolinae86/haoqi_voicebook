@@ -22,6 +22,7 @@ module Api
             optional :grade_id, type: Integer, desc: "年级ID"
             optional :is_free, type: Boolean, desc: "是否免费"
             optional :is_vip, type: Boolean, desc: "是否VIP"
+            optional :force_image_pages, type: Boolean, desc: "是否强制按整页图片模式导入"
             requires :pdf, type: File, desc: "PDF 文件"
           end
           post :import_pdf do
@@ -42,7 +43,8 @@ module Api
             Ebook::PdfImporter.new(
               book: book,
               pdf_path: upload[:tempfile].path,
-              source_filename: filename
+              source_filename: filename,
+              force_image_pages: params[:force_image_pages] == true
             ).call
 
             status 200

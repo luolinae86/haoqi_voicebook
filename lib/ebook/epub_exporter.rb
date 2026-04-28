@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "cgi"
+require "base64"
 require "digest"
 require "fileutils"
 require "json"
@@ -141,6 +142,7 @@ require_relative "page_image_renderer"
       visible_text_lines ||= visible_lines(page, original_width)
       width = effective_page_width(page, original_width)
       adjusted_images = adjusted_images_for_page(page, visible_text_lines, width)
+      image_only_page = full_page_image_page?(page, visible_text_lines, adjusted_images)
       body = page_layers(
         page,
         width,
@@ -148,7 +150,8 @@ require_relative "page_image_renderer"
         visible_text_lines,
         adjusted_images,
         page_frame_padding(page, width, original_width),
-        title_image_assets
+        title_image_assets,
+        image_only_page
       )
 
       <<~HTML
@@ -158,10 +161,11 @@ require_relative "page_image_renderer"
           <head>
             <title>#{escape_html(page_title(page))}</title>
             <meta name="viewport" content="width=#{width},height=#{original_height}"/>
+            <style type="text/css">#{critical_page_css(image_only_page)}</style>
             <link rel="stylesheet" type="text/css" href="../styles/book.css"/>
           </head>
-          <body class="fixed-layout-page">
-            <section class="page-canvas" style="width: #{css_px(width)}; height: #{css_px(original_height)};">
+          <body class="fixed-layout-page" style="#{body_inline_style(image_only_page)}">
+            <section class="page-canvas" style="#{page_canvas_inline_style(width, original_height, image_only_page)}">
               #{body}
             </section>
           </body>
@@ -169,8 +173,17 @@ require_relative "page_image_renderer"
       HTML
     end
 
-    def page_layers(page, page_width, page_height, visible_text_lines = nil, images = nil, frame_padding = 0.0, title_image_assets = {})
-      image_layers = Array(images || page["images"]).map do |image|
+    def page_layers(page, page_width, page_height, visible_text_lines = nil, images = nil, frame_padding = 0.0, title_image_assets = {}, image_only_page = false)
+      current_images = Array(images || page["images"])
+      if image_only_page && title_image_assets.empty? && Array(visible_text_lines || page["lines"]).empty? && current_images.size == 1
+        return <<~HTML
+          <div class="page-content-frame" style="#{page_content_frame_inline_style(frame_padding, image_only_page)}">
+            #{full_page_image_svg_layer(page["page_number"], current_images.first, page_width, page_height)}
+          </div>
+        HTML
+      end
+
+      image_layers = current_images.map do |image|
         image_layer(page["page_number"], image, page_width, page_height)
       end
       title_layers = title_image_assets.values.map { |asset| title_image_layer(asset, page_height) }
@@ -185,7 +198,7 @@ require_relative "page_image_renderer"
       end
 
       <<~HTML
-        <div class="page-content-frame" style="padding: 0 #{css_px(frame_padding)};">
+        <div class="page-content-frame" style="#{page_content_frame_inline_style(frame_padding, image_only_page)}">
           #{(image_layers + title_layers + text_layers).join("\n")}
         </div>
       HTML
@@ -203,7 +216,23 @@ require_relative "page_image_renderer"
 
       <<~HTML.strip
         <img class="page-image-layer" src="../images/#{escape_html(asset.basename.to_s)}" alt="page #{page_number} image"
-             style="left: #{css_px(left)}; top: #{css_px(top)}; width: #{css_px(width)}; height: #{css_px(height)};"/>
+             style="left: #{css_px(left)}; top: #{css_px(top)}; width: #{css_px(width)}; height: #{css_px(height)}; position: absolute; display: block; margin: 0; padding: 0; border: 0; max-width: none; max-height: none;"/>
+      HTML
+    end
+
+    def full_page_image_svg_layer(page_number, image, page_width, page_height)
+      asset = package_asset_for(page_number, image)
+      return "" unless asset&.exist?
+
+      # Use <img> with explicit dimensions instead of SVG.
+      # SVG with percentage sizing (width: 100%; height: 100%) causes EPUB readers
+      # to initially render at the wrong scale, resulting in a zoomed-in "flash"
+      # before CSS constrains the layout. <img> with explicit width/height attributes
+      # gives readers the correct dimensions from the start, eliminating the flicker.
+      href = "../images/#{escape_html(asset.basename.to_s)}"
+      <<~HTML.strip
+        <img class="page-full-image" src="#{href}" alt="page #{page_number}"
+             style="display: block; width: #{dimension(page_width)}px; height: #{dimension(page_height)}px; object-fit: fill; object-position: 0 0;"/>
       HTML
     end
 
@@ -214,8 +243,36 @@ require_relative "page_image_renderer"
 
       <<~HTML.strip
         <img class="page-title-image" src="../images/#{escape_html(asset.fetch(:filename))}" alt="#{escape_html(asset.fetch(:alt).to_s)}"
-             style="left: #{css_px(left)}; top: #{css_px(top)}; width: #{css_px(bbox[:width])}; height: #{css_px(bbox[:height])};"/>
+             style="left: #{css_px(left)}; top: #{css_px(top)}; width: #{css_px(bbox[:width])}; height: #{css_px(bbox[:height])}; position: absolute; display: block; margin: 0; padding: 0; border: 0; max-width: none; max-height: none;"/>
       HTML
+    end
+
+    def critical_page_css(image_only_page)
+      overflow = image_only_page ? "hidden" : "visible"
+
+      [
+        "html,body{margin:0;padding:0;background:#ffffff;width:100%;height:100%;overflow:#{overflow};}",
+        "body.fixed-layout-page{width:100%;height:100%;overflow:#{overflow};}",
+        ".page-canvas{position:relative;margin:0 auto;background:#ffffff;overflow:#{overflow};}",
+        ".page-content-frame{position:relative;box-sizing:border-box;width:100%;height:100%;overflow:#{overflow};}",
+        ".page-image-layer,.page-title-image{position:absolute;display:block;margin:0;padding:0;border:0;max-width:none;max-height:none;}",
+        ".page-full-image{display:block;margin:0;padding:0;border:0;max-width:none;max-height:none;}"
+      ].join
+    end
+
+    def body_inline_style(image_only_page)
+      overflow = image_only_page ? "hidden" : "visible"
+      "margin: 0; padding: 0; background: #ffffff; width: 100%; height: 100%; overflow: #{overflow};"
+    end
+
+    def page_canvas_inline_style(page_width, page_height, image_only_page)
+      overflow = image_only_page ? "hidden" : "visible"
+      "width: #{css_px(page_width)}; height: #{css_px(page_height)}; position: relative; overflow: #{overflow}; margin: 0 auto; background: #ffffff;"
+    end
+
+    def page_content_frame_inline_style(frame_padding, image_only_page)
+      overflow = image_only_page ? "hidden" : "visible"
+      "padding: 0 #{css_px(frame_padding)}; position: relative; box-sizing: border-box; width: 100%; height: 100%; overflow: #{overflow};"
     end
 
     def line_layer(line, page_height, page_width)
@@ -686,7 +743,7 @@ require_relative "page_image_renderer"
     end
 
     def page_right_padding(page)
-      return DEFAULT_RIGHT_PAGE_PADDING if Array(page["images"]).any? { |image| full_page_rendered_image?(image, image["bbox"] || {}) }
+      return 0.0 if Array(page["images"]).any? { |image| full_page_rendered_image?(image, image["bbox"] || {}) }
 
       DEFAULT_READER_SAFE_SIDE_PADDING
     end
@@ -943,6 +1000,7 @@ require_relative "page_image_renderer"
         %(    <item id="#{item[:id]}" href="#{item[:href]}" media-type="#{item[:media_type]}"#{properties}/>)
       end.join("\n")
       spine_xml = spine_items.map { |id| %(    <itemref idref="#{id}"/>) }.join("\n")
+      spread_mode = full_page_image_book? ? "none" : "auto"
 
       <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
@@ -955,7 +1013,7 @@ require_relative "page_image_renderer"
             <meta property="dcterms:modified">#{Time.current.utc.strftime("%Y-%m-%dT%H:%M:%SZ")}</meta>
             <meta property="rendition:layout">pre-paginated</meta>
             <meta property="rendition:orientation">auto</meta>
-            <meta property="rendition:spread">auto</meta>
+            <meta property="rendition:spread">#{spread_mode}</meta>
           </metadata>
           <manifest>
         #{manifest_xml}
@@ -1017,6 +1075,10 @@ require_relative "page_image_renderer"
           position: absolute;
           display: block;
           z-index: 3;
+        }
+
+        .page-full-image {
+          display: block;
         }
 
         .page-text-layer {
@@ -1149,6 +1211,18 @@ require_relative "page_image_renderer"
         dimension(bbox["bottom"]).zero? &&
         dimension(bbox["width"]).positive? &&
         dimension(bbox["height"]).positive?
+    end
+
+    def full_page_image_page?(page, visible_text_lines = nil, images = nil)
+      Array(visible_text_lines || page["lines"]).empty? &&
+        page["text"].to_s.blank? &&
+        Array(images || page["images"]).any? { |image| full_page_rendered_image?(image, image["bbox"] || {}) }
+    end
+
+    def full_page_image_book?
+      Array(@pages).present? && Array(@pages).all? do |page|
+        full_page_image_page?(page)
+      end
     end
 
     def dimension(value)

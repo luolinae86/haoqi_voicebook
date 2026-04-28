@@ -119,10 +119,122 @@ RSpec.describe Ebook::PdfImporter do
         page_width: 428.03,
         page_height: 612.28,
         bbox: { left: 0.0, bottom: 0.0, width: 428.03, height: 612.28 },
-        right_bleed: Ebook::PageImageRenderer::DEFAULT_RIGHT_BLEED
+        right_bleed: 0.0
       )
     )
     expect(exporter).to have_received(:export_rendered).once
     expect(exporter).not_to have_received(:export)
+  end
+
+  it "forces a full-page image while preserving heading-derived directory mapping" do
+    receiver = instance_double(Ebook::PdfPageReceiver, runs: [:ignored], image_runs: [])
+    allow(importer).to receive(:build_text_content).and_return(
+      text: "[TITLE] Chapter 8 Hidden Forest\n[BODY] This text is kept only for TOC mapping.\n",
+      lines: [
+        {
+          id: "line-8-1",
+          role: "heading",
+          text: "Chapter 8 Hidden Forest",
+          style: { font_family: "SpecHeading" }
+        }
+      ]
+    )
+    allow(exporter).to receive(:export_rendered).and_return(
+      image_url: "/system/test/page_8/full-page.png",
+      mime_type: "image/png",
+      image_width: 428,
+      image_height: 612,
+      filter: "QuartzPageRender"
+    )
+
+    content, directory = importer.send(
+      :build_content,
+      page,
+      receiver,
+      directory_map: {},
+      current_directory: nil,
+      renderer: renderer,
+      force_image_pages: true
+    )
+
+    expect(content[:text]).to eq("")
+    expect(content[:lines]).to eq([])
+    expect(content[:images]).to contain_exactly(
+      hash_including(
+        role: "hero_image",
+        image_url: "/system/test/page_8/full-page.png",
+        bbox: {
+          left: 0.0,
+          bottom: 0.0,
+          width: 428.03,
+          height: 612.28,
+          right: 428.03,
+          top: 612.28
+        }
+      )
+    )
+    expect(directory).to include(
+      title: "Chapter 8 Hidden Forest",
+      start_page_number: 8,
+      source: "heading"
+    )
+    expect(exporter).to have_received(:export_rendered).once
+  end
+
+  it "renders forced full-page images against the visible crop box instead of the media box" do
+    crop_page = instance_double(
+      "PDF::Reader::Page",
+      number: 1,
+      width: 1457.01,
+      height: 595.276,
+      objects: {},
+      attributes: { CropBox: [745.512, 0.0, 1457.01, 595.276] }
+    )
+    receiver = instance_double(Ebook::PdfPageReceiver, runs: [:ignored], image_runs: [])
+    allow(importer).to receive(:build_text_content).and_return(
+      text: "[TITLE] 封面\n",
+      lines: [{ id: "line-1-1", role: "heading", text: "封面" }]
+    )
+    allow(exporter).to receive(:export_rendered).and_return(
+      image_url: "/system/test/page_1/full-page.png",
+      mime_type: "image/png",
+      image_width: 1423,
+      image_height: 1191,
+      filter: "QuartzPageRender"
+    )
+
+    content, = importer.send(
+      :build_content,
+      crop_page,
+      receiver,
+      directory_map: {},
+      current_directory: nil,
+      renderer: renderer,
+      force_image_pages: true
+    )
+
+    expect(content[:text]).to eq("")
+    expect(content[:images]).to contain_exactly(
+      hash_including(
+        image_url: "/system/test/page_1/full-page.png",
+        bbox: {
+          left: 0.0,
+          bottom: 0.0,
+          width: 711.5,
+          height: 595.28,
+          right: 711.5,
+          top: 595.28
+        }
+      )
+    )
+    expect(renderer).to have_received(:render_crop).with(
+      hash_including(
+        page_number: 1,
+        page_width: 1457.01,
+        page_height: 595.276,
+        bbox: { left: 745.512, bottom: 0.0, width: 711.498, height: 595.276 },
+        right_bleed: 0.0
+      )
+    )
   end
 end

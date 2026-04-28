@@ -15,13 +15,15 @@ module Ebook
     def initialize(book:, pdf_path:, source_filename: nil,
                    public_root: Rails.root.join("public"),
                    storage_root: Rails.root.join("public/system/ebooks"),
-                   page_renderer: nil)
+                   page_renderer: nil,
+                   force_image_pages: false)
       @book = book
       @pdf_path = Pathname.new(pdf_path.to_s)
       @source_filename = source_filename.presence || @pdf_path.basename.to_s
       @public_root = Pathname.new(public_root.to_s)
       @storage_root = Pathname.new(storage_root.to_s).join("book_#{book.id || 'new'}")
       @page_renderer = page_renderer
+      @force_image_pages = force_image_pages == true
     end
 
     def call
@@ -30,6 +32,7 @@ module Ebook
       @book.update!(import_status: :processing, import_error_message: nil)
       reader = PDF::Reader.new(@pdf_path.to_s)
       renderer = @page_renderer || PageImageRenderer.new(pdf_path: @pdf_path)
+      force_image_pages = page_image_mode?(reader)
       toc_mapping = TocMapper.new(reader: reader).call
       total_word_count = 0
       checksum = Digest::SHA256.file(@pdf_path).hexdigest
@@ -42,20 +45,21 @@ module Ebook
         reader.pages.each do |page|
           receiver = PdfPageReceiver.new
           page.walk(receiver)
-          content, current_directory = build_content(
+          content, current_directory, page_geometry = build_content(
             page,
             receiver,
             directory_map: toc_mapping[:page_map],
             current_directory: current_directory,
-            renderer: renderer
+            renderer: renderer,
+            force_image_pages: force_image_pages
           )
           plain_text = sanitize_text(content[:text])
           word_count = count_words(plain_text)
 
           @book.ebook_pages.create!(
             page_number: page.number,
-            page_width: page.width,
-            page_height: page.height,
+            page_width: page_geometry[:width],
+            page_height: page_geometry[:height],
             plain_text: plain_text,
             rich_content: sanitize_content(content),
             word_count: word_count,
@@ -89,7 +93,7 @@ module Ebook
 
     private
 
-    def build_content(page, receiver, directory_map:, current_directory:, renderer:)
+    def build_content(page, receiver, directory_map:, current_directory:, renderer:, force_image_pages: false)
       text_content = build_text_content(page, receiver.runs)
       resolved_directory = resolve_directory(
         page_number: page.number,
@@ -97,7 +101,8 @@ module Ebook
         directory_map: directory_map,
         current_directory: current_directory
       )
-      page_render_image = image_only_page_candidate(page, text_content[:lines], renderer) ||
+      page_render_image = forced_page_image_candidate(page, renderer, enabled: force_image_pages) ||
+        image_only_page_candidate(page, text_content[:lines], renderer) ||
         text_over_image_page_candidate(page, receiver.image_runs, text_content[:lines])
       export_text_content = page_render_image ? { text: "", lines: [] } : text_content
       images = build_image_blocks(
@@ -107,13 +112,14 @@ module Ebook
         text_lines: text_content[:lines],
         selected_images: page_render_image ? [page_render_image] : nil
       )
+      page_geometry = export_page_geometry(page, page_render_image)
 
       [{
         text: export_text_content[:text],
         lines: export_text_content[:lines],
         images: images,
         directory: resolved_directory
-      }, resolved_directory]
+      }, resolved_directory, page_geometry]
     end
 
     def build_text_content(page, runs)
@@ -166,19 +172,21 @@ module Ebook
 
       images_to_export.each_with_index.filter_map do |image, index|
         visible_box = image.fetch(:visible_box)
+        render_box = image[:render_box] || visible_box
+        export_box = image[:export_box] || visible_box
 
         begin
           exported = if render_image_crop?(image, renderer)
                        exporter.export_rendered(
-                         rendered: renderer.render_crop(
-                           page_number: page.number,
-                           page_width: page.width,
-                           page_height: page.height,
-                           bbox: visible_box,
-                           right_bleed: render_right_bleed_for_image(page, image)
-                         ),
-                         page_number: page.number,
-                         image_number: index + 1
+                          rendered: renderer.render_crop(
+                            page_number: page.number,
+                            page_width: page.width,
+                            page_height: page.height,
+                            bbox: render_box,
+                            right_bleed: render_right_bleed_for_image(page, image)
+                          ),
+                          page_number: page.number,
+                          image_number: index + 1
                        )
                       else
                         exporter.export(xobject: image[:xobject], page_number: page.number, image_number: index + 1)
@@ -200,7 +208,7 @@ module Ebook
           image_width: exported[:image_width],
           image_height: exported[:image_height],
           source_filter: exported[:filter],
-          bbox: build_bbox(visible_box[:left], visible_box[:bottom], visible_box[:width], visible_box[:height])
+          bbox: build_bbox(export_box[:left], export_box[:bottom], export_box[:width], export_box[:height])
         }
       end
     end
@@ -475,6 +483,7 @@ module Ebook
     end
 
     def render_right_bleed_for_image(page, image)
+      return 0.0 if image[:disable_right_bleed]
       return 0.0 unless near_full_page?(image[:visible_box], page.width, page.height)
 
       Ebook::PageImageRenderer::DEFAULT_RIGHT_BLEED
@@ -484,12 +493,14 @@ module Ebook
       return unless text_lines.blank?
       return unless renderer_available?(renderer)
 
-      {
-        visible_box: { left: 0.0, bottom: 0.0, width: page.width, height: page.height },
-        force_render: true,
-        image_mask: false,
-        image_only_page: true
-      }
+      full_page_candidate_for(page)
+    end
+
+    def forced_page_image_candidate(page, renderer, enabled:)
+      return unless enabled
+      return unless renderer_available?(renderer)
+
+      full_page_candidate_for(page)
     end
 
     def text_over_image_page_candidate(page, image_runs, text_lines)
@@ -562,6 +573,59 @@ module Ebook
       return 12 if sorted.empty?
 
       sorted[sorted.length / 2]
+    end
+
+    def export_page_geometry(page, page_render_image)
+      export_box = page_render_image && (page_render_image[:export_box] || page_render_image[:visible_box])
+      return { width: export_box[:width].round(2), height: export_box[:height].round(2) } if export_box
+
+      { width: page.width, height: page.height }
+    end
+
+    def full_page_candidate_for(page)
+      render_box = visible_page_box(page)
+
+      {
+        visible_box: { left: 0.0, bottom: 0.0, width: render_box[:width], height: render_box[:height] },
+        render_box: render_box,
+        export_box: { left: 0.0, bottom: 0.0, width: render_box[:width], height: render_box[:height] },
+        force_render: true,
+        image_mask: false,
+        image_only_page: true,
+        disable_right_bleed: true
+      }
+    end
+
+    def visible_page_box(page)
+      page_attributes = page.respond_to?(:attributes) ? page.attributes : {}
+      raw_box = [:CropBox, :TrimBox, :ArtBox].filter_map { |key| normalized_page_box(page_attributes[key]) }.first
+      return raw_box if raw_box
+
+      { left: 0.0, bottom: 0.0, width: page.width.to_f, height: page.height.to_f }
+    end
+
+    def normalized_page_box(raw_box)
+      values = Array(raw_box).map(&:to_f)
+      return if values.length != 4
+
+      left, bottom, right, top = values
+      width = right - left
+      height = top - bottom
+      return if width <= 1 || height <= 1
+
+      { left: left, bottom: bottom, width: width, height: height }
+    end
+
+    def page_image_mode?(reader)
+      @force_image_pages || image_only_pdf?(reader)
+    end
+
+    def image_only_pdf?(reader)
+      reader.pages.none? { |page| native_page_text?(page) }
+    end
+
+    def native_page_text?(page)
+      page.text.to_s.gsub(/\s+/, "").present?
     end
 
     def count_words(text)

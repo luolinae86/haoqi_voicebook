@@ -41,6 +41,18 @@ bundle exec rake ebooks:build_epub PACKAGE_DIR=/path/to/exported_package
 bin/ebook_worker /path/to/book.pdf --skip-epub
 ```
 
+复杂但未转曲的 PDF 如需强制按整页图片模式导出，可追加：
+
+```bash
+bin/ebook_worker /path/to/book.pdf --force-image-pages
+```
+
+当前导出策略已固化为：
+
+1. **纯图片 / 转曲 PDF**：自动按整页图片页导出，尽量保证和 PDF 视觉一致。
+2. **普通未转曲 PDF**：保持现有文字 + 图片分层导出。
+3. **复杂未转曲 PDF**：显式传 `--force-image-pages`，正文按整页图片导出，但仍保留基于原生文字提取出的目录映射。
+
 默认导出目录是 `~/Downloads/<书名>/`；如需把最终 EPUB 直接放到 Downloads 根目录，可显式传 `--epub-output ~/Downloads/<书名>.epub`。
 
 当前标准链路是：

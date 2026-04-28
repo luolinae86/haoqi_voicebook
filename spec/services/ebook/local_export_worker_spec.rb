@@ -44,6 +44,37 @@ RSpec.describe Ebook::LocalExportWorker do
     end
   end
 
+  it "passes force_image_pages through to the importer" do
+    book = create(:book, title: "Worker Export Book", status: :published, content_type: :ebook)
+    importer = instance_double(Ebook::PdfImporter, call: true)
+    exporter = instance_double(Ebook::ExportPackage, call: output_dir)
+    epub_exporter = instance_double(Ebook::EpubExporter, call: output_dir.join("Worker Export Book.epub"))
+
+    allow(Ebook::PdfImporter).to receive(:new).and_return(importer)
+    allow(Ebook::ExportPackage).to receive(:new).and_return(exporter)
+    allow(Ebook::EpubExporter).to receive(:new).and_return(epub_exporter)
+    allow(book).to receive(:reload).and_return(book)
+    allow(book).to receive_messages(page_count: 2, title: "Worker Export Book")
+
+    described_class.new(
+      pdf_path: files[:pdf].path,
+      output_dir: output_dir,
+      title: "Worker Export Book",
+      book: book,
+      source_filename: "worker-export.pdf",
+      force_image_pages: true
+    ).call
+
+    expect(Ebook::PdfImporter).to have_received(:new).with(
+      hash_including(
+        book: book,
+        pdf_path: Pathname.new(files[:pdf].path),
+        source_filename: "worker-export.pdf",
+        force_image_pages: true
+      )
+    )
+  end
+
   it "builds epub from the exported package files" do
     described_class.new(
       pdf_path: files[:pdf].path,
@@ -68,6 +99,56 @@ RSpec.describe Ebook::LocalExportWorker do
                      .join("\n")
       expect(page_text).to include("Package Driven EPUB")
       expect(page_text).to include("Exported from pages JSON only.")
+    end
+  end
+
+  it "keeps full-page image books at the original viewport width and disables spread mode" do
+    described_class.new(
+      pdf_path: files[:pdf].path,
+      output_dir: output_dir,
+      title: "Worker Export Book",
+      source_filename: "worker-export.pdf"
+    ).call
+
+    %w[page-0001.json page-0002.json].each do |filename|
+      page_file = output_dir.join("pages", filename)
+      payload = JSON.parse(File.read(page_file))
+      source_image = payload.fetch("images", []).first || JSON.parse(File.read(output_dir.join("pages/page-0001.json"))).fetch("images").first
+      payload["text"] = ""
+      payload["lines"] = []
+      payload["page_width"] = "428.03"
+      payload["page_height"] = "612.28"
+      payload["images"] = [
+        source_image.merge(
+          "bbox" => {
+            "left" => 0.0,
+            "bottom" => 0.0,
+            "width" => 428.03,
+            "height" => 612.28,
+            "right" => 428.03,
+            "top" => 612.28
+          },
+          "source_filter" => "QuartzPageRender"
+        )
+      ]
+      File.write(page_file, JSON.pretty_generate(payload))
+    end
+
+    epub_path = output_dir.join("full-page-images.epub")
+    Ebook::EpubExporter.new(package_dir: output_dir, output_path: epub_path).call
+
+    Zip::File.open(epub_path.to_s) do |zip|
+      page_xhtml = zip.read("OEBPS/pages/page-0001.xhtml")
+      content_opf = zip.read("OEBPS/content.opf")
+
+      expect(page_xhtml).to include('content="width=428.03,height=612.28"')
+      expect(page_xhtml).to include("<style type=\"text/css\">")
+      expect(page_xhtml).to include("overflow:hidden")
+      expect(page_xhtml).to include('class="page-full-image"')
+      expect(page_xhtml).to include('src="../images/')
+      expect(page_xhtml).to include('width: 428.03px; height: 612.28px')
+      expect(page_xhtml).not_to include('svg')
+      expect(content_opf).to include('<meta property="rendition:spread">none</meta>')
     end
   end
 
@@ -168,11 +249,14 @@ RSpec.describe Ebook::LocalExportWorker do
     Zip::File.open(epub_path.to_s) do |zip|
       page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
 
-      expect(page_xhtml).to include('meta name="viewport" content="width=492.03,height=220.0"')
-      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 0.0px;"')
-      expect(page_xhtml).to include('class="page-image-layer"')
-      expect(page_xhtml).to include('left: 0.0px; top: 0.0px; width: 492.03px; height: 220.0px;')
+      expect(page_xhtml).to include('meta name="viewport" content="width=428.03,height=220.0"')
+      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 0.0px; position: relative;')
+      expect(page_xhtml).to include("<style type=\"text/css\">")
+      expect(page_xhtml).to include("overflow:hidden")
+      expect(page_xhtml).to include('class="page-full-image"')
+      expect(page_xhtml).to include('width: 428.03px; height: 220.0px')
       expect(page_xhtml).not_to include('class="page-text-layer')
+      expect(page_xhtml).not_to include('<svg')
     end
   end
 
@@ -246,7 +330,7 @@ RSpec.describe Ebook::LocalExportWorker do
       expect(css).to include("font-family: 'PDFEmbed-FZSSK--GBK1-0-12345678'")
       expect(css).to include("src: url('../fonts/font-test.ttf') format('truetype')")
       expect(page_xhtml).to include('meta name="viewport" content="width=492.03,height=220.0"')
-      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 32.0px;"')
+      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 32.0px; position: relative;')
       expect(page_xhtml).to include("font-size: 12.0px")
       expect(page_xhtml).to include("left: 91.56px; top: 60.0px; width: 326.13px;")
       expect(page_xhtml).to include("font-family: 'PDFEmbed-FZSSK--GBK1-0-12345678', 'FZSSK--GBK1-0', 'ABCDEF+FZSSK--GBK1-0', sans-serif")
@@ -916,8 +1000,8 @@ RSpec.describe Ebook::LocalExportWorker do
 
       expect(page_xhtml).to include('meta name="viewport" content="width=492.03,height=220.0"')
       expect(page_xhtml).to include('class="page-text-layer page-body page-page-number"')
-      expect(page_xhtml).to include('section class="page-canvas" style="width: 492.03px; height: 220.0px;"')
-      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 32.0px;"')
+      expect(page_xhtml).to include('section class="page-canvas" style="width: 492.03px; height: 220.0px; position: relative;')
+      expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 32.0px; position: relative;')
       expect(page_xhtml).to match(/>1<\/p>/)
       expect(page_xhtml).to match(/page-page-number"\s+style="left: 204\.1px; top: 172\.0px; width: 26\.45px;/)
     end
@@ -1018,7 +1102,7 @@ RSpec.describe Ebook::LocalExportWorker do
     end
   end
 
-  it "expands full-page rendered image pages to the widened viewport" do
+  it "keeps full-page rendered image pages at the original viewport width" do
     described_class.new(
       pdf_path: files[:pdf].path,
       output_dir: output_dir,
@@ -1060,9 +1144,10 @@ RSpec.describe Ebook::LocalExportWorker do
     Zip::File.open(epub_path.to_s) do |zip|
       page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
 
-      expect(page_xhtml).to include('meta name="viewport" content="width=492.03,height=220.0"')
-      expect(page_xhtml).to include('class="page-image-layer"')
-      expect(page_xhtml).to include('left: 0.0px; top: 0.0px; width: 492.03px; height: 220.0px;')
+      expect(page_xhtml).to include('meta name="viewport" content="width=428.03,height=220.0"')
+      expect(page_xhtml).to include('class="page-full-image"')
+      expect(page_xhtml).to include('width: 428.03px; height: 220.0px')
+      expect(page_xhtml).not_to include('<svg')
     end
   end
 end
