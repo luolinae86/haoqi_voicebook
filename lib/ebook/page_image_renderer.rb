@@ -98,9 +98,12 @@ module Ebook
     end
 
     def pdftocairo_path
-      @pdftocairo_path ||= ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).find do |dir|
-        candidate = File.join(dir, PDFTOCAIRO_BINARY)
-        File.file?(candidate) && File.executable?(candidate)
+      @pdftocairo_path ||= begin
+        ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).each do |dir|
+          candidate = File.join(dir, PDFTOCAIRO_BINARY)
+          return candidate if File.executable?(candidate)
+        end
+        nil
       end
     end
 
