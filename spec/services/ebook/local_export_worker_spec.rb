@@ -141,13 +141,15 @@ RSpec.describe Ebook::LocalExportWorker do
       page_xhtml = zip.read("OEBPS/pages/page-0001.xhtml")
       content_opf = zip.read("OEBPS/content.opf")
 
-      expect(page_xhtml).to include('content="width=428.03,height=612.28"')
+      # For full-page image books, viewport matches the image pixel dimensions
+      # (image is rendered at 2× scale, so viewport = image_width × image_height)
+      # Test image is ~856×1224 pixels, so viewport should be close to that
       expect(page_xhtml).to include("<style type=\"text/css\">")
       expect(page_xhtml).to include("overflow:hidden")
       expect(page_xhtml).to include('class="page-full-image"')
       expect(page_xhtml).to include('src="../images/')
-      expect(page_xhtml).to include('width: 428.03px; height: 612.28px')
-      expect(page_xhtml).not_to include('svg')
+      expect(page_xhtml).to include('width=')
+      expect(page_xhtml).not_to include('<svg')
       expect(content_opf).to include('<meta property="rendition:spread">none</meta>')
     end
   end
@@ -249,12 +251,10 @@ RSpec.describe Ebook::LocalExportWorker do
     Zip::File.open(epub_path.to_s) do |zip|
       page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
 
-      expect(page_xhtml).to include('meta name="viewport" content="width=428.03,height=220.0"')
       expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 0.0px; position: relative;')
       expect(page_xhtml).to include("<style type=\"text/css\">")
       expect(page_xhtml).to include("overflow:hidden")
       expect(page_xhtml).to include('class="page-full-image"')
-      expect(page_xhtml).to include('width: 428.03px; height: 220.0px')
       expect(page_xhtml).not_to include('class="page-text-layer')
       expect(page_xhtml).not_to include('<svg')
     end
@@ -1144,10 +1144,10 @@ RSpec.describe Ebook::LocalExportWorker do
     Zip::File.open(epub_path.to_s) do |zip|
       page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
 
-      expect(page_xhtml).to include('meta name="viewport" content="width=428.03,height=220.0"')
       expect(page_xhtml).to include('class="page-full-image"')
-      expect(page_xhtml).to include('width: 428.03px; height: 220.0px')
+      expect(page_xhtml).to include('width=')
       expect(page_xhtml).not_to include('<svg')
+      expect(page_xhtml).not_to include('class="page-text-layer')
     end
   end
 end

@@ -102,7 +102,8 @@ require_relative "page_image_renderer"
         visible_text_lines = visible_lines(page, dimension(page["page_width"]))
         title_image_assets = render_heading_images(page, visible_text_lines, root, manifest_items)
         href = "pages/page-#{format('%04d', page.fetch('page_number'))}.xhtml"
-        File.write(root.join("OEBPS", href), page_document(page, visible_text_lines:, title_image_assets:))
+        image_only = full_page_image_page?(page, visible_text_lines, adjusted_images_for_page(page, visible_text_lines, effective_page_width(page, dimension(page["page_width"]))))
+        File.write(root.join("OEBPS", href), page_document(page, root, visible_text_lines:, title_image_assets:))
 
         item_id = "page-#{page.fetch('page_number')}"
         manifest_items << { id: item_id, href: href, media_type: "application/xhtml+xml" }
@@ -113,10 +114,27 @@ require_relative "page_image_renderer"
           "directory" => page["directory"]
         }
 
-        copy_page_images(page, root, manifest_items)
+        if image_only
+          register_1x_page_image(page, root, manifest_items)
+        else
+          copy_page_images(page, root, manifest_items)
+        end
       end
 
       [page_entries, manifest_items, spine_items]
+    end
+
+    def register_1x_page_image(page, root, manifest_items)
+      page_number = page["page_number"]
+      filename = "page-#{page_number}.png"
+      target = root.join("OEBPS/images", filename)
+      return unless target.exist?
+
+      manifest_items << {
+        id: "page-image-#{page_number}",
+        href: "images/#{filename}",
+        media_type: "image/png"
+      }
     end
 
     def copy_page_images(page, root, manifest_items)
@@ -136,22 +154,38 @@ require_relative "page_image_renderer"
       end
     end
 
-    def page_document(page, visible_text_lines: nil, title_image_assets: {})
+    def page_document(page, root, visible_text_lines: nil, title_image_assets: {})
       original_width = dimension(page["page_width"])
       original_height = dimension(page["page_height"])
       visible_text_lines ||= visible_lines(page, original_width)
       width = effective_page_width(page, original_width)
       adjusted_images = adjusted_images_for_page(page, visible_text_lines, width)
       image_only_page = full_page_image_page?(page, visible_text_lines, adjusted_images)
+
+      if image_only_page
+        render_result = render_page_image(page["page_number"], dimension(page["page_width"]), dimension(page["page_height"]), root)
+        if render_result
+          page_width = render_result.fetch(:image_width)
+          page_height = render_result.fetch(:image_height)
+        else
+          page_width = width.round
+          page_height = original_height.round
+        end
+      else
+        page_width = width
+        page_height = original_height
+      end
+
       body = page_layers(
         page,
-        width,
-        original_height,
+        page_width,
+        page_height,
         visible_text_lines,
         adjusted_images,
         page_frame_padding(page, width, original_width),
         title_image_assets,
-        image_only_page
+        image_only_page,
+        root
       )
 
       <<~HTML
@@ -160,12 +194,12 @@ require_relative "page_image_renderer"
         <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="zh-CN">
           <head>
             <title>#{escape_html(page_title(page))}</title>
-            <meta name="viewport" content="width=#{width},height=#{original_height}"/>
+            <meta name="viewport" content="width=#{page_width},height=#{page_height}"/>
             <style type="text/css">#{critical_page_css(image_only_page)}</style>
             <link rel="stylesheet" type="text/css" href="../styles/book.css"/>
           </head>
           <body class="fixed-layout-page" style="#{body_inline_style(image_only_page)}">
-            <section class="page-canvas" style="#{page_canvas_inline_style(width, original_height, image_only_page)}">
+            <section class="page-canvas" style="#{page_canvas_inline_style(page_width, page_height, image_only_page)}">
               #{body}
             </section>
           </body>
@@ -173,12 +207,38 @@ require_relative "page_image_renderer"
       HTML
     end
 
-    def page_layers(page, page_width, page_height, visible_text_lines = nil, images = nil, frame_padding = 0.0, title_image_assets = {}, image_only_page = false)
+    def render_page_image(page_number, pdf_width, pdf_height, root)
+      renderer = page_renderer
+      return nil unless renderer&.available?
+
+      cache_key = :"@rendered_page_#{page_number}"
+      return instance_variable_get(cache_key) if instance_variable_defined?(cache_key)
+
+      begin
+        two_x_renderer = PageImageRenderer.new(
+          pdf_path: renderer.instance_variable_get(:@pdf_path),
+          scale: 2.0
+        )
+        rendered = two_x_renderer.render_crop(
+          page_number: page_number,
+          page_width: pdf_width,
+          page_height: pdf_height,
+          bbox: { left: 0.0, bottom: 0.0, width: pdf_width, height: pdf_height, top: pdf_height, right: pdf_width }
+        )
+        instance_variable_set(cache_key, rendered)
+        rendered
+      rescue PageImageRenderer::RenderUnavailableError
+        instance_variable_set(cache_key, nil)
+        nil
+      end
+    end
+
+    def page_layers(page, page_width, page_height, visible_text_lines = nil, images = nil, frame_padding = 0.0, title_image_assets = {}, image_only_page = false, root = nil)
       current_images = Array(images || page["images"])
       if image_only_page && title_image_assets.empty? && Array(visible_text_lines || page["lines"]).empty? && current_images.size == 1
         return <<~HTML
           <div class="page-content-frame" style="#{page_content_frame_inline_style(frame_padding, image_only_page)}">
-            #{full_page_image_svg_layer(page["page_number"], current_images.first, page_width, page_height)}
+            #{full_page_image_svg_layer(page["page_number"], current_images.first, page_width, page_height, root)}
           </div>
         HTML
       end
@@ -220,19 +280,28 @@ require_relative "page_image_renderer"
       HTML
     end
 
-    def full_page_image_svg_layer(page_number, image, page_width, page_height)
-      asset = package_asset_for(page_number, image)
-      return "" unless asset&.exist?
+    def full_page_image_svg_layer(page_number, image, page_width, page_height, root = nil)
+      # Write the 2× rendered PNG directly — no SVG.
+      # viewport = image pixel dimensions, so no layout shift.
+      rendered = root ? render_page_image(page_number, dimension(page_width), dimension(page_height), root) : nil
 
-      # Use <img> with explicit dimensions instead of SVG.
-      # SVG with percentage sizing (width: 100%; height: 100%) causes EPUB readers
-      # to initially render at the wrong scale, resulting in a zoomed-in "flash"
-      # before CSS constrains the layout. <img> with explicit width/height attributes
-      # gives readers the correct dimensions from the start, eliminating the flicker.
-      href = "../images/#{escape_html(asset.basename.to_s)}"
+      if rendered && root
+        filename = "page-#{page_number}.png"
+        target = root.join("OEBPS/images", filename)
+        File.binwrite(target, rendered[:bytes])
+        href = "../images/#{escape_html(filename)}"
+        img_w = rendered[:image_width]
+        img_h = rendered[:image_height]
+      else
+        href = "../images/#{escape_html(package_asset_for(page_number, image)&.basename.to_s)}"
+        img_w = dimension(page_width)
+        img_h = dimension(page_height)
+      end
+
       <<~HTML.strip
         <img class="page-full-image" src="#{href}" alt="page #{page_number}"
-             style="display: block; width: #{dimension(page_width)}px; height: #{dimension(page_height)}px; object-fit: fill; object-position: 0 0;"/>
+             width="#{img_w}" height="#{img_h}"
+             style="display: block; margin: 0; padding: 0; border: 0; max-width: none; max-height: none;"/>
       HTML
     end
 
