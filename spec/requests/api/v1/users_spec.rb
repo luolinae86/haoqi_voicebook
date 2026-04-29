@@ -8,6 +8,10 @@ RSpec.describe "API V1 Users", type: :request do
 
   # ==================== 发送验证码 ====================
   describe "POST /api/users/send_code" do
+    before do
+      allow_any_instance_of(AliyunSmsService).to receive(:send_verification_code).and_return(true)
+    end
+
     context "手机号格式正确" do
       it "发送验证码成功" do
         post "/api/users/send_code", params: { phone: "13800138001" }

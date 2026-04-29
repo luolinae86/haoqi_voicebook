@@ -32,6 +32,8 @@ env:
     - DATABASE_PRD_HOST
     - DATABASE_PRD_PORT
     - DATABASE_PRD_DATABASE
+    - ALIYUN_ACCESS_KEY_ID
+    - ALIYUN_ACCESS_KEY_SECRET
 
 # ==================== SSH 配置 ====================
 ssh:

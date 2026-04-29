@@ -39,4 +39,8 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Fake Aliyun credentials for test (SMS service is stubbed)
+  ENV["ALIYUN_ACCESS_KEY_ID"] ||= "test_access_key_id"
+  ENV["ALIYUN_ACCESS_KEY_SECRET"] ||= "test_access_key_secret"
 end

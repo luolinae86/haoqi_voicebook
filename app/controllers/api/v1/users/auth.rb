@@ -18,8 +18,14 @@ module Api
             phone = params[:phone]
 
             # 验证手机号格式
-            unless phone.match?(/\A1[3-9]\d{9}\z/)
-              error_pop_resp("手机号格式不正确")
+            error_pop_resp("手机号格式不正确") unless phone.match?(/\A1[3-9]\d{9}\z/)
+
+            # 防止 60 秒内重复发送
+            recent = SmsVerification.where(phone: phone)
+                                    .where("created_at > ?", 60.seconds.ago)
+                                    .exists?
+            if recent
+              error_pop_resp("验证码已发送，请 60 秒后再试")
             end
 
             # 生成4位随机验证码
@@ -33,8 +39,11 @@ module Api
               expires_at: expires_at
             )
 
-            # TODO: 对接短信服务商发送验证码
-            Rails.logger.info("短信验证码: #{phone} => #{code}")
+            # 通过阿里云发送短信验证码
+            sms_sent = AliyunSmsService.new.send_verification_code(phone, code)
+            unless sms_sent
+              error_pop_resp("验证码发送失败，请稍后重试")
+            end
 
             success_response({ expires_in: 300 }, message: "验证码已发送")
           end
