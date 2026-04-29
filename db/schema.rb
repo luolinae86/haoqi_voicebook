@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_21_090100) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_29_082709) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -358,9 +358,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_21_090100) do
     t.datetime "vip_expires_at", comment: "VIP过期时间"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "uuid", limit: 32
     t.index ["grade_id"], name: "index_users_on_grade_id"
     t.index ["is_vip"], name: "index_users_on_is_vip"
     t.index ["phone"], name: "index_users_on_phone", unique: true
+    t.index ["uuid"], name: "index_users_on_uuid", unique: true
   end
 
   add_foreign_key "ebook_pages", "books"

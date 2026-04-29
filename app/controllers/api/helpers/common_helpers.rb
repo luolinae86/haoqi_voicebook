@@ -56,6 +56,17 @@ module Api
 
       # ==================== 认证相关 ====================
 
+      # 根据 uuid 查找当前用户
+      # @return [User, nil]
+      def current_user
+        @current_user ||= User.find_by(uuid: params[:uuid])
+      end
+
+      # 验证用户已授权（uuid 有效）
+      def auth_user
+        error!({ response: err_response(ERR_CODE[:UN_AUTH], "未授权访问") }, 200) unless current_user
+      end
+
       # 验证 API 客户端认证（access_key_id + sign 签名）
       # @return [ApiAuth] 认证通过的 API 客户端
       def authenticate_api!

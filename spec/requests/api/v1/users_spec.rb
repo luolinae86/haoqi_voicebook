@@ -8,13 +8,15 @@ RSpec.describe "API V1 Users", type: :request do
 
   # ==================== 发送验证码 ====================
   describe "POST /api/users/send_code" do
+    let(:user_with_uuid) { create(:user, phone: "13800138000", uuid: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4") }
+
     before do
       allow_any_instance_of(AliyunSmsService).to receive(:send_verification_code).and_return(true)
     end
 
     context "手机号格式正确" do
       it "发送验证码成功" do
-        post "/api/users/send_code", params: { phone: "13800138001" }
+        post "/api/users/send_code", params: { uuid: user_with_uuid.uuid, phone: "13800138001" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
@@ -22,14 +24,14 @@ RSpec.describe "API V1 Users", type: :request do
 
       it "创建短信验证记录" do
         expect {
-          post "/api/users/send_code", params: { phone: "13800138001" }
+          post "/api/users/send_code", params: { uuid: user_with_uuid.uuid, phone: "13800138001" }
         }.to change(SmsVerification, :count).by(1)
       end
     end
 
     context "手机号格式不正确" do
       it "返回参数错误" do
-        post "/api/users/send_code", params: { phone: "123" }
+        post "/api/users/send_code", params: { uuid: user_with_uuid.uuid, phone: "123" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
@@ -41,6 +43,34 @@ RSpec.describe "API V1 Users", type: :request do
     context "缺少手机号参数" do
       it "返回参数错误" do
         post "/api/users/send_code", params: {}
+
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
+
+    context "uuid 无效" do
+      it "返回未授权错误" do
+        post "/api/users/send_code", params: { uuid: "invalid_uuid", phone: "13800138001" }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+
+    context "uuid 为空字符串" do
+      it "返回未授权错误" do
+        post "/api/users/send_code", params: { uuid: "", phone: "13800138001" }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+
+    context "缺少 uuid 参数" do
+      it "返回参数错误" do
+        post "/api/users/send_code", params: { phone: "13800138001" }
 
         expect(response).to have_http_status(:bad_request)
       end

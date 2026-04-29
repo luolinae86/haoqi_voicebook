@@ -12,9 +12,12 @@ module Api
           # ==================== 发送验证码 ====================
           desc "发送短信验证码"
           params do
+            requires :uuid, type: String, desc: "用户UUID"
             requires :phone, type: String, desc: "手机号"
           end
           post :send_code do
+            auth_user
+
             phone = params[:phone]
 
             # 验证手机号格式

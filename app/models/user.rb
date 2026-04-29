@@ -1,9 +1,10 @@
 # frozen_string_literal: true
-
 # 用户模型
 # 管理用户账户信息，支持手机号+验证码登录和密码登录
 class User < ApplicationRecord
   has_secure_password validations: false  # 密码加密（可选密码）
+
+  before_validation :generate_uuid, on: :create
 
   # 用户角色枚举
   enum :role, { child: 0, parent: 1, admin: 2 }, default: :child
@@ -36,5 +37,11 @@ class User < ApplicationRecord
     increment!(:reading_words, words) if words > 0
     increment!(:reading_minutes, minutes) if minutes > 0
     increment!(:books_read, books) if books > 0
+  end
+
+  private
+
+  def generate_uuid
+    self.uuid = SecureRandom.uuid.delete("-") if new_record? && uuid.blank?
   end
 end
