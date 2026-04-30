@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_29_082709) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_29_100000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -109,6 +109,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_29_082709) do
     t.string "ebook_checksum", comment: "源 PDF 校验值"
     t.datetime "imported_at", comment: "导入完成时间"
     t.text "import_error_message", comment: "导入失败信息"
+    t.string "epub_oss_key", comment: "EPUB 文件 OSS 路径"
+    t.string "epub_oss_url", comment: "EPUB 文件公网 URL"
+    t.integer "epub_export_status", default: 0, comment: "EPUB 导出状态：0-未导出 1-导出中 2-已完成 3-失败"
+    t.text "epub_export_error", comment: "EPUB 导出失败原因"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["content_type"], name: "index_books_on_content_type"
     t.index ["created_at"], name: "index_books_on_created_at"

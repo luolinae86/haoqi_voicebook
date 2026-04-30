@@ -1,5 +1,6 @@
 # VoiceBook 开发环境 Docker Compose 配置
 # 包含：Rails 应用 + MySQL 数据库
+# Redis 使用阿里云 Redis 服务，Sidekiq Worker 通过 Kamal 独立部署
 
 services:
   # ==================== MySQL 数据库 ====================
@@ -36,8 +37,13 @@ services:
       DATABASE_USERNAME: root
       DATABASE_PASSWORD: voicebook_dev_password
       DATABASE_NAME: voicebook_production
+      REDIS_URL: ${REDIS_URL}
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-$(openssl rand -hex 64)}
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET}
+      OSS_BUCKET_NAME: ${OSS_BUCKET_NAME:-epub-files}
+      OSS_ENDPOINT: ${OSS_ENDPOINT:-oss-cn-beijing.aliyuncs.com}
     volumes:
       - rails_storage:/rails/storage
 

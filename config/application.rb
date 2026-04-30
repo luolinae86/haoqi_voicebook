@@ -29,6 +29,10 @@ module Voicebook
     # API-only 模式
     config.api_only = true
 
+    # 后台任务队列使用 Sidekiq
+    config.active_job.queue_adapter = :sidekiq
+    config.active_job.queue_name_prefix = Rails.env.production? ? "voicebook" : "voicebook_#{Rails.env}"
+
     # 默认分页数量
     config.x.default_per_page = 10
 

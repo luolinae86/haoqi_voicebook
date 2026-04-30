@@ -139,6 +139,11 @@ require_relative "page_image_renderer"
 
     def copy_page_images(page, root, manifest_items)
       Array(page["images"]).each do |image|
+        image_url = image["image_url"] || image[:image_url]
+        next if image_url.blank?
+        # OSS URL — skip local copy, image_layer will use URL directly
+        next if image_url.to_s.start_with?("https://")
+
         source = package_asset_for(page["page_number"], image)
         next unless source&.exist?
 
@@ -265,8 +270,16 @@ require_relative "page_image_renderer"
     end
 
     def image_layer(page_number, image, page_width, page_height)
-      asset = package_asset_for(page_number, image)
-      return "" unless asset&.exist?
+      image_url = image["image_url"] || image[:image_url]
+      if image_url.to_s.start_with?("https://")
+        # OSS URL — use directly
+        src = escape_html(image_url.to_s)
+      else
+        asset = package_asset_for(page_number, image)
+        return "" unless asset&.exist?
+
+        src = "../images/#{escape_html(asset.basename.to_s)}"
+      end
 
       bbox = image.fetch("bbox")
       left = dimension(bbox["left"])
@@ -275,13 +288,13 @@ require_relative "page_image_renderer"
       height = display_height_for_image(image, bbox, page_height)
 
       <<~HTML.strip
-        <img class="page-image-layer" src="../images/#{escape_html(asset.basename.to_s)}" alt="page #{page_number} image"
+        <img class="page-image-layer" src="#{src}" alt="page #{page_number} image"
              style="left: #{css_px(left)}; top: #{css_px(top)}; width: #{css_px(width)}; height: #{css_px(height)}; position: absolute; display: block; margin: 0; padding: 0; border: 0; max-width: none; max-height: none;"/>
       HTML
     end
 
     def full_page_image_svg_layer(page_number, image, page_width, page_height, root = nil)
-      # Write the 2× rendered PNG directly — no SVG.
+      # Write the 2x rendered PNG directly — no SVG.
       # viewport = image pixel dimensions, so no layout shift.
       rendered = root ? render_page_image(page_number, dimension(page_width), dimension(page_height), root) : nil
 
@@ -293,7 +306,13 @@ require_relative "page_image_renderer"
         img_w = rendered[:image_width]
         img_h = rendered[:image_height]
       else
-        href = "../images/#{escape_html(package_asset_for(page_number, image)&.basename.to_s)}"
+        image_url = image["image_url"] || image[:image_url]
+        if image_url.to_s.start_with?("https://")
+          # OSS URL — use directly
+          href = escape_html(image_url.to_s)
+        else
+          href = "../images/#{escape_html(package_asset_for(page_number, image)&.basename.to_s)}"
+        end
         img_w = dimension(page_width)
         img_h = dimension(page_height)
       end

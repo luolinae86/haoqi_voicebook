@@ -58,6 +58,30 @@ module Api
             }, message: "PDF 导入成功")
           end
 
+          # ==================== 异步导出 EPUB ====================
+          desc "从 OSS 上的 PDF 异步生成 EPUB"
+          params do
+            requires :book_id, type: Integer, desc: "图书ID"
+            requires :pdf_oss_key, type: String, desc: "PDF 文件在 OSS 上的路径"
+            optional :force_image_pages, type: Boolean, desc: "是否强制整页图片模式"
+          end
+          post :export_epub do
+            book = Book.find(params[:book_id])
+
+            EpubExportWorker.perform_async({
+              "book_id" => book.id,
+              "pdf_oss_key" => params[:pdf_oss_key],
+              "force_image_pages" => params[:force_image_pages] == true
+            })
+
+            status 202
+            success_response({
+              book_id: book.id,
+              epub_export_status: book.epub_export_status,
+              message: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
+            })
+          end
+
           # ==================== 图书列表 ====================
           desc "获取图书列表"
           params do
@@ -118,6 +142,8 @@ module Api
               chapters_count: book.chapters.count,
               page_count: book.page_count,
               import_status: book.import_status,
+              epub_export_status: book.epub_export_status,
+              epub_oss_url: book.epub_oss_url,
               source_pdf_filename: book.source_pdf_filename,
               audio_album: book.audio_album ? {
                 narrator: book.audio_album.narrator,

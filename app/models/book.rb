@@ -12,6 +12,9 @@ class Book < ApplicationRecord
   # 电子书导入状态
   enum :import_status, { not_imported: 0, processing: 1, ready: 2, failed: 3 }, default: :not_imported
 
+  # EPUB 导出状态
+  enum :epub_export_status, { not_exported: 0, exporting: 1, completed: 2, export_failed: 3 }, default: :not_exported, prefix: true
+
   # 关联关系
   belongs_to :category, optional: true               # 所属分类
   belongs_to :grade, optional: true                   # 适用年级

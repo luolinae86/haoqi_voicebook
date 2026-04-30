@@ -11,10 +11,12 @@ module Ebook
 
     PNG_SIGNATURE = "\x89PNG\r\n\x1a\n".b
 
-    def initialize(objects:, public_root:, storage_root:)
+    def initialize(objects:, public_root:, storage_root:, oss_service: nil, oss_prefix: nil)
       @objects = objects
       @public_root = Pathname.new(public_root.to_s)
       @storage_root = Pathname.new(storage_root.to_s)
+      @oss_service = oss_service
+      @oss_prefix = oss_prefix || "epub-assets"
     end
 
     def export(xobject:, page_number:, image_number:)
@@ -55,8 +57,15 @@ module Ebook
       FileUtils.mkdir_p(output_path.dirname)
       File.binwrite(output_path, bytes)
 
+      image_url = if @oss_service
+                    oss_key = "#{@oss_prefix}/pages/#{page_number}/#{filename}"
+                    @oss_service.upload_data(data: bytes, object_key: oss_key, content_type: mime_type)
+                  else
+                    public_url_for(output_path)
+                  end
+
       {
-        image_url: public_url_for(output_path),
+        image_url: image_url,
         storage_path: output_path.to_s,
         mime_type: mime_type,
         image_width: image_width,

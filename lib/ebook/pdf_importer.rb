@@ -16,7 +16,9 @@ module Ebook
                    public_root: Rails.root.join("public"),
                    storage_root: Rails.root.join("public/system/ebooks"),
                    page_renderer: nil,
-                   force_image_pages: false)
+                   force_image_pages: false,
+                   image_exporter_oss_service: nil,
+                   image_exporter_oss_prefix: nil)
       @book = book
       @pdf_path = Pathname.new(pdf_path.to_s)
       @source_filename = source_filename.presence || @pdf_path.basename.to_s
@@ -24,6 +26,8 @@ module Ebook
       @storage_root = Pathname.new(storage_root.to_s).join("book_#{book.id || 'new'}")
       @page_renderer = page_renderer
       @force_image_pages = force_image_pages == true
+      @image_exporter_oss_service = image_exporter_oss_service
+      @image_exporter_oss_prefix = image_exporter_oss_prefix
     end
 
     def call
@@ -166,7 +170,13 @@ module Ebook
     end
 
     def build_image_blocks(page, image_runs, renderer:, text_lines:, selected_images: nil)
-      exporter = ImageExporter.new(objects: page.objects, public_root: @public_root, storage_root: @storage_root)
+      exporter = ImageExporter.new(
+        objects: page.objects,
+        public_root: @public_root,
+        storage_root: @storage_root,
+        oss_service: @image_exporter_oss_service,
+        oss_prefix: @image_exporter_oss_prefix
+      )
 
       images_to_export = selected_images || select_primary_images(page, image_runs, text_lines: text_lines)
 

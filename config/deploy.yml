@@ -34,6 +34,8 @@ env:
     - DATABASE_PRD_DATABASE
     - ALIYUN_ACCESS_KEY_ID
     - ALIYUN_ACCESS_KEY_SECRET
+    - REDIS_URL
+    - REDIS_PASSWORD
 
 # ==================== SSH 配置 ====================
 ssh:

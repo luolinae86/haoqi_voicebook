@@ -80,6 +80,9 @@ module Ebook
         image_block = image.respond_to?(:with_indifferent_access) ? image.with_indifferent_access : image
         next if image_block[:image_url].blank?
 
+        # OSS URL — skip local copy, EPUB will reference OSS directly
+        next if image_block[:image_url].to_s.start_with?("https://")
+
         source = Rails.root.join("public", image_block[:image_url].delete_prefix("/"))
         next unless File.exist?(source)
 

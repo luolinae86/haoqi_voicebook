@@ -3,6 +3,38 @@
 require "rails_helper"
 
 RSpec.describe "API V1 Books Ebook", type: :request do
+  describe "POST /api/books/export_epub" do
+    let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 2, import_status: :ready) }
+
+    it "accepts an EPUB export request and returns 202" do
+      post "/api/books/export_epub",
+           params: { book_id: book.id, pdf_oss_key: "pdfs/test-book.pdf" },
+           as: :json
+
+      expect(response).to have_http_status(202)
+      expect(json_response[:code]).to eq(0)
+      expect(json_response[:data][:book_id]).to eq(book.id)
+      expect(json_response[:data][:message]).to include("EPUB 导出任务已提交")
+    end
+
+    it "returns 400 when book_id is missing" do
+      post "/api/books/export_epub",
+           params: { pdf_oss_key: "pdfs/test-book.pdf" },
+           as: :json
+
+      expect(response).to have_http_status(400)
+    end
+
+    it "accepts force_image_pages parameter" do
+      post "/api/books/export_epub",
+           params: { book_id: book.id, pdf_oss_key: "pdfs/test-book.pdf", force_image_pages: true },
+           as: :json
+
+      expect(response).to have_http_status(202)
+      expect(json_response[:data][:message]).to include("EPUB 导出任务已提交")
+    end
+  end
+
   describe "GET /api/books/:id/pages" do
     let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 2, import_status: :ready) }
     let!(:page_one) { create(:ebook_page, book: book, page_number: 1, plain_text: "第一页内容") }
