@@ -82,6 +82,60 @@ module Api
             })
           end
 
+          # ==================== 页面 XHTML 内容 ====================
+          desc "获取单页 XHTML 内容（EPUB 导出后可用）"
+          params do
+            requires :id, type: Integer, desc: "图书ID"
+            requires :page_number, type: Integer, desc: "页码"
+          end
+          get ":id/pages/:page_number/html" do
+            book = Book.published_books.find(params[:id])
+            page = book.ebook_pages.find_by!(page_number: params[:page_number])
+
+            if page.xhtml_content.present?
+              env["api.format"] = :txt
+              content_type "application/xhtml+xml; charset=utf-8"
+              page.xhtml_content
+            else
+              error!({ code: 1, message: "该页面尚未导出 XHTML" }, 404)
+            end
+          end
+
+          # ==================== 样式表 ====================
+          desc "获取电子书样式表（EPUB 导出后可用）"
+          params do
+            requires :id, type: Integer, desc: "图书ID"
+          end
+          get ":id/styles" do
+            book = Book.published_books.find(params[:id])
+            if book.styles_oss_url.present?
+              redirect book.styles_oss_url
+            else
+              error!({ code: 1, message: "样式表尚未导出" }, 404)
+            end
+          end
+
+          # ==================== 目录 ====================
+          desc "获取电子书目录结构"
+          params do
+            requires :id, type: Integer, desc: "图书ID"
+          end
+          get ":id/toc" do
+            book = Book.published_books.find(params[:id])
+            directories = book.ebook_pages.pluck(:rich_content).compact.map do |rc|
+              rc = rc.with_indifferent_access if rc.is_a?(Hash)
+              rc["directory"]
+            end.compact.uniq { |d| [d["title"], d["start_page_number"]] }
+
+            success_response(directories.map { |d|
+              {
+                title: d["title"],
+                start_page_number: d["start_page_number"],
+                level: d["level"]
+              }
+            })
+          end
+
           # ==================== 图书列表 ====================
           desc "获取图书列表"
           params do
@@ -144,6 +198,8 @@ module Api
               import_status: book.import_status,
               epub_export_status: book.epub_export_status,
               epub_oss_url: book.epub_oss_url,
+              styles_oss_url: book.styles_oss_url,
+              nav_oss_url: book.nav_oss_url,
               source_pdf_filename: book.source_pdf_filename,
               audio_album: book.audio_album ? {
                 narrator: book.audio_album.narrator,

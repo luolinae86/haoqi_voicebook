@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_29_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -113,6 +113,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_29_100000) do
     t.string "epub_oss_url", comment: "EPUB 文件公网 URL"
     t.integer "epub_export_status", default: 0, comment: "EPUB 导出状态：0-未导出 1-导出中 2-已完成 3-失败"
     t.text "epub_export_error", comment: "EPUB 导出失败原因"
+    t.string "styles_oss_url", comment: "book.css 的 OSS URL"
+    t.string "nav_oss_url", comment: "nav.xhtml 的 OSS URL"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["content_type"], name: "index_books_on_content_type"
     t.index ["created_at"], name: "index_books_on_created_at"
@@ -201,6 +203,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_29_100000) do
     t.integer "image_count", default: 0, null: false, comment: "图片数量"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "xhtml_content", comment: "页面 XHTML 内容"
     t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_ebook_pages_on_book_id"
   end

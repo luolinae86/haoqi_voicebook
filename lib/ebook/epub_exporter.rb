@@ -32,6 +32,16 @@ require_relative "page_image_renderer"
       @page_renderer = page_renderer
     end
 
+    attr_reader :pages
+
+    # Render a single page as XHTML — public API for saving page HTML to DB
+    def render_page_html(page_payload, root:, stylesheet_href: nil)
+      page_payload = page_payload.with_indifferent_access if page_payload.is_a?(Hash)
+      visible_text_lines = visible_lines(page_payload, dimension(page_payload["page_width"]))
+      title_image_assets = render_heading_images(page_payload, visible_text_lines, root, [])
+      page_document(page_payload, root, visible_text_lines: visible_text_lines, title_image_assets: title_image_assets, stylesheet_href: stylesheet_href)
+    end
+
     def call
       raise ArgumentError, "导出包目录不存在: #{@package_dir}" unless @package_dir.exist?
 
@@ -42,6 +52,7 @@ require_relative "page_image_renderer"
       Dir.mktmpdir("ebook-epub") do |tmp_dir|
         root = Pathname.new(tmp_dir)
         build_epub_tree(root)
+        yield root if block_given?
         pack_epub(root)
       end
 
@@ -159,7 +170,7 @@ require_relative "page_image_renderer"
       end
     end
 
-    def page_document(page, root, visible_text_lines: nil, title_image_assets: {})
+    def page_document(page, root, visible_text_lines: nil, title_image_assets: {}, stylesheet_href: nil)
       original_width = dimension(page["page_width"])
       original_height = dimension(page["page_height"])
       visible_text_lines ||= visible_lines(page, original_width)
@@ -193,6 +204,8 @@ require_relative "page_image_renderer"
         root
       )
 
+      css_href = stylesheet_href || "../styles/book.css"
+
       <<~HTML
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE html>
@@ -201,7 +214,7 @@ require_relative "page_image_renderer"
             <title>#{escape_html(page_title(page))}</title>
             <meta name="viewport" content="width=#{page_width},height=#{page_height}"/>
             <style type="text/css">#{critical_page_css(image_only_page)}</style>
-            <link rel="stylesheet" type="text/css" href="../styles/book.css"/>
+            <link rel="stylesheet" type="text/css" href="#{escape_html(css_href)}"/>
           </head>
           <body class="fixed-layout-page" style="#{body_inline_style(image_only_page)}">
             <section class="page-canvas" style="#{page_canvas_inline_style(page_width, page_height, image_only_page)}">

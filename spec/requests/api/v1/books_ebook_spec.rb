@@ -92,6 +92,91 @@ RSpec.describe "API V1 Books Ebook", type: :request do
     end
   end
 
+  describe "GET /api/books/:id/pages/:page_number/html" do
+    let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 1, import_status: :ready) }
+    let!(:page) do
+      create(
+        :ebook_page,
+        book: book,
+        page_number: 1,
+        plain_text: "第一页内容",
+        xhtml_content: <<~XHTML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE html>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <head><title>测试页面</title></head>
+            <body><p>第一页内容</p></body>
+          </html>
+        XHTML
+      )
+    end
+
+    it "returns XHTML content" do
+      get "/api/books/#{book.id}/pages/1/html"
+
+      expect(response).to have_http_status(200)
+      expect(response.body).to include("第一页内容")
+      expect(response.body).to include("html")
+    end
+
+    it "returns 404 when page XHTML is not available" do
+      page.update!(xhtml_content: nil)
+
+      get "/api/books/#{book.id}/pages/1/html"
+
+      expect(response).to have_http_status(404)
+    end
+  end
+
+  describe "GET /api/books/:id/styles" do
+    let(:book) { create(:book, status: :published, content_type: :ebook, styles_oss_url: "https://example.com/styles/book.css") }
+
+    it "redirects to OSS styles URL" do
+      get "/api/books/#{book.id}/styles"
+
+      expect(response).to have_http_status(302)
+      expect(response.headers["Location"]).to eq("https://example.com/styles/book.css")
+    end
+
+    it "returns 404 when styles are not available" do
+      book.update!(styles_oss_url: nil)
+
+      get "/api/books/#{book.id}/styles"
+
+      expect(response).to have_http_status(404)
+    end
+  end
+
+  describe "GET /api/books/:id/toc" do
+    let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 2, import_status: :ready) }
+    let!(:page_one) do
+      create(:ebook_page, book: book, page_number: 1, plain_text: "第一页", rich_content: {
+        "directory" => { "title" => "第一章 测试", "start_page_number" => 1, "level" => 1 }
+      })
+    end
+    let!(:page_two) { create(:ebook_page, book: book, page_number: 2, plain_text: "第二页") }
+
+    it "returns the table of contents" do
+      get "/api/books/#{book.id}/toc"
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:code]).to eq(0)
+      expect(json_response[:data].size).to eq(1)
+      expect(json_response[:data].first[:title]).to eq("第一章 测试")
+      expect(json_response[:data].first[:start_page_number]).to eq(1)
+      expect(json_response[:data].first[:level]).to eq(1)
+    end
+
+    it "returns empty array when no directories exist" do
+      page_one.update!(rich_content: {})
+
+      get "/api/books/#{book.id}/toc"
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:data]).to eq([])
+    end
+  end
+
   describe "POST /api/books/import_pdf" do
     let(:files) { create_sample_ebook_pdf }
 
