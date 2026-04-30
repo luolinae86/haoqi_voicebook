@@ -177,6 +177,47 @@ RSpec.describe "API V1 Books Ebook", type: :request do
     end
   end
 
+  describe "POST /api/books/import_epub" do
+    let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 0, import_status: :not_imported) }
+
+    it "accepts an EPUB import request and returns 202" do
+      post "/api/books/import_epub",
+           params: { book_id: book.id, epub_oss_key: "epubs/test-book.epub" },
+           as: :json
+
+      expect(response).to have_http_status(202)
+      expect(json_response[:code]).to eq(0)
+      expect(json_response[:data][:book_id]).to eq(book.id)
+      expect(json_response[:data][:message]).to include("EPUB 导入任务已提交")
+    end
+
+    it "returns 400 when epub_oss_key is missing" do
+      post "/api/books/import_epub",
+           params: { book_id: book.id },
+           as: :json
+
+      expect(response).to have_http_status(400)
+    end
+
+    it "rejects non-epub files" do
+      post "/api/books/import_epub",
+           params: { book_id: book.id, epub_oss_key: "pdfs/test-book.pdf" },
+           as: :json
+
+      expect(response).to have_http_status(400)
+    end
+
+    it "uses epub filename as book title when title is blank" do
+      post "/api/books/import_epub",
+           params: { epub_oss_key: "小老虎历险记.epub" },
+           as: :json
+
+      expect(response).to have_http_status(202)
+      book = Book.find(json_response[:data][:book_id])
+      expect(book.title).to eq("小老虎历险记")
+    end
+  end
+
   describe "POST /api/books/import_pdf" do
     let(:files) { create_sample_ebook_pdf }
 

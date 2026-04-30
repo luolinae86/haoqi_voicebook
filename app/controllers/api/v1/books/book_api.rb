@@ -58,6 +58,47 @@ module Api
             }, message: "PDF 导入成功")
           end
 
+          # ==================== 导入 EPUB 电子书 ====================
+          desc "从 OSS 上的 EPUB 文件导入电子书"
+          params do
+            optional :book_id, type: Integer, desc: "已有图书ID"
+            optional :title, type: String, desc: "书名"
+            optional :author, type: String, desc: "作者"
+            optional :publisher, type: String, desc: "出版社"
+            optional :description, type: String, desc: "简介"
+            optional :cover_image, type: String, desc: "封面图"
+            optional :category_id, type: Integer, desc: "分类ID"
+            optional :grade_id, type: Integer, desc: "年级ID"
+            optional :is_free, type: Boolean, desc: "是否免费"
+            optional :is_vip, type: Boolean, desc: "是否VIP"
+            requires :epub_oss_key, type: String, desc: "EPUB 文件在 OSS 上的路径"
+          end
+          post :import_epub do
+            epub_oss_key = params[:epub_oss_key]
+            raise ArgumentError, "仅支持 EPUB 文件" unless epub_oss_key.downcase.end_with?(".epub")
+
+            book = params[:book_id].present? ? Book.find(params[:book_id]) : Book.new(status: :published)
+            book.assign_attributes(
+              declared(params, include_missing: false).slice(
+                :title, :author, :publisher, :description, :cover_image,
+                :category_id, :grade_id, :is_free, :is_vip
+              ).merge(content_type: :ebook)
+            )
+            book.title = File.basename(epub_oss_key, ".epub") if book.title.blank?
+            book.save! if book.new_record? || book.changed?
+
+            EpubImportWorker.perform_async({
+              "book_id" => book.id,
+              "epub_oss_key" => epub_oss_key
+            })
+
+            status 202
+            success_response({
+              book_id: book.id,
+              message: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
+            })
+          end
+
           # ==================== 异步导出 EPUB ====================
           desc "从 OSS 上的 PDF 异步生成 EPUB"
           params do
