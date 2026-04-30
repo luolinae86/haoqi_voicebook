@@ -35,17 +35,11 @@ sidekiq_url = build_sidekiq_redis_url
 Sidekiq.configure_server do |config|
   config.redis = { url: sidekiq_url }
 
-  if Rails.env.production?
-    # 生产环境：输出到 stdout，方便 kamal app logs / docker logs 查看
-    config.logger = Sidekiq::Logger.new($stdout)
-    config.logger.level = ::Logger::INFO
-  else
-    # 开发环境：输出到文件
-    log_path = Rails.root.join("log/sidekiq.log")
-    FileUtils.mkdir_p(log_path.dirname)
-    config.logger = Sidekiq::Logger.new(log_path.to_s)
-    config.logger.level = ::Logger::INFO
-  end
+  # 持久化日志到 log/sidekiq.log（按天轮转），同时输出到 stdout
+  log_path = Rails.root.join("log/sidekiq.log")
+  FileUtils.mkdir_p(log_path.dirname)
+  config.logger = Logger.new(log_path.to_s, "daily")
+  config.logger.level = ::Logger::INFO
 end
 
 Sidekiq.configure_client do |config|

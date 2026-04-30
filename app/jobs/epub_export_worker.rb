@@ -49,6 +49,7 @@ class EpubExportWorker
         book: book,
         pdf_path: pdf_path,
         source_filename: File.basename(pdf_oss_key),
+        source_pdf_oss_key: pdf_oss_key,
         public_root: public_root,
         storage_root: storage_root,
         page_renderer: build_page_renderer(pdf_path),

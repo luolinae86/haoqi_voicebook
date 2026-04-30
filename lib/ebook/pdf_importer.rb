@@ -13,6 +13,7 @@ module Ebook
     LINE_TOLERANCE = 2.0
 
     def initialize(book:, pdf_path:, source_filename: nil,
+                   source_pdf_oss_key: nil,
                    public_root: Rails.root.join("public"),
                    storage_root: Rails.root.join("public/system/ebooks"),
                    page_renderer: nil,
@@ -22,6 +23,7 @@ module Ebook
       @book = book
       @pdf_path = Pathname.new(pdf_path.to_s)
       @source_filename = source_filename.presence || @pdf_path.basename.to_s
+      @source_pdf_oss_key = source_pdf_oss_key.presence
       @public_root = Pathname.new(public_root.to_s)
       @storage_root = Pathname.new(storage_root.to_s).join("book_#{book.id || 'new'}")
       @page_renderer = page_renderer
@@ -79,7 +81,7 @@ module Ebook
           word_count: total_word_count,
           page_count: reader.pages.size,
           source_pdf_filename: @source_filename,
-          source_pdf_path: @pdf_path.to_s,
+          source_pdf_path: @source_pdf_oss_key.presence || @pdf_path.to_s,
           ebook_checksum: checksum,
           imported_at: Time.current,
           import_status: :ready,
