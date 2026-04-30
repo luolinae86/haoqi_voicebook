@@ -13,8 +13,6 @@ servers:
     hosts:
       - 114.215.208.190
     cmd: "bundle exec sidekiq -C config/sidekiq.yml"
-    healthcheck:
-      cmd: "exit 0"
 
 # ==================== Docker Registry 配置 ====================
 registry:
