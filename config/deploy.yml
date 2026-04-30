@@ -9,6 +9,10 @@ servers:
   web:
     hosts:
       - 114.215.208.190
+  worker:
+    hosts:
+      - 114.215.208.190
+    cmd: "bundle exec sidekiq -C config/sidekiq.yml"
 
 # ==================== Docker Registry 配置 ====================
 registry:
