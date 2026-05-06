@@ -19,6 +19,7 @@ gem "sidekiq", "~> 7.3"
 gem "connection_pool", "~> 2.4"
 gem "pdf-reader", "~> 2.15"
 gem "rubyzip", "~> 2.3"
+gem "jwt"
 
 group :development, :test do
   gem "rspec-rails"

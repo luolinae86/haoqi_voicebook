@@ -87,8 +87,8 @@ RSpec.describe "API V1 Memberships", type: :request do
   # ==================== 支付回调 ====================
   describe "POST /api/memberships/payment_callback" do
     context "已登录" do
-      let!(:membership) { create(:membership, :pending, user: user) }
-      let!(:order) { create(:order, user: user, status: :pending, membership: membership) }
+      let!(:membership) { create(:membership, :pending, app_user: user) }
+      let!(:order) { create(:order, app_user: user, status: :pending, membership: membership) }
 
       it "支付回调成功激活会员" do
         post "/api/memberships/payment_callback",
@@ -136,7 +136,7 @@ RSpec.describe "API V1 Memberships", type: :request do
         let(:vip_headers) { auth_headers(vip_user) }
 
         before do
-          create(:membership, user: vip_user, status: :active)
+          create(:membership, app_user: vip_user, status: :active)
         end
 
         it "返回会员信息" do

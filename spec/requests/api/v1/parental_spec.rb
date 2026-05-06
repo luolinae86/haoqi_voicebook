@@ -23,7 +23,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
       end
 
       it "已设置过不能重复创建" do
-        create(:parental_control, user: user)
+        create(:parental_control, app_user: user)
 
         post "/api/parental/setup", params: { password: "5678" }, headers: headers
 
@@ -42,7 +42,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
 
   # ==================== 验证家长密码 ====================
   describe "POST /api/parental/verify" do
-    let!(:parental_control) { create(:parental_control, user: user, password: "123456") }
+    let!(:parental_control) { create(:parental_control, app_user: user, password: "123456") }
 
     context "已登录" do
       it "密码正确验证通过" do
@@ -71,7 +71,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
   # ==================== 获取设置 ====================
   describe "GET /api/parental/settings" do
     context "已登录" do
-      let!(:parental_control) { create(:parental_control, user: user, time_limit_minutes: 60) }
+      let!(:parental_control) { create(:parental_control, app_user: user, time_limit_minutes: 60) }
 
       it "返回家长控制设置" do
         get "/api/parental/settings", headers: headers
@@ -102,7 +102,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
 
   # ==================== 设置时间限制 ====================
   describe "PUT /api/parental/time_limit" do
-    let!(:parental_control) { create(:parental_control, user: user) }
+    let!(:parental_control) { create(:parental_control, app_user: user) }
 
     context "已登录" do
       it "设置时间限制成功" do
@@ -137,7 +137,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
 
   # ==================== 设置家长手机号 ====================
   describe "PUT /api/parental/phone" do
-    let!(:parental_control) { create(:parental_control, user: user) }
+    let!(:parental_control) { create(:parental_control, app_user: user) }
     let!(:sms_verification) do
       create(:sms_verification, phone: "13900001111", code: "8888", expires_at: 5.minutes.from_now)
     end
@@ -172,7 +172,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
 
   # ==================== 黑名单列表 ====================
   describe "GET /api/parental/blacklist" do
-    let!(:parental_control) { create(:parental_control, user: user) }
+    let!(:parental_control) { create(:parental_control, app_user: user) }
 
     context "已登录" do
       let!(:blacklisted) { create(:blacklisted_book, parental_control: parental_control) }
@@ -208,7 +208,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
 
   # ==================== 添加到黑名单 ====================
   describe "POST /api/parental/blacklist" do
-    let!(:parental_control) { create(:parental_control, user: user) }
+    let!(:parental_control) { create(:parental_control, app_user: user) }
     let(:book) { create(:book) }
 
     context "已登录" do
@@ -241,7 +241,7 @@ RSpec.describe "API V1 Parental Control", type: :request do
 
   # ==================== 从黑名单移除 ====================
   describe "DELETE /api/parental/blacklist/:book_id" do
-    let!(:parental_control) { create(:parental_control, user: user) }
+    let!(:parental_control) { create(:parental_control, app_user: user) }
     let(:book) { create(:book) }
     let!(:blacklisted) { create(:blacklisted_book, parental_control: parental_control, book: book) }
 

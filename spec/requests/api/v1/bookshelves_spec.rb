@@ -80,7 +80,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
   # ==================== 从书架移除 ====================
   describe "DELETE /api/bookshelves/:book_id" do
     context "已登录" do
-      let!(:shelf_item) { create(:bookshelf, user: user, book: book) }
+      let!(:shelf_item) { create(:bookshelf, app_user: user, book: book) }
 
       it "移除图书成功" do
         expect {
@@ -110,7 +110,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
   # ==================== 更新阅读进度 ====================
   describe "PUT /api/bookshelves/:book_id/progress" do
     context "已登录" do
-      let!(:shelf_item) { create(:bookshelf, user: user, book: book) }
+      let!(:shelf_item) { create(:bookshelf, app_user: user, book: book) }
 
       it "更新阅读进度成功" do
         put "/api/bookshelves/#{book.id}/progress",
@@ -144,7 +144,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
   # ==================== 记录阅读 ====================
   describe "POST /api/bookshelves/:book_id/reading_records" do
     context "已登录" do
-      let!(:shelf_item) { create(:bookshelf, user: user, book: book) }
+      let!(:shelf_item) { create(:bookshelf, app_user: user, book: book) }
 
       it "记录阅读成功" do
         expect {
@@ -235,7 +235,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
   # ==================== 删除书签 ====================
   describe "DELETE /api/bookmarks/:id" do
     context "已登录" do
-      let!(:bookmark) { create(:bookmark, user: user, book: book) }
+      let!(:bookmark) { create(:bookmark, app_user: user, book: book) }
 
       it "删除书签成功" do
         expect {

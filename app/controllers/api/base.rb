@@ -22,7 +22,7 @@ module Api
     end
 
     # ==================== 挂载子模块 ====================
-    mount Api::V1::Users::Mount
+    mount Api::V1::AppUsers::Mount
     mount Api::V1::Books::Mount
     mount Api::V1::Audio::Mount
     mount Api::V1::Categories::Mount

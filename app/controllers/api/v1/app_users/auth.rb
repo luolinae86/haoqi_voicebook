@@ -4,19 +4,20 @@
 # 提供手机号+验证码登录、密码登录、注册、找回密码等功能
 module Api
   module V1
-    module Users
+    module AppUsers
       class Auth < Grape::API
         helpers Api::Helpers::CommonHelpers
 
-        namespace :users do
+        namespace :app_users do
           # ==================== 发送验证码 ====================
           desc "发送短信验证码"
           params do
-            requires :uuid, type: String, desc: "用户UUID"
+            optional :uuid, type: String, desc: "用户UUID（登录时可选）"
             requires :phone, type: String, desc: "手机号"
           end
           post :send_code do
-            auth_user
+            # 仅在提供 uuid 时验证用户身份（用于已登录用户绑定手机号）
+            auth_user if params[:uuid].present?
 
             phone = params[:phone]
 
@@ -89,8 +90,10 @@ module Api
                 is_vip: user.vip_active?,
                 reading_words: user.reading_words,
                 reading_minutes: user.reading_minutes,
-                books_read: user.books_read
-              }
+                books_read: user.books_read,
+                uuid: user.uuid,
+              },
+              token: JwtService.generate(user),
             }, message: "登录成功")
           end
 
@@ -117,8 +120,10 @@ module Api
                 is_vip: user.vip_active?,
                 reading_words: user.reading_words,
                 reading_minutes: user.reading_minutes,
-                books_read: user.books_read
-              }
+                books_read: user.books_read,
+                uuid: user.uuid,
+              },
+              token: JwtService.generate(user),
             }, message: "登录成功")
           end
 
