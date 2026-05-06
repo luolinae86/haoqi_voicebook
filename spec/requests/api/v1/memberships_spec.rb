@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API V1 Memberships", type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:app_user) }
   let(:headers) { auth_headers(user) }
 
   # ==================== 会员套餐 ====================
@@ -132,7 +132,7 @@ RSpec.describe "API V1 Memberships", type: :request do
   describe "GET /api/memberships/my" do
     context "已登录" do
       context "是 VIP 用户" do
-        let(:vip_user) { create(:user, :vip) }
+        let(:vip_user) { create(:app_user, :vip) }
         let(:vip_headers) { auth_headers(vip_user) }
 
         before do

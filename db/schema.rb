@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_30_200002) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -18,6 +18,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["access_key_id"], name: "index_api_auths_on_access_key_id", unique: true
+  end
+
+  create_table "app_users", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "用户表", force: :cascade do |t|
+    t.string "phone", null: false, comment: "手机号"
+    t.string "password_digest", comment: "加密密码"
+    t.string "nickname", comment: "昵称"
+    t.string "avatar", comment: "头像URL"
+    t.integer "grade_id", comment: "年级ID"
+    t.integer "role", default: 0, null: false, comment: "角色：0-孩子 1-家长 2-管理员"
+    t.integer "reading_words", default: 0, null: false, comment: "阅读字数"
+    t.integer "reading_minutes", default: 0, null: false, comment: "阅读时长(分钟)"
+    t.integer "books_read", default: 0, null: false, comment: "读过的书(本)"
+    t.boolean "is_vip", default: false, null: false, comment: "是否VIP"
+    t.datetime "vip_expires_at", comment: "VIP过期时间"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "uuid", limit: 32
+    t.index ["grade_id"], name: "index_app_users_on_grade_id"
+    t.index ["is_vip"], name: "index_app_users_on_is_vip"
+    t.index ["phone"], name: "index_app_users_on_phone", unique: true
+    t.index ["uuid"], name: "index_app_users_on_uuid", unique: true
   end
 
   create_table "audio_albums", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "有声专辑表", force: :cascade do |t|
@@ -74,14 +95,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
   end
 
   create_table "bookmarks", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "书签表", force: :cascade do |t|
-    t.integer "user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", null: false, comment: "用户ID"
     t.integer "book_id", null: false, comment: "图书ID"
     t.integer "chapter_id", comment: "章节ID"
     t.decimal "position", precision: 5, scale: 2, default: "0.0", comment: "位置(%)"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["app_user_id"], name: "index_bookmarks_on_app_user_id"
     t.index ["book_id"], name: "index_bookmarks_on_book_id"
-    t.index ["user_id"], name: "index_bookmarks_on_user_id"
   end
 
   create_table "books", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "图书表", force: :cascade do |t|
@@ -128,16 +149,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
   end
 
   create_table "bookshelves", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "书架表", force: :cascade do |t|
-    t.integer "user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", null: false, comment: "用户ID"
     t.integer "book_id", null: false, comment: "图书ID"
     t.decimal "reading_progress", precision: 5, scale: 2, default: "0.0", comment: "阅读进度(%)"
     t.integer "last_read_chapter_id", comment: "最后阅读章节ID"
     t.datetime "last_read_at", comment: "最后阅读时间"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["app_user_id", "book_id"], name: "index_bookshelves_on_app_user_id_and_book_id", unique: true
+    t.index ["app_user_id"], name: "index_bookshelves_on_app_user_id"
     t.index ["book_id"], name: "index_bookshelves_on_book_id"
-    t.index ["user_id", "book_id"], name: "index_bookshelves_on_user_id_and_book_id", unique: true
-    t.index ["user_id"], name: "index_bookshelves_on_user_id"
   end
 
   create_table "categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "分类表", force: :cascade do |t|
@@ -230,7 +251,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
   end
 
   create_table "memberships", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "会员表", force: :cascade do |t|
-    t.integer "user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", null: false, comment: "用户ID"
     t.integer "plan_type", default: 0, null: false, comment: "套餐：0-月度 1-季度 2-年度"
     t.decimal "price", precision: 10, scale: 2, null: false, comment: "实付价格"
     t.decimal "original_price", precision: 10, scale: 2, comment: "原价"
@@ -239,13 +260,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
     t.integer "status", default: 0, null: false, comment: "状态：0-待支付 1-有效 2-已过期 3-已取消"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["app_user_id"], name: "index_memberships_on_app_user_id"
     t.index ["end_date"], name: "index_memberships_on_end_date"
     t.index ["status"], name: "index_memberships_on_status"
-    t.index ["user_id"], name: "index_memberships_on_user_id"
   end
 
   create_table "orders", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "订单表", force: :cascade do |t|
-    t.integer "user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", null: false, comment: "用户ID"
     t.string "order_no", null: false, comment: "订单号"
     t.decimal "amount", precision: 10, scale: 2, null: false, comment: "金额"
     t.integer "payment_method", default: 0, null: false, comment: "支付方式：0-支付宝 1-微信"
@@ -254,21 +275,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
     t.integer "membership_id", comment: "会员ID"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["app_user_id"], name: "index_orders_on_app_user_id"
     t.index ["membership_id"], name: "index_orders_on_membership_id"
     t.index ["order_no"], name: "index_orders_on_order_no", unique: true
     t.index ["status"], name: "index_orders_on_status"
-    t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
   create_table "parental_controls", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "家长管控表", force: :cascade do |t|
-    t.integer "user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", null: false, comment: "用户ID"
     t.string "password_digest", null: false, comment: "家长密码"
     t.string "phone", comment: "家长手机号"
     t.integer "time_limit_minutes", comment: "时间限制(分钟)"
     t.boolean "is_active", default: true, null: false, comment: "是否启用"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["user_id"], name: "index_parental_controls_on_user_id", unique: true
+    t.index ["app_user_id"], name: "index_parental_controls_on_app_user_id", unique: true
   end
 
   create_table "ranking_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "排行项表", force: :cascade do |t|
@@ -303,7 +324,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
   end
 
   create_table "reading_records", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "阅读记录表", force: :cascade do |t|
-    t.integer "user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", null: false, comment: "用户ID"
     t.integer "book_id", null: false, comment: "图书ID"
     t.integer "chapter_id", comment: "章节ID"
     t.integer "words_read", default: 0, null: false, comment: "阅读字数"
@@ -311,9 +332,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
     t.datetime "read_at", comment: "阅读时间"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["app_user_id"], name: "index_reading_records_on_app_user_id"
     t.index ["book_id"], name: "index_reading_records_on_book_id"
     t.index ["read_at"], name: "index_reading_records_on_read_at"
-    t.index ["user_id"], name: "index_reading_records_on_user_id"
   end
 
   create_table "recommendation_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "推荐项表", force: :cascade do |t|
@@ -349,27 +370,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_30_100000) do
     t.datetime "updated_at", null: false
     t.index ["expires_at"], name: "index_sms_verifications_on_expires_at"
     t.index ["phone", "code"], name: "index_sms_verifications_on_phone_and_code"
-  end
-
-  create_table "users", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "用户表", force: :cascade do |t|
-    t.string "phone", null: false, comment: "手机号"
-    t.string "password_digest", comment: "加密密码"
-    t.string "nickname", comment: "昵称"
-    t.string "avatar", comment: "头像URL"
-    t.integer "grade_id", comment: "年级ID"
-    t.integer "role", default: 0, null: false, comment: "角色：0-孩子 1-家长 2-管理员"
-    t.integer "reading_words", default: 0, null: false, comment: "阅读字数"
-    t.integer "reading_minutes", default: 0, null: false, comment: "阅读时长(分钟)"
-    t.integer "books_read", default: 0, null: false, comment: "读过的书(本)"
-    t.boolean "is_vip", default: false, null: false, comment: "是否VIP"
-    t.datetime "vip_expires_at", comment: "VIP过期时间"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "uuid", limit: 32
-    t.index ["grade_id"], name: "index_users_on_grade_id"
-    t.index ["is_vip"], name: "index_users_on_is_vip"
-    t.index ["phone"], name: "index_users_on_phone", unique: true
-    t.index ["uuid"], name: "index_users_on_uuid", unique: true
   end
 
   add_foreign_key "ebook_pages", "books"

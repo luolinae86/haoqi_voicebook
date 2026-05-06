@@ -75,7 +75,7 @@ module Api
             verification.mark_verified!
 
             # 查找或创建用户
-            user = User.find_or_create_by!(phone: phone) do |u|
+            user = AppUser.find_or_create_by!(phone: phone) do |u|
               u.nickname = "用户#{phone[-4..]}"
             end
 
@@ -101,7 +101,7 @@ module Api
             requires :password, type: String, desc: "密码"
           end
           post :login_by_password do
-            user = User.find_by(phone: params[:phone])
+            user = AppUser.find_by(phone: params[:phone])
 
             if user.nil? || !user.authenticate(params[:password])
               error_pop_resp("手机号或密码错误")
@@ -141,7 +141,7 @@ module Api
 
             verification.mark_verified!
 
-            user = User.find_by!(phone: params[:phone])
+            user = AppUser.find_by!(phone: params[:phone])
             user.update!(password: params[:password])
 
             success_response(nil, message: "密码设置成功")

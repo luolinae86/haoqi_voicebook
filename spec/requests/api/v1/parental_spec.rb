@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API V1 Parental Control", type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:app_user) }
   let(:headers) { auth_headers(user) }
 
   # ==================== 设置家长密码 ====================

@@ -4,7 +4,7 @@
 # 记录用户的详细阅读行为（阅读字数、时长等）
 class ReadingRecord < ApplicationRecord
   # 关联关系
-  belongs_to :user                       # 所属用户
+  belongs_to :app_user, class_name: "AppUser"    # 所属用户
   belongs_to :book                       # 阅读的图书
   belongs_to :chapter, optional: true    # 阅读的章节
 

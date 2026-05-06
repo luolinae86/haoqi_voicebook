@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe Bookmark, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:user) }
+    it { should belong_to(:app_user) }
     it { should belong_to(:book) }
     it { should belong_to(:chapter).optional }
   end
@@ -19,10 +19,10 @@ RSpec.describe Bookmark, type: :model do
   describe "scopes" do
     describe ".recent" do
       it "按创建时间降序排列" do
-        user = create(:user)
+        app_user = create(:app_user)
         book = create(:book)
-        old_bookmark = create(:bookmark, user: user, book: book, created_at: 1.week.ago)
-        new_bookmark = create(:bookmark, user: user, book: book, created_at: 1.hour.ago)
+        old_bookmark = create(:bookmark, app_user: app_user, book: book, created_at: 1.week.ago)
+        new_bookmark = create(:bookmark, app_user: app_user, book: book, created_at: 1.hour.ago)
 
         expect(Bookmark.recent.first).to eq(new_bookmark)
       end

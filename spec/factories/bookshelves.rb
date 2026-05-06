@@ -3,7 +3,7 @@
 # 书架工厂
 FactoryBot.define do
   factory :bookshelf do
-    association :user
+    association :app_user
     association :book
     reading_progress { 0.0 }
     last_read_at { nil }

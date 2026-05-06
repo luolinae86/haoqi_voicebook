@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe ReadingRecord, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:user) }
+    it { should belong_to(:app_user) }
     it { should belong_to(:book) }
     it { should belong_to(:chapter).optional }
   end

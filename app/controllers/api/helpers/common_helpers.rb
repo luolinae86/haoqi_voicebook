@@ -57,9 +57,9 @@ module Api
       # ==================== 认证相关 ====================
 
       # 根据 uuid 查找当前用户
-      # @return [User, nil]
+      # @return [AppUser, nil]
       def current_user
-        @current_user ||= User.find_by(uuid: params[:uuid])
+        @current_user ||= AppUser.find_by(uuid: params[:uuid])
       end
 
       # 验证用户已授权（uuid 有效）

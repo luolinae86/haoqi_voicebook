@@ -3,7 +3,7 @@
 # 订单工厂
 FactoryBot.define do
   factory :order do
-    association :user
+    association :app_user
     sequence(:order_no) { |n| "ORD#{Time.current.strftime('%Y%m%d')}#{n.to_s.rjust(6, '0')}" }
     amount { Faker::Commerce.price(range: 9.9..168.0) }
     payment_method { :wechat }

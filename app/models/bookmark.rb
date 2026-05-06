@@ -4,7 +4,7 @@
 # 管理用户在阅读中添加的书签
 class Bookmark < ApplicationRecord
   # 关联关系
-  belongs_to :user     # 所属用户
+  belongs_to :app_user, class_name: "AppUser"    # 所属用户
   belongs_to :book     # 关联图书
   belongs_to :chapter, optional: true  # 关联章节
 

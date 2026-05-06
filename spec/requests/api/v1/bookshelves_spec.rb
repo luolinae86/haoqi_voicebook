@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API V1 Bookshelves", type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:app_user) }
   let(:headers) { auth_headers(user) }
   let(:book) { create(:book) }
   let(:chapter) { create(:chapter, book: book) }
@@ -12,7 +12,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
   describe "GET /api/bookshelves" do
     context "已登录" do
       before do
-        create_list(:bookshelf, 3, user: user)
+        create_list(:bookshelf, 3, app_user: user)
       end
 
       it "返回用户书架列表" do
@@ -54,7 +54,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
       end
 
       it "重复添加同一本书不会创建新记录" do
-        create(:bookshelf, user: user, book: book)
+        create(:bookshelf, app_user: user, book: book)
 
         expect {
           post "/api/bookshelves", params: { book_id: book.id }, headers: headers
@@ -180,7 +180,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
   describe "GET /api/bookmarks" do
     context "已登录" do
       before do
-        create_list(:bookmark, 3, user: user)
+        create_list(:bookmark, 3, app_user: user)
       end
 
       it "返回用户书签列表" do
@@ -253,8 +253,8 @@ RSpec.describe "API V1 Bookshelves", type: :request do
       end
 
       it "不能删除其他用户的书签" do
-        other_user = create(:user)
-        other_bookmark = create(:bookmark, user: other_user)
+        other_user = create(:app_user)
+        other_bookmark = create(:bookmark, app_user: other_user)
 
         delete "/api/bookmarks/#{other_bookmark.id}", headers: headers
 
@@ -264,7 +264,7 @@ RSpec.describe "API V1 Bookshelves", type: :request do
 
     context "未登录" do
       it "返回 401 未授权" do
-        bookmark = create(:bookmark, user: user)
+        bookmark = create(:bookmark, app_user: user)
         delete "/api/bookmarks/#{bookmark.id}"
 
         expect(response).to have_http_status(401)

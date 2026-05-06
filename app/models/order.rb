@@ -10,7 +10,7 @@ class Order < ApplicationRecord
   enum :status, { pending: 0, paid: 1, failed: 2, refunded: 3 }, default: :pending
 
   # 关联关系
-  belongs_to :user                              # 所属用户
+  belongs_to :app_user, class_name: "AppUser"    # 所属用户
   belongs_to :membership, optional: true        # 关联会员
 
   # 验证规则

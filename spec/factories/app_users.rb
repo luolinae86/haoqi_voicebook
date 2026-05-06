@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# 用户工厂
+# App用户工厂
 FactoryBot.define do
-  factory :user do
+  factory :app_user, class: "AppUser" do
     phone { "1#{rand(3..9)}#{Faker::Number.number(digits: 9)}" }
     nickname { Faker::Internet.username }
     avatar { Faker::Avatar.image }

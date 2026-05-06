@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe Membership, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:user) }
+    it { should belong_to(:app_user) }
     it { should have_many(:orders).dependent(:nullify) }
   end
 

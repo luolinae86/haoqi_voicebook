@@ -3,12 +3,12 @@
 require "rails_helper"
 
 RSpec.describe "API V1 Users", type: :request do
-  let(:user) { create(:user, phone: "13800138000", password: "password123") }
+  let(:user) { create(:app_user, phone: "13800138000", password: "password123") }
   let(:headers) { auth_headers(user) }
 
   # ==================== 发送验证码 ====================
   describe "POST /api/users/send_code" do
-    let(:user_with_uuid) { create(:user, phone: "13800138000", uuid: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4") }
+    let(:user_with_uuid) { create(:app_user, phone: "13800138000", uuid: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4") }
 
     before do
       allow_any_instance_of(AliyunSmsService).to receive(:send_verification_code).and_return(true)
@@ -111,7 +111,7 @@ RSpec.describe "API V1 Users", type: :request do
 
         expect {
           post "/api/users/login_by_code", params: { phone: new_phone, code: "5678" }
-        }.to change(User, :count).by(1)
+        }.to change(AppUser, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
@@ -291,7 +291,7 @@ RSpec.describe "API V1 Users", type: :request do
   # ==================== 阅读统计 ====================
   describe "GET /api/users/reading_stats" do
     context "已登录" do
-      let(:user) { create(:user, :with_reading_stats) }
+      let(:user) { create(:app_user, :with_reading_stats) }
 
       it "返回阅读统计数据" do
         get "/api/users/reading_stats", headers: headers

@@ -3,7 +3,7 @@
 # 阅读记录工厂
 FactoryBot.define do
   factory :reading_record do
-    association :user
+    association :app_user
     association :book
     association :chapter
     words_read { Faker::Number.between(from: 100, to: 5000) }

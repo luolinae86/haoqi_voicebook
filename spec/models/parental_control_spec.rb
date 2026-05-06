@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe ParentalControl, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:user) }
+    it { should belong_to(:app_user) }
     it { should have_many(:blacklisted_books).dependent(:destroy) }
   end
 
@@ -13,7 +13,7 @@ RSpec.describe ParentalControl, type: :model do
   describe "validations" do
     subject { create(:parental_control) }
 
-    it { should validate_uniqueness_of(:user_id) }
+    it { should validate_uniqueness_of(:app_user_id) }
     it { should validate_numericality_of(:time_limit_minutes).is_greater_than(0).allow_nil }
   end
 

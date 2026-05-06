@@ -3,7 +3,7 @@
 # 会员订阅工厂
 FactoryBot.define do
   factory :membership do
-    association :user
+    association :app_user
     plan_type { :monthly }
     price { 19.90 }
     original_price { 29.90 }

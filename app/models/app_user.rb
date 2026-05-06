@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 # 用户模型
 # 管理用户账户信息，支持手机号+验证码登录和密码登录
-class User < ApplicationRecord
+class AppUser < ApplicationRecord
+  self.table_name = "app_users"
   has_secure_password validations: false  # 密码加密（可选密码）
 
   before_validation :generate_uuid, on: :create

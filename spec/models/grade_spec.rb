@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe Grade, type: :model do
   # 关联测试
   describe "associations" do
-    it { should have_many(:users).dependent(:nullify) }
+    it { should have_many(:app_users).class_name("AppUser").dependent(:nullify) }
     it { should have_many(:books).dependent(:nullify) }
     it { should have_many(:collections).dependent(:nullify) }
     it { should have_many(:recommendations).dependent(:nullify) }

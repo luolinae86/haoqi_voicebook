@@ -3,7 +3,7 @@
 # 家长控制工厂
 FactoryBot.define do
   factory :parental_control do
-    association :user
+    association :app_user
     password { "123456" }
     time_limit_minutes { 60 }
     is_active { true }

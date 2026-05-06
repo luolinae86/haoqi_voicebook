@@ -3,8 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "API V1 Books", type: :request do
-  let(:user) { create(:user) }
-  let(:vip_user) { create(:user, :vip) }
+  let(:user) { create(:app_user) }
+  let(:vip_user) { create(:app_user, :vip) }
   let(:headers) { auth_headers(user) }
   let(:vip_headers) { auth_headers(vip_user) }
 
