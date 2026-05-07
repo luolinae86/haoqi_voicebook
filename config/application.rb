@@ -49,5 +49,12 @@ module Voicebook
           expose: %w[X-Total-Count X-Total-Pages X-Current-Page X-Per-Page]
       end
     end
+
+    # 文档接口 Basic Auth（本地开发跳过）
+    require_relative "../lib/docs_auth_middleware"
+    unless Rails.env.development?
+      # 必须在 ActionDispatch::Static 之前，否则静态文件不会经过此中间件
+      config.middleware.insert_before ActionDispatch::Static, DocsAuthMiddleware
+    end
   end
 end

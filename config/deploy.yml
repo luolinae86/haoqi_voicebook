@@ -43,6 +43,8 @@ env:
     - ALIYUN_ACCESS_KEY_SECRET
     - REDIS_URL
     - REDIS_PASSWORD
+    - DOCS_USERNAME
+    - DOCS_PASSWORD
 
 # ==================== SSH 配置 ====================
 ssh:
