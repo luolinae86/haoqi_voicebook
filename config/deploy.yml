@@ -55,7 +55,7 @@ ssh:
 # 多服务器部署：kamal-proxy 不处理 SSL
 # SSL 由阿里云 SLB 处理（将 443 流量分发到两台服务器的 80 端口）
 proxy:
-  ssl: false
+  ssl: true
   host: api.zheliyuedu.cn
   healthcheck:
     path: /up
