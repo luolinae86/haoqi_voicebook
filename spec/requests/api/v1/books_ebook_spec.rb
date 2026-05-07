@@ -12,9 +12,9 @@ RSpec.describe "API V1 Books Ebook", type: :request do
            as: :json
 
       expect(response).to have_http_status(202)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:book_id]).to eq(book.id)
-      expect(json_response[:data][:message]).to include("EPUB 导出任务已提交")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:book_id]).to eq(book.id)
+      expect(json_response[:message]).to include("EPUB 导出任务已提交")
     end
 
     it "returns 400 when book_id is missing" do
@@ -31,7 +31,7 @@ RSpec.describe "API V1 Books Ebook", type: :request do
            as: :json
 
       expect(response).to have_http_status(202)
-      expect(json_response[:data][:message]).to include("EPUB 导出任务已提交")
+      expect(json_response[:message]).to include("EPUB 导出任务已提交")
     end
   end
 
@@ -44,10 +44,10 @@ RSpec.describe "API V1 Books Ebook", type: :request do
       get "/api/books/#{book.id}/pages"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:page_count]).to eq(2)
-      expect(json_response[:data][:pages].map { |page| page[:page_number] }).to eq([1, 2])
-      expect(json_response[:data][:pages].first[:directory]).to be_nil
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:page_count]).to eq(2)
+      expect(json_response[:pages].map { |page| page[:page_number] }).to eq([1, 2])
+      expect(json_response[:pages].first[:directory]).to be_nil
     end
   end
 
@@ -83,12 +83,12 @@ RSpec.describe "API V1 Books Ebook", type: :request do
       get "/api/books/#{book.id}/pages/1"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:page_number]).to eq(1)
-      expect(json_response[:data][:text]).to eq("[TITLE] 第一页标题\n[BODY] 第一页内容\n")
-      expect(json_response[:data][:lines].size).to eq(2)
-      expect(json_response[:data][:images].first[:role]).to eq("hero_image")
-      expect(json_response[:data][:directory][:title]).to eq("第一章 第一页标题")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:page_number]).to eq(1)
+      expect(json_response[:text]).to eq("[TITLE] 第一页标题\n[BODY] 第一页内容\n")
+      expect(json_response[:lines].size).to eq(2)
+      expect(json_response[:images].first[:role]).to eq("hero_image")
+      expect(json_response[:directory][:title]).to eq("第一章 第一页标题")
     end
   end
 
@@ -160,7 +160,7 @@ RSpec.describe "API V1 Books Ebook", type: :request do
       get "/api/books/#{book.id}/toc"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:data].size).to eq(1)
       expect(json_response[:data].first[:title]).to eq("第一章 测试")
       expect(json_response[:data].first[:start_page_number]).to eq(1)
@@ -186,9 +186,9 @@ RSpec.describe "API V1 Books Ebook", type: :request do
            as: :json
 
       expect(response).to have_http_status(202)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:book_id]).to eq(book.id)
-      expect(json_response[:data][:message]).to include("EPUB 导入任务已提交")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:book_id]).to eq(book.id)
+      expect(json_response[:message]).to include("EPUB 导入任务已提交")
     end
 
     it "returns 400 when epub_oss_key is missing" do
@@ -213,7 +213,7 @@ RSpec.describe "API V1 Books Ebook", type: :request do
            as: :json
 
       expect(response).to have_http_status(202)
-      book = Book.find(json_response[:data][:book_id])
+      book = Book.find(json_response[:book_id])
       expect(book.title).to eq("小老虎历险记")
     end
   end
@@ -234,10 +234,10 @@ RSpec.describe "API V1 Books Ebook", type: :request do
            as: :multipart
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:title]).to eq("上传测试电子书")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:book][:title]).to eq("上传测试电子书")
 
-      book = Book.find(json_response[:data][:id])
+      book = Book.find(json_response[:book][:id])
       expect(book.page_count).to eq(2)
       expect(book.ebook_pages.count).to eq(2)
     end

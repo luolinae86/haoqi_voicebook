@@ -16,9 +16,7 @@ module Api
           end
           get do
             rankings = Ranking.all
-            success_response(rankings.map { |r|
-              { id: r.id, name: r.name, ranking_type: r.ranking_type, description: r.description }
-            })
+            present response: success_response, rankings: serialize_collection(rankings, Entities::Ranking)
           end
 
           # ==================== 排行榜详情 ====================
@@ -33,30 +31,22 @@ module Api
             items = ranking.ranking_items.ordered.includes(:book)
                            .page(params[:page]).per(params[:per_page])
 
-            success_response({
-              id: ranking.id,
-              name: ranking.name,
-              ranking_type: ranking.ranking_type,
-              books: items.map { |item|
-                {
-                  rank: item.rank,
-                  score: item.score.to_f,
-                  book: {
-                    id: item.book.id,
-                    title: item.book.title,
-                    author: item.book.author,
-                    cover_image: item.book.cover_image,
-                    rating: item.book.rating.to_f,
-                    play_count: item.book.play_count
-                  }
-                }
-              },
-              pagination: {
-                current_page: items.current_page,
-                total_pages: items.total_pages,
-                total_count: items.total_count
-              }
-            })
+            present response: success_response,
+                            ranking_id: ranking.id,
+                            name: ranking.name,
+                            ranking_type: ranking.ranking_type,
+                            books: serialize_collection(items, Entities::RankingItem),
+                            pagination: {
+                              current_page: items.current_page,
+                              total_pages: items.total_pages,
+                              total_count: items.total_count
+                            }
+          end
+        end
+
+        helpers do
+          def serialize_collection(collection, entity_class, **options)
+            collection.map { |item| entity_class.represent(item, options).as_json }
           end
         end
       end

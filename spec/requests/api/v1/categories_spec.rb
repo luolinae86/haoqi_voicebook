@@ -21,16 +21,16 @@ RSpec.describe "API V1 Categories", type: :request do
       get "/api/categories"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
-      names = json_response[:data].map { |c| c[:name] }
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:categories]).to be_an(Array)
+      names = json_response[:categories].map { |c| c[:name] }
       expect(names).to include("文学", "科学")
     end
 
     it "分类按排序号排列" do
       get "/api/categories"
 
-      sort_orders = json_response[:data].map { |c| c[:sort_order] }
+      sort_orders = json_response[:categories].map { |c| c[:sort_order] }
       expect(sort_orders).to eq(sort_orders.sort)
     end
 
@@ -38,8 +38,8 @@ RSpec.describe "API V1 Categories", type: :request do
       get "/api/categories", params: { parent_id: root_category1.id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      names = json_response[:data].map { |c| c[:name] }
+      expect(json_response[:response][:code]).to eq(0)
+      names = json_response[:categories].map { |c| c[:name] }
       expect(names).to include("童话", "诗歌")
     end
   end
@@ -50,9 +50,9 @@ RSpec.describe "API V1 Categories", type: :request do
       get "/api/categories/#{root_category1.id}"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:id]).to eq(root_category1.id)
-      expect(json_response[:data][:name]).to eq("文学")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:category][:id]).to eq(root_category1.id)
+      expect(json_response[:category][:name]).to eq("文学")
     end
 
     it "分类不存在时返回 404" do
@@ -68,7 +68,7 @@ RSpec.describe "API V1 Categories", type: :request do
       get "/api/categories/#{child_category1.id}/books"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:data]).to be_an(Array)
       expect(json_response[:data].size).to eq(2)
     end
@@ -77,7 +77,7 @@ RSpec.describe "API V1 Categories", type: :request do
       get "/api/categories/#{child_category1.id}/books", params: { content_type: "ebook" }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "支持分页" do
@@ -94,22 +94,22 @@ RSpec.describe "API V1 Categories", type: :request do
       get "/api/grades"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
-      expect(json_response[:data].size).to be >= 2
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:grades]).to be_an(Array)
+      expect(json_response[:grades].size).to be >= 2
     end
 
     it "年级按排序号排列" do
       get "/api/grades"
 
-      sort_orders = json_response[:data].map { |g| g[:sort_order] }
+      sort_orders = json_response[:grades].map { |g| g[:sort_order] }
       expect(sort_orders).to eq(sort_orders.sort)
     end
 
     it "包含年级名称和级别信息" do
       get "/api/grades"
 
-      first_grade = json_response[:data].find { |g| g[:name] == "一年级" }
+      first_grade = json_response[:grades].find { |g| g[:name] == "一年级" }
       expect(first_grade).to be_present
       expect(first_grade[:level]).to eq(1)
     end

@@ -22,7 +22,13 @@ module Api
             books = books.by_category(params[:category_id]) if params[:category_id].present?
             books = books.by_grade(params[:grade_id]) if params[:grade_id].present?
 
-            paginated_response(books)
+            paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
+            present response: success_response, data: paged, pagination: {
+              current_page: paged.current_page,
+              total_pages: paged.total_pages,
+              total_count: paged.total_count,
+              per_page: (params[:per_page] || 10).to_i
+            }
           end
 
           # ==================== 专辑详情 ====================
@@ -36,18 +42,7 @@ module Api
 
             error!(err_response(code: 1003, message: "该图书没有有声内容"), 404) unless album
 
-            success_response({
-              id: book.id,
-              title: book.title,
-              author: book.author,
-              cover_image: book.cover_image,
-              description: book.description,
-              narrator: album.narrator,
-              total_episodes: album.total_episodes,
-              total_duration: album.formatted_duration,
-              play_count: book.play_count,
-              is_vip: book.is_vip
-            })
+            present response: success_response, album: (present book, with: Entities::AlbumDetail)
           end
 
           # ==================== 节目列表 ====================
@@ -63,8 +58,14 @@ module Api
             error!(err_response(code: 1003, message: "专辑不存在"), 404) unless album
 
             episodes = album.audio_episodes.ordered
+            paged = episodes.page(params[:page] || 1).per(params[:per_page] || 10)
 
-            paginated_response(episodes)
+            present response: success_response, data: paged, pagination: {
+              current_page: paged.current_page,
+              total_pages: paged.total_pages,
+              total_count: paged.total_count,
+              per_page: (params[:per_page] || 10).to_i
+            }
           end
 
           # ==================== 获取播放地址 ====================
@@ -78,13 +79,7 @@ module Api
             # 增加播放次数
             episode.increment!(:play_count)
 
-            success_response({
-              id: episode.id,
-              title: episode.title,
-              audio_url: episode.audio_url,
-              duration: episode.duration,
-              formatted_duration: episode.formatted_duration
-            })
+            present response: success_response, episode: (present episode, with: Entities::AudioEpisode)
           end
         end
       end

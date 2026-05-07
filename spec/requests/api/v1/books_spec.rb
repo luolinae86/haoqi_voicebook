@@ -22,7 +22,7 @@ RSpec.describe "API V1 Books", type: :request do
       get "/api/books"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:data]).to be_an(Array)
       titles = json_response[:data].map { |b| b[:title] }
       expect(titles).not_to include(draft_book.title)
@@ -78,21 +78,21 @@ RSpec.describe "API V1 Books", type: :request do
         get "/api/books", params: { sort_by: "popular" }
 
         expect(response).to have_http_status(200)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
 
       it "按评分排序" do
         get "/api/books", params: { sort_by: "rating" }
 
         expect(response).to have_http_status(200)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
 
       it "按最新排序" do
         get "/api/books", params: { sort_by: "recent" }
 
         expect(response).to have_http_status(200)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
     end
   end
@@ -103,11 +103,11 @@ RSpec.describe "API V1 Books", type: :request do
       get "/api/books/#{ebook.id}"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:id]).to eq(ebook.id)
-      expect(json_response[:data][:title]).to eq(ebook.title)
-      expect(json_response[:data][:author]).to be_present
-      expect(json_response[:data][:content_type]).to eq("ebook")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:book][:id]).to eq(ebook.id)
+      expect(json_response[:book][:title]).to eq(ebook.title)
+      expect(json_response[:book][:author]).to be_present
+      expect(json_response[:book][:content_type]).to eq("ebook")
     end
 
     it "图书不存在时返回 404" do
@@ -127,15 +127,15 @@ RSpec.describe "API V1 Books", type: :request do
       get "/api/books/#{ebook.id}/chapters"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
-      expect(json_response[:data].size).to eq(3)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:chapters]).to be_an(Array)
+      expect(json_response[:chapters].size).to eq(3)
     end
 
     it "章节按排序号排列" do
       get "/api/books/#{ebook.id}/chapters"
 
-      sort_orders = json_response[:data].map { |c| c[:sort_order] }
+      sort_orders = json_response[:chapters].map { |c| c[:sort_order] }
       expect(sort_orders).to eq(sort_orders.sort)
     end
   end
@@ -150,8 +150,8 @@ RSpec.describe "API V1 Books", type: :request do
         get "/api/books/#{ebook.id}/chapters/#{free_chapter.id}", headers: headers
 
         expect(response).to have_http_status(200)
-        expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:content]).to be_present
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:chapter][:content]).to be_present
       end
 
       context "VIP 章节" do
@@ -159,13 +159,13 @@ RSpec.describe "API V1 Books", type: :request do
           get "/api/books/#{ebook.id}/chapters/#{vip_chapter.id}", headers: vip_headers
 
           expect(response).to have_http_status(200)
-          expect(json_response[:code]).to eq(0)
+          expect(json_response[:response][:code]).to eq(0)
         end
 
         it "普通用户无法访问" do
           get "/api/books/#{ebook.id}/chapters/#{vip_chapter.id}", headers: headers
 
-          expect(json_response[:code]).not_to eq(0)
+          expect(json_response[:response][:code]).not_to eq(0)
         end
       end
     end

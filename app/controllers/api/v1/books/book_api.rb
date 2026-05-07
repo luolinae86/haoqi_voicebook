@@ -48,14 +48,7 @@ module Api
             ).call
 
             status 200
-            success_response({
-              id: book.id,
-              title: book.title,
-              author: book.author,
-              page_count: book.page_count,
-              import_status: book.import_status,
-              first_page_number: book.ebook_pages.minimum(:page_number) || 1
-            }, message: "PDF 导入成功")
+            present response: success_response(message: "PDF 导入成功"), book: (present book, with: Entities::BookDetail)
           end
 
           # ==================== 导入 EPUB 电子书 ====================
@@ -93,10 +86,7 @@ module Api
             })
 
             status 202
-            success_response({
-              book_id: book.id,
-              message: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
-            })
+            present response: success_response, book_id: book.id, message: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
           end
 
           # ==================== 异步导出 EPUB ====================
@@ -116,11 +106,7 @@ module Api
             })
 
             status 202
-            success_response({
-              book_id: book.id,
-              epub_export_status: book.epub_export_status,
-              message: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
-            })
+            present response: success_response, book_id: book.id, epub_export_status: book.epub_export_status, message: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
           end
 
           # ==================== 页面 XHTML 内容 ====================
@@ -168,13 +154,13 @@ module Api
               rc["directory"]
             end.compact.uniq { |d| [d["title"], d["start_page_number"]] }
 
-            success_response(directories.map { |d|
+            present response: success_response, data: directories.map { |d|
               {
                 title: d["title"],
                 start_page_number: d["start_page_number"],
                 level: d["level"]
               }
-            })
+            }
           end
 
           # ==================== 图书列表 ====================
@@ -207,7 +193,13 @@ module Api
                     else books.recently_added
                     end
 
-            paginated_response(books)
+            paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
+            present response: success_response, data: paged, pagination: {
+              current_page: paged.current_page,
+              total_pages: paged.total_pages,
+              total_count: paged.total_count,
+              per_page: (params[:per_page] || 10).to_i
+            }
           end
 
           # ==================== 图书详情 ====================
@@ -218,36 +210,7 @@ module Api
           get ":id" do
             book = Book.published_books.find(params[:id])
 
-            success_response({
-              id: book.id,
-              title: book.title,
-              author: book.author,
-              publisher: book.publisher,
-              cover_image: book.cover_image,
-              description: book.description,
-              content_type: book.content_type,
-              is_free: book.is_free,
-              is_vip: book.is_vip,
-              category: book.category&.name,
-              grade: book.grade&.name,
-              play_count: book.play_count,
-              word_count: book.word_count,
-              rating: book.rating,
-              isbn: book.isbn,
-              chapters_count: book.chapters.count,
-              page_count: book.page_count,
-              import_status: book.import_status,
-              epub_export_status: book.epub_export_status,
-              epub_oss_url: book.epub_oss_url,
-              styles_oss_url: book.styles_oss_url,
-              nav_oss_url: book.nav_oss_url,
-              source_pdf_filename: book.source_pdf_filename,
-              audio_album: book.audio_album ? {
-                narrator: book.audio_album.narrator,
-                total_episodes: book.audio_album.total_episodes,
-                total_duration: book.audio_album.formatted_duration
-              } : nil
-            })
+            present response: success_response, book: (present book, with: Entities::BookDetail)
           end
 
           # ==================== 页面清单 ====================
@@ -261,25 +224,16 @@ module Api
             book = Book.published_books.find(params[:id])
             pages = book.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
-            success_response({
-              book_id: book.id,
-              page_count: book.page_count,
-              pages: pages.map do |page|
-                {
-                  page_number: page.page_number,
-                  word_count: page.word_count,
-                  image_count: page.image_count,
-                  excerpt: page.plain_text.to_s.first(60),
-                  directory: normalized_ebook_content(page)[:directory]
-                }
-              end,
-              pagination: {
-                current_page: pages.current_page,
-                total_pages: pages.total_pages,
-                total_count: pages.total_count,
-                per_page: params[:per_page]
-              }
-            })
+            present response: success_response,
+                            book_id: book.id,
+                            page_count: book.page_count,
+                            pages: serialize_collection(pages, Entities::EbookPage),
+                            pagination: {
+                              current_page: pages.current_page,
+                              total_pages: pages.total_pages,
+                              total_count: pages.total_count,
+                              per_page: params[:per_page]
+                            }
           end
 
           # ==================== 页面内容 ====================
@@ -293,22 +247,21 @@ module Api
             page = book.ebook_pages.find_by!(page_number: params[:page_number])
             content = normalized_ebook_content(page)
 
-            success_response({
-              book_id: book.id,
-              page_number: page.page_number,
-              page_width: page.page_width.to_f,
-              page_height: page.page_height.to_f,
-              text: content[:text].presence || page.plain_text,
-              word_count: page.word_count,
-              image_count: page.image_count,
-              lines: content[:lines] || [],
-              images: content[:images] || [],
-              directory: content[:directory],
-              navigation: {
-                prev_page: book.ebook_pages.where("page_number < ?", page.page_number).maximum(:page_number),
-                next_page: book.ebook_pages.where("page_number > ?", page.page_number).minimum(:page_number)
-              }
-            })
+            present response: success_response,
+                            book_id: book.id,
+                            page_number: page.page_number,
+                            page_width: page.page_width.to_f,
+                            page_height: page.page_height.to_f,
+                            text: content[:text].presence || page.plain_text,
+                            word_count: page.word_count,
+                            image_count: page.image_count,
+                            lines: content[:lines] || [],
+                            images: content[:images] || [],
+                            directory: content[:directory],
+                            navigation: {
+                              prev_page: book.ebook_pages.where("page_number < ?", page.page_number).maximum(:page_number),
+                              next_page: book.ebook_pages.where("page_number > ?", page.page_number).minimum(:page_number)
+                            }
           end
 
           # ==================== 章节列表 ====================
@@ -320,16 +273,7 @@ module Api
             book = Book.find(params[:id])
             chapters = book.chapters.ordered
 
-            success_response(chapters.map { |ch|
-              {
-                id: ch.id,
-                title: ch.title,
-                sort_order: ch.sort_order,
-                is_free: ch.is_free,
-                is_vip: ch.is_vip,
-                word_count: ch.word_count
-              }
-            })
+            present response: success_response, chapters: serialize_collection(chapters, Entities::Chapter)
           end
 
           # ==================== 章节内容 ====================
@@ -341,15 +285,7 @@ module Api
           get ":id/chapters/:chapter_id" do
             chapter = Chapter.find(params[:chapter_id])
 
-            success_response({
-              id: chapter.id,
-              title: chapter.title,
-              content: chapter.content,
-              sort_order: chapter.sort_order,
-              word_count: chapter.word_count,
-              is_free: chapter.is_free,
-              is_vip: chapter.is_vip
-            })
+            present response: success_response, chapter: (present chapter, with: Entities::Chapter)
           end
         end
 
@@ -365,6 +301,10 @@ module Api
               images: image_blocks,
               directory: nil
             }.with_indifferent_access
+          end
+
+          def serialize_collection(collection, entity_class, **options)
+            collection.map { |item| entity_class.represent(item, options).as_json }
           end
         end
       end

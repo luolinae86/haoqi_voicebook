@@ -21,15 +21,15 @@ RSpec.describe "API V1 Rankings", type: :request do
       get "/api/rankings"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
-      expect(json_response[:data].size).to be >= 2
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:rankings]).to be_an(Array)
+      expect(json_response[:rankings].size).to be >= 2
     end
 
     it "包含排行榜名称和类型" do
       get "/api/rankings"
 
-      names = json_response[:data].map { |r| r[:name] }
+      names = json_response[:rankings].map { |r| r[:name] }
       expect(names).to include("热门排行榜", "评分排行榜")
     end
 
@@ -37,7 +37,7 @@ RSpec.describe "API V1 Rankings", type: :request do
       get "/api/rankings", params: { content_type: "ebook" }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
   end
 
@@ -47,16 +47,16 @@ RSpec.describe "API V1 Rankings", type: :request do
       get "/api/rankings/#{ranking1.id}"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:id]).to eq(ranking1.id)
-      expect(json_response[:data][:name]).to eq("热门排行榜")
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:ranking_id]).to eq(ranking1.id)
+      expect(json_response[:name]).to eq("热门排行榜")
     end
 
     it "图书按排名排序" do
       get "/api/rankings/#{ranking1.id}"
 
-      books = json_response[:data][:books] || json_response[:data][:items] || json_response[:data][:ranking_items]
-      if books
+      books = json_response[:books] || []
+      if books.any?
         ranks = books.map { |b| b[:rank] }
         expect(ranks).to eq(ranks.sort)
       end
@@ -66,7 +66,7 @@ RSpec.describe "API V1 Rankings", type: :request do
       get "/api/rankings/#{ranking1.id}", params: { page: 1, per_page: 1 }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "排行榜不存在时返回 404" do
@@ -78,8 +78,8 @@ RSpec.describe "API V1 Rankings", type: :request do
     it "包含图书详细信息" do
       get "/api/rankings/#{ranking1.id}"
 
-      books = json_response[:data][:books] || json_response[:data][:items] || json_response[:data][:ranking_items]
-      if books && books.any?
+      books = json_response[:books] || []
+      if books.any?
         first_book = books.first
         book_data = first_book[:book] || first_book
         expect(book_data[:title]).to be_present

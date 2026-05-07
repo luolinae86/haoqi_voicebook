@@ -22,22 +22,9 @@ module Api
             recommendations = Recommendation.ordered
             recommendations = recommendations.where(target_grade_id: [params[:grade_id], nil]) if params[:grade_id].present?
 
-            success_response({
-              banners: banners.map { |b|
-                { id: b.id, title: b.title, image_url: b.image_url, link_url: b.link_url, link_type: b.link_type }
-              },
-              recommendations: recommendations.limit(10).map { |rec|
-                {
-                  id: rec.id,
-                  title: rec.title,
-                  description: rec.description,
-                  type: rec.recommendation_type,
-                  books: rec.books.published_books.limit(6).map { |book|
-                    { id: book.id, title: book.title, cover_image: book.cover_image, author: book.author }
-                  }
-                }
-              }
-            })
+            present response: success_response,
+                            banners: serialize_collection(banners, Entities::Banner),
+                            recommendations: serialize_collection(recommendations.limit(10), Entities::Recommendation, book_limit: 6)
           end
 
           # ==================== 轮播图列表 ====================
@@ -45,9 +32,7 @@ module Api
           get :banners do
             banners = Banner.active.ordered
 
-            success_response(banners.map { |b|
-              { id: b.id, title: b.title, image_url: b.image_url, link_url: b.link_url, link_type: b.link_type }
-            })
+            present response: success_response, banners: serialize_collection(banners, Entities::Banner)
           end
 
           # ==================== 推荐栏目 ====================
@@ -61,17 +46,7 @@ module Api
             recs = recs.where(target_grade_id: [params[:grade_id], nil]) if params[:grade_id].present?
             recs = recs.where(recommendation_type: params[:type]) if params[:type].present?
 
-            success_response(recs.map { |rec|
-              {
-                id: rec.id,
-                title: rec.title,
-                description: rec.description,
-                type: rec.recommendation_type,
-                books: rec.books.published_books.limit(10).map { |book|
-                  { id: book.id, title: book.title, cover_image: book.cover_image, author: book.author, content_type: book.content_type }
-                }
-              }
-            })
+            present response: success_response, recommendations: serialize_collection(recs, Entities::Recommendation)
           end
 
           # ==================== 分级阅读 ====================
@@ -79,9 +54,7 @@ module Api
           get :reading_levels do
             levels = ReadingLevel.ordered
 
-            success_response(levels.map { |level|
-              { id: level.id, name: level.name, level: level.level, description: level.description }
-            })
+            present response: success_response, levels: serialize_collection(levels, Entities::ReadingLevel)
           end
 
           # ==================== 合集列表 ====================
@@ -97,7 +70,13 @@ module Api
             collections = collections.where(target_grade_id: [params[:grade_id], nil]) if params[:grade_id].present?
             collections = collections.where(collection_type: params[:type]) if params[:type].present?
 
-            paginated_response(collections)
+            paged = collections.page(params[:page] || 1).per(params[:per_page] || 10)
+            present response: success_response, data: paged, pagination: {
+              current_page: paged.current_page,
+              total_pages: paged.total_pages,
+              total_count: paged.total_count,
+              per_page: (params[:per_page] || 10).to_i
+            }
           end
 
           # ==================== 合集详情 ====================
@@ -113,20 +92,22 @@ module Api
 
             paged_books = books.page(params[:page]).per(params[:per_page])
 
-            success_response({
-              id: collection.id,
-              title: collection.title,
-              description: collection.description,
-              cover_image: collection.cover_image,
-              books: paged_books.map { |book|
-                { id: book.id, title: book.title, cover_image: book.cover_image, author: book.author, content_type: book.content_type }
-              },
-              pagination: {
-                current_page: paged_books.current_page,
-                total_pages: paged_books.total_pages,
-                total_count: paged_books.total_count
-              }
-            })
+            present response: success_response,
+                            collection: (present collection, with: Entities::Collection),
+                            books: paged_books.map { |book|
+                              { id: book.id, title: book.title, cover_image: book.cover_image, author: book.author, content_type: book.content_type }
+                            },
+                            pagination: {
+                              current_page: paged_books.current_page,
+                              total_pages: paged_books.total_pages,
+                              total_count: paged_books.total_count
+                            }
+          end
+        end
+
+        helpers do
+          def serialize_collection(collection, entity_class, **options)
+            collection.map { |item| entity_class.represent(item, options).as_json }
           end
         end
       end

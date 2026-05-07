@@ -21,15 +21,7 @@ module Api
                            Category.roots.ordered
                          end
 
-            success_response(categories.map { |cat|
-              {
-                id: cat.id,
-                name: cat.name,
-                icon: cat.icon,
-                description: cat.description,
-                children_count: cat.children.count
-              }
-            })
+            present response: success_response, categories: serialize_collection(categories, Entities::Category)
           end
 
           # ==================== 分类详情（含子分类） ====================
@@ -40,15 +32,7 @@ module Api
           get ":id" do
             category = Category.find(params[:id])
 
-            success_response({
-              id: category.id,
-              name: category.name,
-              icon: category.icon,
-              description: category.description,
-              children: category.children.ordered.map { |child|
-                { id: child.id, name: child.name, icon: child.icon }
-              }
-            })
+            present response: success_response, category: (present category, with: Entities::CategoryDetail)
           end
 
           # ==================== 分类下的图书 ====================
@@ -63,7 +47,13 @@ module Api
             books = Book.published_books.by_category(params[:id])
             books = books.by_type(params[:content_type]) if params[:content_type].present?
 
-            paginated_response(books.recently_added)
+            paged = books.recently_added.page(params[:page] || 1).per(params[:per_page] || 10)
+            present response: success_response, data: paged, pagination: {
+              current_page: paged.current_page,
+              total_pages: paged.total_pages,
+              total_count: paged.total_count,
+              per_page: (params[:per_page] || 10).to_i
+            }
           end
         end
 
@@ -72,9 +62,13 @@ module Api
           desc "获取年级列表"
           get do
             grades = Grade.ordered
-            success_response(grades.map { |g|
-              { id: g.id, name: g.name, level: g.level, description: g.description }
-            })
+            present response: success_response, grades: serialize_collection(grades, Entities::Grade)
+          end
+        end
+
+        helpers do
+          def serialize_collection(collection, entity_class, **options)
+            collection.map { |item| entity_class.represent(item, options).as_json }
           end
         end
       end

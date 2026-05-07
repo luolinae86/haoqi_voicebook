@@ -28,9 +28,8 @@ module Api
             recent = SmsVerification.where(phone: phone)
                                     .where("created_at > ?", 60.seconds.ago)
                                     .exists?
-            if recent
-              error_pop_resp("验证码已发送，请 60 秒后再试")
-            end
+
+            error_pop_resp("验证码已发送，请 60 秒后再试") if recent.present?
 
             # 生成4位随机验证码
             code = format("%04d", rand(10000))
@@ -49,7 +48,7 @@ module Api
               error_pop_resp("验证码发送失败，请稍后重试")
             end
 
-            success_response({ expires_in: 300 }, message: "验证码已发送")
+            present response: success_response, expires_in: 300
           end
 
           # ==================== 验证码登录 ====================
@@ -80,20 +79,7 @@ module Api
               u.nickname = "用户#{phone[-4..]}"
             end
 
-            success_response({
-              user: {
-                id: user.id,
-                phone: user.phone,
-                nickname: user.nickname,
-                avatar: user.avatar,
-                grade: user.grade&.name,
-                is_vip: user.vip_active?,
-                reading_words: user.reading_words,
-                reading_minutes: user.reading_minutes,
-                books_read: user.books_read,
-                uuid: user.uuid,
-              },
-            }, message: "登录成功")
+            present response: success_response, user: (present user, with: Entities::AppUser)
           end
 
           # ==================== 密码登录 ====================
@@ -109,20 +95,7 @@ module Api
               error_pop_resp("手机号或密码错误")
             end
 
-            success_response({
-              user: {
-                id: user.id,
-                phone: user.phone,
-                nickname: user.nickname,
-                avatar: user.avatar,
-                grade: user.grade&.name,
-                is_vip: user.vip_active?,
-                reading_words: user.reading_words,
-                reading_minutes: user.reading_minutes,
-                books_read: user.books_read,
-                uuid: user.uuid,
-              },
-            }, message: "登录成功")
+            present response: success_response, user: (present user, with: Entities::AppUser)
           end
 
           # ==================== 设置/重置密码 ====================
@@ -147,7 +120,7 @@ module Api
             user = AppUser.find_by!(phone: params[:phone])
             user.update!(password: params[:password])
 
-            success_response(nil, message: "密码设置成功")
+            present response: success_response
           end
         end
       end

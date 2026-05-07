@@ -20,7 +20,7 @@ RSpec.describe "API V1 Audio", type: :request do
       get "/api/audio/albums"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:data]).to be_an(Array)
     end
 
@@ -28,7 +28,7 @@ RSpec.describe "API V1 Audio", type: :request do
       get "/api/audio/albums", params: { page: 1, per_page: 10 }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "支持按分类过滤" do
@@ -36,7 +36,7 @@ RSpec.describe "API V1 Audio", type: :request do
       get "/api/audio/albums", params: { category_id: category.id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "支持按年级过滤" do
@@ -44,7 +44,7 @@ RSpec.describe "API V1 Audio", type: :request do
       get "/api/audio/albums", params: { grade_id: grade.id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
   end
 
@@ -54,9 +54,9 @@ RSpec.describe "API V1 Audio", type: :request do
       get "/api/audio/albums/#{audio_book.id}"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:id]).to eq(audio_book.id)
-      expect(json_response[:data][:total_episodes]).to be_present
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:album][:id]).to eq(audio_book.id)
+      expect(json_response[:album][:total_episodes]).to be_present
     end
 
     it "专辑不存在时返回 404" do
@@ -72,7 +72,7 @@ RSpec.describe "API V1 Audio", type: :request do
       get "/api/audio/albums/#{audio_book.id}/episodes"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:data]).to be_an(Array)
       expect(json_response[:data].size).to eq(3)
     end
@@ -99,7 +99,7 @@ RSpec.describe "API V1 Audio", type: :request do
         get "/api/audio/episodes/#{free_episode.id}/play", headers: headers
 
         expect(response).to have_http_status(200)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
 
       context "VIP 单集" do
@@ -107,13 +107,13 @@ RSpec.describe "API V1 Audio", type: :request do
           get "/api/audio/episodes/#{vip_episode.id}/play", headers: vip_headers
 
           expect(response).to have_http_status(200)
-          expect(json_response[:code]).to eq(0)
+          expect(json_response[:response][:code]).to eq(0)
         end
 
         it "普通用户无法播放 VIP 单集" do
           get "/api/audio/episodes/#{vip_episode.id}/play", headers: headers
 
-          expect(json_response[:code]).not_to eq(0)
+          expect(json_response[:response][:code]).not_to eq(0)
         end
       end
 

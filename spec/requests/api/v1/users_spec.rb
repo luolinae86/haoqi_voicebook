@@ -19,7 +19,8 @@ RSpec.describe "API V1 Users", type: :request do
         post "/api/app_users/send_code", params: { uuid: user_with_uuid.uuid, phone: "13800138001" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:expires_in]).to eq(300)
       end
 
       it "创建短信验证记录" do
@@ -63,7 +64,7 @@ RSpec.describe "API V1 Users", type: :request do
         post "/api/app_users/send_code", params: { uuid: "", phone: "13800138001" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
     end
 
@@ -72,7 +73,7 @@ RSpec.describe "API V1 Users", type: :request do
         post "/api/app_users/send_code", params: { phone: "13800138002" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
     end
   end
@@ -88,8 +89,8 @@ RSpec.describe "API V1 Users", type: :request do
         post "/api/app_users/login_by_code", params: { phone: "13800138000", code: "1234" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:user]).to be_present
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:user]).to be_present
       end
     end
 
@@ -113,7 +114,7 @@ RSpec.describe "API V1 Users", type: :request do
         }.to change(AppUser, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
       end
     end
 
@@ -137,9 +138,9 @@ RSpec.describe "API V1 Users", type: :request do
         post "/api/app_users/login_by_password", params: { phone: user.phone, password: "password123" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:user]).to be_present
-        expect(json_response[:data][:user][:phone]).to eq(user.phone)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:user]).to be_present
+        expect(json_response[:user][:phone]).to eq(user.phone)
       end
     end
 
@@ -176,7 +177,7 @@ RSpec.describe "API V1 Users", type: :request do
       }
 
       expect(response).to have_http_status(200).or have_http_status(201)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "重置后可用新密码登录" do
@@ -186,8 +187,8 @@ RSpec.describe "API V1 Users", type: :request do
 
       post "/api/app_users/login_by_password", params: { phone: user.phone, password: "new_password456" }
 
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:user]).to be_present
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:user]).to be_present
     end
 
     context "验证码错误" do

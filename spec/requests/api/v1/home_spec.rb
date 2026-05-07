@@ -29,15 +29,15 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_present
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:banners]).to be_present
     end
 
     it "支持按年级过滤" do
       get "/api/home", params: { grade_id: grade.id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
   end
 
@@ -47,21 +47,21 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home/banners"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:banners]).to be_an(Array)
     end
 
     it "轮播图按排序号排列" do
       get "/api/home/banners"
 
-      sort_orders = json_response[:data].map { |b| b[:sort_order] }
+      sort_orders = json_response[:banners].map { |b| b[:sort_order] }
       expect(sort_orders).to eq(sort_orders.sort)
     end
 
     it "不返回已停用的轮播图" do
       get "/api/home/banners"
 
-      titles = json_response[:data].map { |b| b[:title] }
+      titles = json_response[:banners].map { |b| b[:title] }
       expect(titles).not_to include(inactive_banner.title)
     end
   end
@@ -72,22 +72,22 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home/recommendations"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:recommendations]).to be_an(Array)
     end
 
     it "支持按年级过滤" do
       get "/api/home/recommendations", params: { grade_id: grade.id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "支持按类型过滤" do
       get "/api/home/recommendations", params: { type: "daily" }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
   end
 
@@ -97,15 +97,15 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home/reading_levels"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
-      expect(json_response[:data].size).to be >= 2
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:levels]).to be_an(Array)
+      expect(json_response[:levels].size).to be >= 2
     end
 
     it "按等级排序" do
       get "/api/home/reading_levels"
 
-      levels = json_response[:data].map { |l| l[:level] }
+      levels = json_response[:levels].map { |l| l[:level] }
       expect(levels).to eq(levels.sort)
     end
   end
@@ -116,7 +116,7 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home/collections"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:data]).to be_an(Array)
     end
 
@@ -124,21 +124,21 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home/collections", params: { page: 1, per_page: 5 }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "支持按年级过滤" do
       get "/api/home/collections", params: { grade_id: grade.id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "支持按类型过滤" do
       get "/api/home/collections", params: { type: "featured" }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
   end
 
@@ -148,16 +148,16 @@ RSpec.describe "API V1 Home", type: :request do
       get "/api/home/collections/#{collection.id}"
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:id]).to eq(collection.id)
-      expect(json_response[:data][:title]).to eq(collection.title)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:collection][:id]).to eq(collection.id)
+      expect(json_response[:collection][:title]).to eq(collection.title)
     end
 
     it "支持分页获取书单图书" do
       get "/api/home/collections/#{collection.id}", params: { page: 1, per_page: 1 }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
+      expect(json_response[:response][:code]).to eq(0)
     end
 
     it "书单不存在时返回 404" do
