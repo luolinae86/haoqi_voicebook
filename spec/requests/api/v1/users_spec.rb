@@ -8,7 +8,7 @@ RSpec.describe "API V1 Users", type: :request do
 
   # ==================== 发送验证码 ====================
   describe "POST /api/app_users/send_code" do
-    let(:user_with_uuid) { create(:app_user, phone: "13800138000", uuid: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4") }
+    let(:user_with_device_id) { create(:app_user, phone: "13800138000", device_id: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4") }
 
     before do
       allow_any_instance_of(AliyunSmsService).to receive(:send_verification_code).and_return(true)
@@ -16,7 +16,7 @@ RSpec.describe "API V1 Users", type: :request do
 
     context "手机号格式正确" do
       it "发送验证码成功" do
-        post "/api/app_users/send_code", params: { uuid: user_with_uuid.uuid, phone: "13800138001" }
+        post "/api/app_users/send_code", params: { device_id: user_with_device_id.device_id, phone: "13800138001" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
@@ -25,14 +25,14 @@ RSpec.describe "API V1 Users", type: :request do
 
       it "创建短信验证记录" do
         expect {
-          post "/api/app_users/send_code", params: { uuid: user_with_uuid.uuid, phone: "13800138001" }
+          post "/api/app_users/send_code", params: { device_id: user_with_device_id.device_id, phone: "13800138001" }
         }.to change(SmsVerification, :count).by(1)
       end
     end
 
     context "手机号格式不正确" do
       it "返回参数错误" do
-        post "/api/app_users/send_code", params: { uuid: user_with_uuid.uuid, phone: "123" }
+        post "/api/app_users/send_code", params: { device_id: user_with_device_id.device_id, phone: "123" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
@@ -49,9 +49,9 @@ RSpec.describe "API V1 Users", type: :request do
       end
     end
 
-    context "uuid 无效" do
+    context "device_id 无效" do
       it "返回未授权错误" do
-        post "/api/app_users/send_code", params: { uuid: "invalid_uuid", phone: "13800138001" }
+        post "/api/app_users/send_code", params: { device_id: "invalid_device_id", phone: "13800138001" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -59,16 +59,16 @@ RSpec.describe "API V1 Users", type: :request do
       end
     end
 
-    context "uuid 为空字符串" do
-      it "视为不提供 uuid，正常发送验证码" do
-        post "/api/app_users/send_code", params: { uuid: "", phone: "13800138001" }
+    context "device_id 为空字符串" do
+      it "视为不提供 device_id，正常发送验证码" do
+        post "/api/app_users/send_code", params: { device_id: "", phone: "13800138001" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
       end
     end
 
-    context "不提供 uuid" do
+    context "不提供 device_id" do
       it "正常发送验证码" do
         post "/api/app_users/send_code", params: { phone: "13800138002" }
 

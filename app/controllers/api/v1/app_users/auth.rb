@@ -12,12 +12,12 @@ module Api
           # ==================== 发送验证码 ====================
           desc "发送短信验证码"
           params do
-            optional :uuid, type: String, desc: "用户UUID（登录时可选）"
+            optional :device_id, type: String, desc: "设备ID（登录时可选）"
             requires :phone, type: String, desc: "手机号"
           end
           post :send_code do
-            # 仅在提供 uuid 时验证用户身份（用于已登录用户绑定手机号）
-            auth_user if params[:uuid].present?
+            # 仅在提供 device_id 时验证用户身份（用于已登录用户绑定手机号）
+            auth_user if params[:device_id].present?
 
             phone = params[:phone]
 

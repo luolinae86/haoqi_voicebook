@@ -56,13 +56,13 @@ module Api
 
       # ==================== 认证相关 ====================
 
-      # 根据 uuid 查找当前用户
+      # 根据 device_id 查找当前用户
       # @return [AppUser, nil]
       def current_user
-        @current_user ||= AppUser.find_by(uuid: params[:uuid])
+        @current_user ||= AppUser.find_by(device_id: params[:device_id])
       end
 
-      # 验证用户已授权（uuid 有效）
+      # 验证用户已授权（device_id 有效）
       def auth_user
         error!({ response: err_response(ERR_CODE[:UN_AUTH], "未授权访问") }, 200) unless current_user
       end

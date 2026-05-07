@@ -5,7 +5,7 @@ class AppUser < ApplicationRecord
   self.table_name = "app_users"
   has_secure_password validations: false  # 密码加密（可选密码）
 
-  before_validation :generate_uuid, on: :create
+  before_validation :generate_device_id, on: :create
 
   # 用户角色枚举
   enum :role, { child: 0, parent: 1, admin: 2 }, default: :child
@@ -42,7 +42,7 @@ class AppUser < ApplicationRecord
 
   private
 
-  def generate_uuid
-    self.uuid = SecureRandom.uuid.delete("-") if new_record? && uuid.blank?
+  def generate_device_id
+    self.device_id = SecureRandom.uuid.delete("-") if new_record? && device_id.blank?
   end
 end

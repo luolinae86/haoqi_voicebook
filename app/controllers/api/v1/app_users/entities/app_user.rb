@@ -9,7 +9,7 @@ module Api
           expose :phone
           expose :nickname
           expose :avatar
-          expose :uuid
+          expose :device_id
           expose :reading_words
           expose :reading_minutes
           expose :books_read
