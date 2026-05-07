@@ -32,7 +32,7 @@ module Api
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(
-      base_path: "https://api.zheliyuedu.cn",
+      base_path: "/api",
       info: {
         title: "狸狸阅读 API 文档",
         version: "1.0.0",
