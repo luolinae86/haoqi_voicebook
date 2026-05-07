@@ -19,8 +19,9 @@ RSpec.describe AppUser, type: :model do
   describe "validations" do
     subject { create(:app_user) }
 
-    it { should validate_presence_of(:phone) }
     it { should validate_uniqueness_of(:phone).case_insensitive }
+    it { should allow_value(nil).for(:phone) }
+    it { should allow_value("").for(:phone) }
     it { should allow_value("13800138000").for(:phone) }
     it { should allow_value("19912345678").for(:phone) }
     it { should_not allow_value("12345678901").for(:phone) }

@@ -4,7 +4,7 @@
 module Api
   module AppUsers
     class Mount < Grape::API
-      mount Api::AppUsers::ApiUserApi
+      mount Api::AppUsers::AppUserApi
     end
   end
 end

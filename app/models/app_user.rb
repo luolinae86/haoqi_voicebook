@@ -21,8 +21,9 @@ class AppUser < ApplicationRecord
   has_one :parental_control, dependent: :destroy         # 家长管控
 
   # 验证规则
-  validates :phone, presence: true, uniqueness: true,
-                    format: { with: /\A1[3-9]\d{9}\z/, message: "手机号格式不正确" }
+  validates :phone, uniqueness: true,
+                    format: { with: /\A1[3-9]\d{9}\z/, message: "手机号格式不正确" },
+                    allow_blank: true
   validates :nickname, length: { maximum: 50 }, allow_blank: true
 
   # 作用域

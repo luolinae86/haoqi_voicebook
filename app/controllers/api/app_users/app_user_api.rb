@@ -1,14 +1,25 @@
 # frozen_string_literal: true
 
 # 用户认证接口
-# 提供手机号+验证码登录、密码登录、注册、找回密码等功能
+# 提供 device_id 匿名创建、手机号+验证码登录、密码登录、注册、找回密码等功能
 module Api
   module AppUsers
-    class ApiUserApi < Grape::API
+    class AppUserApi < Grape::API
       helpers Api::Concerns::CommonHelpers
       helpers Api::AppUsers::AppUserHelpers
 
       namespace :app_users do
+        # ==================== 按 device_id 创建用户 ====================
+        desc "按设备ID创建匿名用户（未绑定手机号前）"
+        params do
+          requires :device_id, type: String, desc: "设备ID"
+        end
+        post :create_by_device do
+          user = AppUser.find_or_create_by!(device_id: params[:device_id])
+
+          present response: success_response, user: (present user, with: Entities::AppUser)
+        end
+
         # ==================== 发送验证码 ====================
         desc "发送短信验证码"
         params do
