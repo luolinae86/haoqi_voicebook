@@ -3,7 +3,7 @@
 # API 通用辅助方法
 # 提供认证、响应格式化、分页等通用功能
 module Api
-  module Helpers
+  module Concerns
     module CommonHelpers
       extend Grape::API::Helpers
 

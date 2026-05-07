@@ -5,7 +5,7 @@
 module Api
   module Search
     class SearchApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
       helpers Api::Search::SearchHelpers
 
       namespace :search do

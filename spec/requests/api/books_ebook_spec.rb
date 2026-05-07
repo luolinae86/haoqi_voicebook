@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Books Ebook", type: :request do
+RSpec.describe "API Books Ebook", type: :request do
   describe "POST /api/books/export_epub" do
     let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 2, import_status: :ready) }
 

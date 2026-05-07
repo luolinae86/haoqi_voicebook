@@ -5,7 +5,7 @@
 module Api
   module Home
     class HomeApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
       helpers Api::Home::HomeHelpers
 
       namespace :home do

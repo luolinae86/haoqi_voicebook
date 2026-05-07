@@ -5,7 +5,7 @@
 module Api
   module Rankings
     class RankingApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
 
       namespace :rankings do
         # ==================== 排行榜列表 ====================

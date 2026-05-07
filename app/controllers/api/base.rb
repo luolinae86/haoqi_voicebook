@@ -3,9 +3,9 @@
 # API 基础入口
 # 挂载所有 API 模块，提供健康检查接口
 module Api
-  class Base < Default
+  class Base < Config
     # 引入通用辅助方法
-    helpers Api::Helpers::CommonHelpers
+    helpers Api::Concerns::CommonHelpers
 
     # ==================== 健康检查 ====================
 

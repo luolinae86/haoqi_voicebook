@@ -5,7 +5,7 @@
 module Api
   module Books
     class BookApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
       helpers Api::Books::BookHelpers
 
       namespace :books do

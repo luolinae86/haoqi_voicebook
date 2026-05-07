@@ -5,7 +5,7 @@
 module Api
   module Audio
     class AudioApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
       helpers Api::Audio::AudioHelpers
 
       namespace :audio do

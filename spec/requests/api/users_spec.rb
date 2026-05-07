@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Users", type: :request do
+RSpec.describe "API Users", type: :request do
   let(:user) { create(:app_user, phone: "13800138000", password: "password123") }
   let(:headers) { auth_headers(user) }
 

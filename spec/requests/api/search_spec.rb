@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Search", type: :request do
+RSpec.describe "API Search", type: :request do
   # ==================== 测试数据准备 ====================
   let!(:book1) { create(:book, title: "小王子", author: "圣埃克苏佩里", status: :published) }
   let!(:book2) { create(:book, title: "格林童话", author: "格林兄弟", status: :published) }

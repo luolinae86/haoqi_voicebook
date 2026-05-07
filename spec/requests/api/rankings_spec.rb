@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Rankings", type: :request do
+RSpec.describe "API Rankings", type: :request do
   # ==================== 测试数据准备 ====================
   let!(:ranking1) { create(:ranking, name: "热门排行榜", ranking_type: :hot) }
   let!(:ranking2) { create(:ranking, :rating, name: "评分排行榜") }

@@ -5,7 +5,7 @@
 module Api
   module AppUsers
     class ApiUserApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
       helpers Api::AppUsers::AppUserHelpers
 
       namespace :app_users do

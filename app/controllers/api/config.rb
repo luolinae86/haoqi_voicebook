@@ -7,7 +7,7 @@
 require_relative "errors/common_error"
 
 module Api
-  class Default < Grape::API
+  class Config < Grape::API
     # 默认返回 JSON 格式
     format :json
     default_format :json

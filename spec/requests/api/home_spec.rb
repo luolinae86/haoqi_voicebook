@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Home", type: :request do
+RSpec.describe "API Home", type: :request do
   # ==================== 测试数据准备 ====================
   let(:grade) { create(:grade) }
 

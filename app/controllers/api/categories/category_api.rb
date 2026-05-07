@@ -5,7 +5,7 @@
 module Api
   module Categories
     class CategoryApi < Grape::API
-      helpers Api::Helpers::CommonHelpers
+      helpers Api::Concerns::CommonHelpers
       helpers Api::Categories::CategoryHelpers
 
       namespace :categories do

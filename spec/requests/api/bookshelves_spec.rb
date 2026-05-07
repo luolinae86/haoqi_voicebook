@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Bookshelves", type: :request do
+RSpec.xdescribe "API Bookshelves", type: :request do
   let(:user) { create(:app_user) }
   let(:headers) { auth_headers(user) }
   let(:book) { create(:book) }

@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "API V1 Categories", type: :request do
+RSpec.describe "API Categories", type: :request do
   # ==================== 测试数据准备 ====================
   let!(:root_category1) { create(:category, name: "文学", sort_order: 1) }
   let!(:root_category2) { create(:category, name: "科学", sort_order: 2) }
