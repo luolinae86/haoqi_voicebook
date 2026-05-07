@@ -20,6 +20,9 @@ module Voicebook
     # 自动加载 lib 目录
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Entity 类通过 initializer 显式 require 加载，避免 Zeitwerk 自动加载与模型名冲突
+    Rails.autoloaders.main.ignore(Rails.root.join("app/entities"))
+
     # 设置默认语言为中文
     config.i18n.default_locale = :"zh-CN"
 
