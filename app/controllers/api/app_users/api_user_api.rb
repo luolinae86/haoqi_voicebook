@@ -4,7 +4,7 @@
 # 提供手机号+验证码登录、密码登录、注册、找回密码等功能
 module Api
   module AppUsers
-    class Auth < Grape::API
+    class ApiUserApi < Grape::API
       helpers Api::Helpers::CommonHelpers
       helpers Api::AppUsers::AppUserHelpers
 
