@@ -29,5 +29,26 @@ module Api
     mount Api::Home::Mount
     mount Api::Search::Mount
     mount Api::Rankings::Mount
+
+    # ==================== Swagger 文档 ====================
+    add_swagger_documentation(
+      base_path: "https://api.zheliyuedu.cn",
+      info: {
+        title: "狸狸阅读 API 文档",
+        version: "1.0.0",
+        description: "狸狸阅读（https://api.zheliyuedu.cn）全部接口文档，代码变更后自动更新"
+      },
+      openapi_version: "3.0",
+      tags: [
+        { name: "app_users", description: "用户认证与管理" },
+        { name: "books", description: "图书管理与电子书阅读" },
+        { name: "audio", description: "有声书播放" },
+        { name: "categories", description: "分类与年级" },
+        { name: "home", description: "首页推荐" },
+        { name: "search", description: "搜索功能" },
+        { name: "rankings", description: "排行榜" }
+      ],
+      hide_documentation_path: false
+    )
   end
 end

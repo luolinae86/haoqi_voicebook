@@ -4,444 +4,64 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>狸狸阅读 API 文档</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
 <style>
-  :root {
-    --primary: #6366f1; --primary-light: #818cf8; --bg: #0f172a; --bg2: #1e293b;
-    --bg3: #334155; --text: #e2e8f0; --text2: #94a3b8; --border: #475569;
-    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --orange: #f97316;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-  .sidebar { position:fixed; top:0; left:0; width:260px; height:100vh; background:var(--bg2); border-right:1px solid var(--border); overflow-y:auto; z-index:10; }
-  .sidebar-header { padding:20px; border-bottom:1px solid var(--border); }
-  .sidebar-header h2 { font-size:18px; color:var(--primary-light); }
-  .sidebar-header p { font-size:12px; color:var(--text2); margin-top:4px; }
-  .sidebar-nav { padding:10px 0; }
-  .nav-group { margin-bottom:4px; }
-  .nav-group-title { padding:8px 20px; font-size:13px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; cursor:pointer; }
-  .nav-group-title:hover { color:var(--text); }
-  .nav-item { padding:6px 20px 6px 32px; font-size:13px; cursor:pointer; color:var(--text2); display:flex; align-items:center; gap:8px; }
-  .nav-item:hover { background:var(--bg3); color:var(--text); }
-  .nav-item.active { background:rgba(99,102,241,.15); color:var(--primary-light); border-right:2px solid var(--primary-light); }
-  .method-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px; min-width:36px; text-align:center; }
-  .method-GET { background:#0ea5e9; color:#fff; }
-  .method-POST { background:var(--green); color:#fff; }
-  .method-PUT { background:var(--yellow); color:#000; }
-  .method-DELETE { background:var(--red); color:#fff; }
-  .main { margin-left:260px; padding:30px 40px; min-height:100vh; }
-  .main-header { margin-bottom:30px; }
-  .main-header h1 { font-size:28px; margin-bottom:8px; }
-  .main-header p { color:var(--text2); }
-  .base-url-bar { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:30px; display:flex; align-items:center; gap:12px; }
-  .base-url-bar label { font-size:13px; color:var(--text2); white-space:nowrap; }
-  .base-url-bar input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; font-size:14px; font-family:monospace; }
-  .base-url-bar input:focus { outline:none; border-color:var(--primary); }
-  .endpoint-section { margin-bottom:40px; }
-  .endpoint-section h3 { font-size:20px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-  .endpoint-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; margin-bottom:16px; overflow:hidden; }
-  .endpoint-header { padding:16px 20px; cursor:pointer; display:flex; align-items:center; gap:12px; }
-  .endpoint-header:hover { background:rgba(255,255,255,.03); }
-  .endpoint-header .path { font-family:monospace; font-size:14px; flex:1; }
-  .endpoint-header .desc-text { font-size:13px; color:var(--text2); }
-  .endpoint-body { display:none; padding:0 20px 20px; border-top:1px solid var(--border); }
-  .endpoint-card.open .endpoint-body { display:block; }
-  .endpoint-card.open .endpoint-header { background:rgba(99,102,241,.08); }
-  .endpoint-card.open .toggle-icon { transform:rotate(180deg); }
-  .toggle-icon { font-size:12px; color:var(--text2); transition:transform .2s; }
-  .params-table { margin:12px 0; }
-  .params-table h4 { font-size:14px; margin-bottom:8px; color:var(--text2); }
-  .params-table table { width:100%; border-collapse:collapse; font-size:13px; }
-  .params-table th { text-align:left; padding:8px 12px; background:var(--bg); color:var(--text2); border-bottom:1px solid var(--border); font-weight:600; }
-  .params-table td { padding:8px 12px; border-bottom:1px solid rgba(71,85,105,.3); }
-  .required-dot { color:var(--red); }
-  .optional-dot { color:var(--text2); }
-  .test-form { margin-top:16px; background:var(--bg); border-radius:8px; padding:16px; }
-  .test-form h4 { font-size:14px; margin-bottom:12px; color:var(--primary-light); }
-  .form-row { margin-bottom:10px; display:flex; align-items:center; gap:12px; }
-  .form-row label { font-size:13px; min-width:140px; font-family:monospace; }
-  .form-row input, .form-row select { flex:1; background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; font-size:13px; }
-  .form-row input:focus, .form-row select:focus { outline:none; border-color:var(--primary); }
-  .form-row .hint { font-size:11px; color:var(--text2); }
-  .btn-send { background:var(--primary); color:#fff; border:none; padding:10px 24px; border-radius:6px; font-size:14px; font-weight:600; cursor:pointer; margin-top:8px; }
-  .btn-send:hover { background:var(--primary-light); }
-  .btn-send:disabled { opacity:.5; cursor:wait; }
-  .response-box { margin-top:16px; background:var(--bg); border-radius:8px; border:1px solid var(--border); overflow:hidden; }
-  .response-header { display:flex; align-items:center; gap:12px; padding:10px 16px; background:var(--bg3); font-size:12px; }
-  .status-badge { font-weight:700; padding:2px 8px; border-radius:4px; }
-  .status-2xx { background:var(--green); color:#000; }
-  .status-4xx { background:var(--yellow); color:#000; }
-  .status-5xx { background:var(--red); color:#fff; }
-  .response-body { padding:16px; font-family:monospace; font-size:12px; white-space:pre-wrap; max-height:400px; overflow-y:auto; color:var(--text); }
-  .auth-section { margin-bottom:20px; background:var(--bg); border-radius:8px; padding:16px; }
-  .auth-section h4 { font-size:14px; margin-bottom:10px; color:var(--yellow); }
-  .device-id-bar { display:flex; gap:8px; align-items:center; }
-  .device-id-bar input { flex:1; background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; font-size:13px; }
-  .btn-create { background:var(--orange); color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+  body { background: #f5f5f5; }
+  .topbar { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 16px 0; }
+  .topbar h1 { color: #fff; font-size: 22px; margin: 0; padding: 0 20px; }
+  .topbar p { color: rgba(255,255,255,.8); font-size: 13px; margin: 4px 20px 0; }
+  #server-bar { background: #1e293b; color: #e2e8f0; padding: 8px 20px; font-size: 13px; display: flex; align-items: center; gap: 12px; }
+  #server-bar label { color: #94a3b8; }
+  #server-bar input { background: #0f172a; border: 1px solid #475569; color: #e2e8f0; padding: 4px 10px; border-radius: 4px; width: 300px; font-family: monospace; font-size: 13px; }
+  #server-bar input:focus { outline: none; border-color: #6366f1; }
+  #server-bar button { background: #6366f1; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
 </style>
 </head>
 <body>
-<div class="sidebar">
-  <div class="sidebar-header">
-    <h2>狸狸阅读 API</h2>
-    <p>交互式接口文档</p>
-  </div>
-  <div class="sidebar-nav" id="sidebar"></div>
+<div class="topbar">
+  <h1>狸狸阅读 API 文档</h1>
+  <p>代码变更后自动更新 · 支持在线调试 · <a href="/api/swagger_doc" target="_blank">查看 OpenAPI JSON 规范</a></p>
 </div>
-<div class="main">
-  <div class="main-header">
-    <h1>API 接口文档</h1>
-    <p>基础地址：<code>https://api.zheliyuedu.cn</code> — 所有接口返回统一格式 <code>{ "response": { "code": 0, "message": "...", "data": ... } }</code>（code=0 表示成功）</p>
-  </div>
-  <div class="base-url-bar">
-    <label>Base URL</label>
-    <input id="baseUrl" value="https://api.zheliyuedu.cn/api" />
-  </div>
-  <div id="endpoints"></div>
+<div id="server-bar">
+  <label>API 地址</label>
+  <input id="server-url" value="" />
+  <button onclick="reloadSpec()">刷新文档</button>
 </div>
+<div id="swagger-ui"></div>
+
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
 <script>
-const ENDPOINTS = [
-  { group: "用户 (AppUsers)", items: [
-    { method:"POST", path:"/app_users/create_by_device", desc:"按设备ID创建匿名用户", params:[{name:"device_id",type:"String",required:true,desc:"设备唯一ID"}] },
-    { method:"POST", path:"/app_users/send_code", desc:"发送短信验证码", params:[{name:"device_id",type:"String",required:false,desc:"设备ID（可选）"},{name:"phone",type:"String",required:true,desc:"手机号"}] },
-    { method:"POST", path:"/app_users/login_by_code", desc:"手机号+验证码登录/注册", params:[{name:"phone",type:"String",required:true,desc:"手机号"},{name:"code",type:"String",required:true,desc:"验证码"}] },
-    { method:"POST", path:"/app_users/login_by_password", desc:"手机号+密码登录", params:[{name:"phone",type:"String",required:true,desc:"手机号"},{name:"password",type:"String",required:true,desc:"密码"}] },
-    { method:"POST", path:"/app_users/reset_password", desc:"设置或重置密码", params:[{name:"phone",type:"String",required:true,desc:"手机号"},{name:"code",type:"String",required:true,desc:"验证码"},{name:"password",type:"String",required:true,desc:"新密码"}] },
-  ]},
-  { group: "图书 (Books)", items: [
-    { method:"GET", path:"/books", desc:"获取图书列表", params:[
-      {name:"content_type",type:"String",required:false,desc:"内容类型：ebook/audio/video/picture_book"},
-      {name:"category_id",type:"Integer",required:false,desc:"分类ID"},
-      {name:"grade_id",type:"Integer",required:false,desc:"年级ID"},
-      {name:"is_free",type:"Boolean",required:false,desc:"是否免费"},
-      {name:"sort_by",type:"String",required:false,desc:"排序：popular/rating/recent"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/books/:id", desc:"获取图书详情", params:[{name:"id",type:"Integer",required:true,desc:"图书ID"}] },
-    { method:"GET", path:"/books/:id/pages", desc:"获取电子书页面清单", params:[
-      {name:"id",type:"Integer",required:true,desc:"图书ID"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/books/:id/pages/:page_number", desc:"获取电子书单页内容", params:[
-      {name:"id",type:"Integer",required:true,desc:"图书ID"},
-      {name:"page_number",type:"Integer",required:true,desc:"页码"}
-    ]},
-    { method:"GET", path:"/books/:id/toc", desc:"获取电子书目录", params:[{name:"id",type:"Integer",required:true,desc:"图书ID"}] },
-    { method:"GET", path:"/books/:id/styles", desc:"获取电子书样式表", params:[{name:"id",type:"Integer",required:true,desc:"图书ID"}] },
-    { method:"GET", path:"/books/:id/pages/:page_number/html", desc:"获取单页 XHTML 内容", params:[
-      {name:"id",type:"Integer",required:true,desc:"图书ID"},
-      {name:"page_number",type:"Integer",required:true,desc:"页码"}
-    ]},
-    { method:"GET", path:"/books/:id/chapters", desc:"获取图书章节列表", params:[{name:"id",type:"Integer",required:true,desc:"图书ID"}] },
-    { method:"GET", path:"/books/:id/chapters/:chapter_id", desc:"获取章节内容（需登录）", params:[
-      {name:"id",type:"Integer",required:true,desc:"图书ID"},
-      {name:"chapter_id",type:"Integer",required:true,desc:"章节ID"}
-    ]},
-    { method:"POST", path:"/books/import_pdf", desc:"上传并导入 PDF 电子书", params:[
-      {name:"pdf",type:"File",required:true,desc:"PDF 文件"},
-      {name:"book_id",type:"Integer",required:false,desc:"已有图书ID"},
-      {name:"title",type:"String",required:false,desc:"书名"},
-      {name:"author",type:"String",required:false,desc:"作者"},
-      {name:"publisher",type:"String",required:false,desc:"出版社"},
-      {name:"description",type:"String",required:false,desc:"简介"},
-      {name:"cover_image",type:"String",required:false,desc:"封面图"},
-      {name:"category_id",type:"Integer",required:false,desc:"分类ID"},
-      {name:"grade_id",type:"Integer",required:false,desc:"年级ID"},
-      {name:"is_free",type:"Boolean",required:false,desc:"是否免费"},
-      {name:"is_vip",type:"Boolean",required:false,desc:"是否VIP"},
-      {name:"force_image_pages",type:"Boolean",required:false,desc:"强制按整页图片模式"}
-    ]},
-    { method:"POST", path:"/books/import_epub", desc:"从 OSS 导入 EPUB", params:[
-      {name:"epub_oss_key",type:"String",required:true,desc:"EPUB 在 OSS 的路径"},
-      {name:"book_id",type:"Integer",required:false,desc:"已有图书ID"},
-      {name:"title",type:"String",required:false,desc:"书名"},
-      {name:"author",type:"String",required:false,desc:"作者"},
-      {name:"publisher",type:"String",required:false,desc:"出版社"},
-      {name:"description",type:"String",required:false,desc:"简介"},
-      {name:"cover_image",type:"String",required:false,desc:"封面图"},
-      {name:"category_id",type:"Integer",required:false,desc:"分类ID"},
-      {name:"grade_id",type:"Integer",required:false,desc:"年级ID"},
-      {name:"is_free",type:"Boolean",required:false,desc:"是否免费"},
-      {name:"is_vip",type:"Boolean",required:false,desc:"是否VIP"}
-    ]},
-    { method:"POST", path:"/books/export_epub", desc:"从 PDF 异步导出 EPUB", params:[
-      {name:"book_id",type:"Integer",required:true,desc:"图书ID"},
-      {name:"pdf_oss_key",type:"String",required:true,desc:"PDF 在 OSS 的路径"},
-      {name:"force_image_pages",type:"Boolean",required:false,desc:"强制整页图片模式"}
-    ]},
-  ]},
-  { group: "有声书 (Audio)", items: [
-    { method:"GET", path:"/audio/albums", desc:"获取有声专辑列表", params:[
-      {name:"category_id",type:"Integer",required:false,desc:"分类ID"},
-      {name:"grade_id",type:"Integer",required:false,desc:"年级ID"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/audio/albums/:id", desc:"获取有声专辑详情", params:[{name:"id",type:"Integer",required:true,desc:"图书ID"}] },
-    { method:"GET", path:"/audio/albums/:id/episodes", desc:"获取专辑节目列表", params:[
-      {name:"id",type:"Integer",required:true,desc:"图书ID"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/audio/episodes/:episode_id/play", desc:"获取节目播放地址（需登录）", params:[{name:"episode_id",type:"Integer",required:true,desc:"节目ID"}] },
-  ]},
-  { group: "分类 (Categories)", items: [
-    { method:"GET", path:"/categories", desc:"获取分类列表", params:[{name:"parent_id",type:"Integer",required:false,desc:"父分类ID（不传返回顶级）"}] },
-    { method:"GET", path:"/categories/:id", desc:"获取分类详情（含子分类）", params:[{name:"id",type:"Integer",required:true,desc:"分类ID"}] },
-    { method:"GET", path:"/categories/:id/books", desc:"获取分类下的图书列表", params:[
-      {name:"id",type:"Integer",required:true,desc:"分类ID"},
-      {name:"content_type",type:"String",required:false,desc:"内容类型"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/grades", desc:"获取年级列表", params:[] },
-  ]},
-  { group: "首页 (Home)", items: [
-    { method:"GET", path:"/home", desc:"获取首页数据（推荐、轮播图等）", params:[{name:"grade_id",type:"Integer",required:false,desc:"年级ID"}] },
-    { method:"GET", path:"/home/banners", desc:"获取轮播图列表", params:[] },
-    { method:"GET", path:"/home/recommendations", desc:"获取推荐栏目列表", params:[
-      {name:"grade_id",type:"Integer",required:false,desc:"年级ID"},
-      {name:"type",type:"String",required:false,desc:"推荐类型"}
-    ]},
-    { method:"GET", path:"/home/reading_levels", desc:"获取分级阅读列表", params:[] },
-    { method:"GET", path:"/home/collections", desc:"获取合集列表", params:[
-      {name:"grade_id",type:"Integer",required:false,desc:"年级ID"},
-      {name:"type",type:"String",required:false,desc:"合集类型"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/home/collections/:id", desc:"获取合集详情及图书列表", params:[
-      {name:"id",type:"Integer",required:true,desc:"合集ID"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-  ]},
-  { group: "搜索 (Search)", items: [
-    { method:"GET", path:"/search", desc:"搜索图书", params:[
-      {name:"keyword",type:"String",required:true,desc:"搜索关键词"},
-      {name:"content_type",type:"String",required:false,desc:"内容类型"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-    { method:"GET", path:"/search/hot", desc:"获取热门搜索关键词", params:[] },
-  ]},
-  { group: "排行榜 (Rankings)", items: [
-    { method:"GET", path:"/rankings", desc:"获取排行榜列表", params:[{name:"content_type",type:"String",required:false,desc:"内容类型：ebook/audio/picture_book"}] },
-    { method:"GET", path:"/rankings/:id", desc:"获取排行榜详情及图书列表", params:[
-      {name:"id",type:"Integer",required:true,desc:"排行榜ID"},
-      {name:"page",type:"Integer",required:false,desc:"页码"},
-      {name:"per_page",type:"Integer",required:false,desc:"每页数量"}
-    ]},
-  ]},
-];
+  const baseUrl = window.location.origin;
+  document.getElementById('server-url').value = baseUrl;
 
-let currentCard = null;
-
-function buildUI() {
-  const sidebar = document.getElementById('sidebar');
-  const container = document.getElementById('endpoints');
-  let groupIdx = 0;
-  ENDPOINTS.forEach(g => {
-    const gId = 'g' + groupIdx;
-    // sidebar
-    const sg = document.createElement('div');
-    sg.className = 'nav-group';
-    const title = document.createElement('div');
-    title.className = 'nav-group-title';
-    title.textContent = g.group;
-    title.dataset.target = gId;
-    sg.appendChild(title);
-    g.items.forEach((ep, i) => {
-      const ni = document.createElement('div');
-      ni.className = 'nav-item';
-      const badge = document.createElement('span');
-      badge.className = 'method-badge method-' + ep.method;
-      badge.textContent = ep.method;
-      ni.appendChild(badge);
-      ni.appendChild(document.createTextNode(ep.path));
-      ni.dataset.target = 'ep-' + groupIdx + '-' + i;
-      sg.appendChild(ni);
-    });
-    sidebar.appendChild(sg);
-
-    // main
-    const sec = document.createElement('div');
-    sec.className = 'endpoint-section';
-    sec.id = gId;
-    const h3 = document.createElement('h3');
-    h3.textContent = g.group;
-    sec.appendChild(h3);
-    g.items.forEach((ep, i) => {
-      const card = document.createElement('div');
-      card.className = 'endpoint-card';
-      card.id = 'ep-' + groupIdx + '-' + i;
-
-      const hdr = document.createElement('div');
-      hdr.className = 'endpoint-header';
-      const badge2 = document.createElement('span');
-      badge2.className = 'method-badge method-' + ep.method;
-      badge2.textContent = ep.method;
-      const pathEl = document.createElement('span');
-      pathEl.className = 'path';
-      pathEl.textContent = ep.path;
-      const descEl = document.createElement('span');
-      descEl.className = 'desc-text';
-      descEl.textContent = ep.desc;
-      const toggle = document.createElement('span');
-      toggle.className = 'toggle-icon';
-      toggle.textContent = '▼';
-      hdr.append(badge2, pathEl, descEl, toggle);
-      hdr.onclick = () => { card.classList.toggle('open'); };
-      card.appendChild(hdr);
-
-      // body
-      const body = document.createElement('div');
-      body.className = 'endpoint-body';
-
-      // params
-      if (ep.params.length) {
-        const pt = document.createElement('div');
-        pt.className = 'params-table';
-        pt.innerHTML = '<h4>请求参数</h4><table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>' +
-          ep.params.map(p => `<tr><td><code>${p.name}</code></td><td>${p.type}</td><td>${p.required ? '<span class="required-dot">● 必填</span>' : '<span class="optional-dot">○ 选填</span>'}</td><td>${p.desc}</td></tr>`).join('') +
-          '</tbody></table>';
-        body.appendChild(pt);
-      }
-
-      // test form
-      const tf = document.createElement('div');
-      tf.className = 'test-form';
-      tf.innerHTML = '<h4>在线测试</h4>';
-      if (ep.method === 'POST') {
-        const authDiv = document.createElement('div');
-        authDiv.className = 'auth-section';
-        authDiv.innerHTML = `<h4>认证</h4><div class="device-id-bar"><input id="auth_device_id" placeholder="输入 device_id" /><button class="btn-create" onclick="createUser()">创建设备用户</button></div><div id="auth_resp" style="font-size:12px;color:var(--text2);margin-top:8px;"></div>`;
-        tf.appendChild(authDiv);
-      }
-      ep.params.forEach(p => {
-        const row = document.createElement('div');
-        row.className = 'form-row';
-        if (p.name === 'pdf') {
-          row.innerHTML = `<label>${p.name}</label><input type="file" id="p_${p.name}" /><span class="hint">${p.required ? '必填' : '选填'}</span>`;
-        } else if (p.type === 'Boolean') {
-          row.innerHTML = `<label>${p.name}</label><select id="p_${p.name}"><option value="">不传</option><option value="true">true</option><option value="false">false</option></select>`;
-        } else {
-          const placeholder = p.required ? p.desc : p.desc + ' (选填)';
-          row.innerHTML = `<label>${p.name}</label><input type="text" id="p_${p.name}" placeholder="${placeholder}" /><span class="hint">${p.type}${p.required ? ' *' : ''}</span>`;
-        }
-        tf.appendChild(row);
-      });
-      const btn = document.createElement('button');
-      btn.className = 'btn-send';
-      btn.textContent = '发送请求';
-      btn.onclick = () => sendRequest(ep, btn);
-      tf.appendChild(btn);
-
-      // response
-      const respDiv = document.createElement('div');
-      respDiv.className = 'response-box';
-      respDiv.style.display = 'none';
-      respDiv.id = 'resp_' + groupIdx + '_' + i;
-      tf.appendChild(respDiv);
-      body.appendChild(tf);
-      card.appendChild(body);
-      sec.appendChild(card);
-    });
-    container.appendChild(sec);
-    groupIdx++;
-  });
-}
-
-function createUser() {
-  const deviceId = document.getElementById('auth_device_id').value.trim();
-  if (!deviceId) return alert('请输入 device_id');
-  const base = document.getElementById('baseUrl').value.replace(/\/$/, '');
-  document.getElementById('auth_resp').textContent = '创建中...';
-  fetch(base + '/app_users/create_by_device', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'device_id=' + encodeURIComponent(deviceId)
-  }).then(r => r.json()).then(d => {
-    document.getElementById('auth_resp').textContent = JSON.stringify(d, null, 2);
-  }).catch(e => { document.getElementById('auth_resp').textContent = 'Error: ' + e.message; });
-}
-
-function sendRequest(ep, btn) {
-  const base = document.getElementById('baseUrl').value.replace(/\/$/, '');
-  let path = ep.path;
-  const params = {};
-  const files = {};
-  ep.params.forEach(p => {
-    const el = document.getElementById('p_' + p.name);
-    if (!el) return;
-    let v = el.value;
-    if (p.name === 'pdf' && el.files.length) { files['pdf'] = el.files[0]; return; }
-    if (p.type === 'Boolean') { if (v !== '') params[p.name] = v; return; }
-    if (v === '' && !p.required) return;
-    if (v === '') { alert('必填参数: ' + p.name); return; }
-    if (p.type === 'Integer') v = parseInt(v);
-    // check if this is a path param
-    if (path.includes(':' + p.name)) {
-      path = path.replace(':' + p.name, encodeURIComponent(v));
-    } else {
-      params[p.name] = v;
-    }
-  });
-
-  let url = base + path;
-  const qs = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => qs.set(k, v));
-  if (qs.size && ep.method === 'GET') url += '?' + qs.toString();
-
-  btn.disabled = true;
-  btn.textContent = '请求中...';
-
-  const headers = {};
-  let body;
-  if (Object.keys(files).length) {
-    body = new FormData();
-    Object.entries(files).forEach(([k, v]) => body.append(k, v));
-    Object.entries(params).forEach(([k, v]) => body.append(k, v));
-  } else if (ep.method === 'POST') {
-    headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    body = qs.toString();
+  function makeRequest(url, options) {
+    // Intercept requests to rewrite URLs through the configured server
+    const server = document.getElementById('server-url').value.replace(/\/$/, '');
+    const parsed = new URL(url, server);
+    return fetch(parsed.toString(), options);
   }
 
-  fetch(url, { method: ep.method, headers, body })
-    .then(async r => {
-      const text = await r.text();
-      let json;
-      try { json = JSON.stringify(JSON.parse(text), null, 2); } catch { json = text; }
-      return { status: r.status, text: json };
-    })
-    .then(result => {
-      const sc = result.status < 300 ? '2xx' : result.status < 500 ? '4xx' : '5xx';
-      const respDiv = document.querySelector('.response-box[style*="none"], .response-box:not([style*="display"])');
-      const rbox = btn.parentElement.querySelector('.response-box');
-      rbox.style.display = 'block';
-      rbox.innerHTML = `<div class="response-header"><span class="status-badge status-${sc}">${result.status}</span><span>Response</span></div><div class="response-body">${escapeHtml(result.text)}</div>`;
-    })
-    .catch(e => {
-      const rbox = btn.parentElement.querySelector('.response-box');
-      rbox.style.display = 'block';
-      rbox.innerHTML = `<div class="response-header"><span class="status-badge status-5xx">ERROR</span></div><div class="response-body">${escapeHtml(e.message)}</div>`;
-    })
-    .finally(() => { btn.disabled = false; btn.textContent = '发送请求'; });
-}
-
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-document.querySelectorAll('.nav-item').forEach(ni => {
-  ni.onclick = () => {
-    const target = document.getElementById(ni.dataset.target);
-    if (target) { target.classList.add('open'); target.scrollIntoView({ behavior:'smooth', block:'start' }); }
-  };
-});
-
-buildUI();
+  const ui = SwaggerUIBundle({
+    url: baseUrl + '/api/swagger_doc',
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [SwaggerUIBundle.presets.apis],
+    layout: 'BaseLayout',
+    docExpansion: 'list',
+    filter: true,
+    displayRequestDuration: true,
+    showExtensions: true,
+    showCommonExtensions: true,
+    supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch', 'options'],
+    requestInterceptor: (req) => {
+      const server = document.getElementById('server-url').value.replace(/\/$/, '');
+      const parsed = new URL(req.url);
+      if (!parsed.host || parsed.protocol === 'about:') {
+        req.url = server + parsed.pathname + parsed.search;
+      }
+      return req;
+    },
+  });
 </script>
 </body>
 </html>

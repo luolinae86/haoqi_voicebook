@@ -9,6 +9,7 @@ gem "bootsnap", require: false
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "grape", "~> 2.2"
 gem "grape-entity"
+gem "grape-swagger"
 gem "rack-cors"
 gem "bcrypt", "~> 3.1"
 gem "httparty"
