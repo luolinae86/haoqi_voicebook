@@ -93,7 +93,6 @@ module Api
                 books_read: user.books_read,
                 uuid: user.uuid,
               },
-              token: JwtService.generate(user),
             }, message: "登录成功")
           end
 
@@ -123,7 +122,6 @@ module Api
                 books_read: user.books_read,
                 uuid: user.uuid,
               },
-              token: JwtService.generate(user),
             }, message: "登录成功")
           end
 

@@ -84,12 +84,11 @@ RSpec.describe "API V1 Users", type: :request do
     end
 
     context "验证码正确" do
-      it "登录成功并返回 token" do
+      it "登录成功" do
         post "/api/app_users/login_by_code", params: { phone: "13800138000", code: "1234" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:token]).to be_present
         expect(json_response[:data][:user]).to be_present
       end
     end
@@ -105,7 +104,7 @@ RSpec.describe "API V1 Users", type: :request do
     end
 
     context "手机号未注册" do
-      it "自动创建新用户并返回 token" do
+      it "自动创建新用户" do
         new_phone = "13900139000"
         create(:sms_verification, phone: new_phone, code: "5678", expires_at: 5.minutes.from_now)
 
@@ -115,7 +114,6 @@ RSpec.describe "API V1 Users", type: :request do
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:token]).to be_present
       end
     end
 
@@ -135,12 +133,11 @@ RSpec.describe "API V1 Users", type: :request do
   # ==================== 密码登录 ====================
   describe "POST /api/app_users/login_by_password" do
     context "密码正确" do
-      it "登录成功并返回 token" do
+      it "登录成功" do
         post "/api/app_users/login_by_password", params: { phone: user.phone, password: "password123" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:token]).to be_present
         expect(json_response[:data][:user]).to be_present
         expect(json_response[:data][:user][:phone]).to eq(user.phone)
       end
@@ -190,7 +187,7 @@ RSpec.describe "API V1 Users", type: :request do
       post "/api/app_users/login_by_password", params: { phone: user.phone, password: "new_password456" }
 
       expect(json_response[:code]).to eq(0)
-      expect(json_response[:data][:token]).to be_present
+      expect(json_response[:data][:user]).to be_present
     end
 
     context "验证码错误" do
