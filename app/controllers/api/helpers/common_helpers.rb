@@ -54,6 +54,21 @@ module Api
         }
       end
 
+      # 集合序列化
+      def serialize_collection(collection, entity_class, **options)
+        collection.map { |item| entity_class.represent(item, options).as_json }
+      end
+
+      # 分页信息哈希
+      def pagination_info(paged)
+        {
+          current_page: paged.current_page,
+          total_pages: paged.total_pages,
+          total_count: paged.total_count,
+          per_page: (params[:per_page] || 10).to_i
+        }
+      end
+
       # ==================== 认证相关 ====================
 
       # 根据 device_id 查找当前用户

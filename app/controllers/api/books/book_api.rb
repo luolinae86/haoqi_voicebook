@@ -6,6 +6,7 @@ module Api
   module Books
     class BookApi < Grape::API
       helpers Api::Helpers::CommonHelpers
+      helpers Api::Books::BookHelpers
 
       namespace :books do
         # ==================== 导入 PDF 电子书 ====================
@@ -29,15 +30,7 @@ module Api
           filename = upload[:filename].to_s
           raise ArgumentError, "仅支持 PDF 文件" unless filename.downcase.end_with?(".pdf")
 
-          book = params[:book_id].present? ? Book.find(params[:book_id]) : Book.new(status: :published)
-          book.assign_attributes(
-            declared(params, include_missing: false).slice(
-              :title, :author, :publisher, :description, :cover_image,
-              :category_id, :grade_id, :is_free, :is_vip
-            ).merge(content_type: :ebook)
-          )
-          book.title = File.basename(filename, ".pdf") if book.title.blank?
-          book.save! if book.new_record? || book.changed?
+          book = build_book_from_file_params(book_id: params[:book_id], title: File.basename(filename, ".pdf"))
 
           Ebook::PdfImporter.new(
             book: book,
@@ -69,15 +62,7 @@ module Api
           epub_oss_key = params[:epub_oss_key]
           raise ArgumentError, "仅支持 EPUB 文件" unless epub_oss_key.downcase.end_with?(".epub")
 
-          book = params[:book_id].present? ? Book.find(params[:book_id]) : Book.new(status: :published)
-          book.assign_attributes(
-            declared(params, include_missing: false).slice(
-              :title, :author, :publisher, :description, :cover_image,
-              :category_id, :grade_id, :is_free, :is_vip
-            ).merge(content_type: :ebook)
-          )
-          book.title = File.basename(epub_oss_key, ".epub") if book.title.blank?
-          book.save! if book.new_record? || book.changed?
+          book = build_book_from_file_params(book_id: params[:book_id], title: File.basename(epub_oss_key, ".epub"))
 
           EpubImportWorker.perform_async({
             "book_id" => book.id,
@@ -148,18 +133,9 @@ module Api
         end
         get ":id/toc" do
           book = Book.published_books.find(params[:id])
-          directories = book.ebook_pages.pluck(:rich_content).compact.map do |rc|
-            rc = rc.with_indifferent_access if rc.is_a?(Hash)
-            rc["directory"]
-          end.compact.uniq { |d| [d["title"], d["start_page_number"]] }
+          toc = build_toc(book)
 
-          present response: success_response, data: directories.map { |d|
-            {
-              title: d["title"],
-              start_page_number: d["start_page_number"],
-              level: d["level"]
-            }
-          }
+          present response: success_response, data: toc
         end
 
         # ==================== 图书列表 ====================
@@ -174,31 +150,10 @@ module Api
           optional :per_page, type: Integer, desc: "每页数量", default: 10
         end
         get do
-          books = Book.published_books
-
-          # 按内容类型筛选
-          books = books.by_type(params[:content_type]) if params[:content_type].present?
-          # 按分类筛选
-          books = books.by_category(params[:category_id]) if params[:category_id].present?
-          # 按年级筛选
-          books = books.by_grade(params[:grade_id]) if params[:grade_id].present?
-          # 按是否免费筛选
-          books = books.free_books if params[:is_free] == true
-
-          # 排序
-          books = case params[:sort_by]
-                  when "popular" then books.popular
-                  when "rating" then books.highest_rated
-                  else books.recently_added
-                  end
+          books = filter_books(Book.published_books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
 
           paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
-          present response: success_response, data: paged, pagination: {
-            current_page: paged.current_page,
-            total_pages: paged.total_pages,
-            total_count: paged.total_count,
-            per_page: (params[:per_page] || 10).to_i
-          }
+          present response: success_response, data: paged, pagination: pagination_info(paged)
         end
 
         # ==================== 图书详情 ====================
@@ -227,12 +182,7 @@ module Api
                           book_id: book.id,
                           page_count: book.page_count,
                           pages: serialize_collection(pages, Entities::EbookPage),
-                          pagination: {
-                            current_page: pages.current_page,
-                            total_pages: pages.total_pages,
-                            total_count: pages.total_count,
-                            per_page: params[:per_page]
-                          }
+                          pagination: pagination_info(pages)
         end
 
         # ==================== 页面内容 ====================
@@ -244,23 +194,8 @@ module Api
         get ":id/pages/:page_number" do
           book = Book.published_books.find(params[:id])
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
-          content = normalized_ebook_content(page)
 
-          present response: success_response,
-                          book_id: book.id,
-                          page_number: page.page_number,
-                          page_width: page.page_width.to_f,
-                          page_height: page.page_height.to_f,
-                          text: content[:text].presence || page.plain_text,
-                          word_count: page.word_count,
-                          image_count: page.image_count,
-                          lines: content[:lines] || [],
-                          images: content[:images] || [],
-                          directory: content[:directory],
-                          navigation: {
-                            prev_page: book.ebook_pages.where("page_number < ?", page.page_number).maximum(:page_number),
-                            next_page: book.ebook_pages.where("page_number > ?", page.page_number).minimum(:page_number)
-                          }
+          present response: success_response, **page_response(book, page)
         end
 
         # ==================== 章节列表 ====================
@@ -285,25 +220,6 @@ module Api
           chapter = Chapter.find(params[:chapter_id])
 
           present response: success_response, chapter: (present chapter, with: Entities::Chapter)
-        end
-      end
-
-      helpers do
-        def normalized_ebook_content(page)
-          content = page.rich_content
-          return content.with_indifferent_access if content.is_a?(Hash)
-
-          image_blocks = Array(content).select { |block| block["type"] == "image" || block[:type] == "image" }
-          {
-            text: page.plain_text,
-            lines: [],
-            images: image_blocks,
-            directory: nil
-          }.with_indifferent_access
-        end
-
-        def serialize_collection(collection, entity_class, **options)
-          collection.map { |item| entity_class.represent(item, options).as_json }
         end
       end
     end

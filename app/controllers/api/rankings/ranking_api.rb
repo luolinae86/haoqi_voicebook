@@ -35,17 +35,7 @@ module Api
                           name: ranking.name,
                           ranking_type: ranking.ranking_type,
                           books: serialize_collection(items, Entities::RankingItem),
-                          pagination: {
-                            current_page: items.current_page,
-                            total_pages: items.total_pages,
-                            total_count: items.total_count
-                          }
-        end
-      end
-
-      helpers do
-        def serialize_collection(collection, entity_class, **options)
-          collection.map { |item| entity_class.represent(item, options).as_json }
+                          pagination: pagination_info(items)
         end
       end
     end

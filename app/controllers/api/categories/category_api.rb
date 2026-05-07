@@ -6,6 +6,7 @@ module Api
   module Categories
     class CategoryApi < Grape::API
       helpers Api::Helpers::CommonHelpers
+      helpers Api::Categories::CategoryHelpers
 
       namespace :categories do
         # ==================== 分类列表 ====================
@@ -14,11 +15,7 @@ module Api
           optional :parent_id, type: Integer, desc: "父分类ID（不传则返回顶级分类）"
         end
         get do
-          categories = if params[:parent_id].present?
-                         Category.where(parent_id: params[:parent_id]).ordered
-                       else
-                         Category.roots.ordered
-                       end
+          categories = categories_for(parent_id: params[:parent_id])
 
           present response: success_response, categories: serialize_collection(categories, Entities::Category)
         end
@@ -47,12 +44,7 @@ module Api
           books = books.by_type(params[:content_type]) if params[:content_type].present?
 
           paged = books.recently_added.page(params[:page] || 1).per(params[:per_page] || 10)
-          present response: success_response, data: paged, pagination: {
-            current_page: paged.current_page,
-            total_pages: paged.total_pages,
-            total_count: paged.total_count,
-            per_page: (params[:per_page] || 10).to_i
-          }
+          present response: success_response, data: paged, pagination: pagination_info(paged)
         end
       end
 
@@ -62,12 +54,6 @@ module Api
         get do
           grades = Grade.ordered
           present response: success_response, grades: serialize_collection(grades, Entities::Grade)
-        end
-      end
-
-      helpers do
-        def serialize_collection(collection, entity_class, **options)
-          collection.map { |item| entity_class.represent(item, options).as_json }
         end
       end
     end
