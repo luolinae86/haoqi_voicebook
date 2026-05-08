@@ -8,12 +8,25 @@ class RequestLogMiddleware
     @app = app
     @log_path = Rails.root.join("log/puma.log")
     @logger = nil
+    @raw_body = nil
     setup_logger
   end
 
   def call(env)
     start_time = Time.current
     db_runtime = 0
+    @raw_body = nil
+
+    # 在 app 处理前捕获 body
+    if env["rack.input"]
+      begin
+        env["rack.input"].rewind
+        @raw_body = env["rack.input"].read
+        env["rack.input"].rewind
+      rescue StandardError
+        @raw_body = nil
+      end
+    end
 
     # 订阅 SQL 事件统计 DB 耗时
     subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |_name, start, finish, _id, _payload|
@@ -32,7 +45,7 @@ class RequestLogMiddleware
 
     method = env["REQUEST_METHOD"]
     path = env["PATH_INFO"]
-    params_str = collect_params(env)
+    params_str = collect_params(env, @raw_body)
 
     formatted = "[#{start_time.strftime('%Y-%m-%d %H:%M:%S %z')}] " \
                 "INFO -- #{status} -- " \
@@ -51,7 +64,7 @@ class RequestLogMiddleware
     @logger.formatter = proc { |_severity, _time, _progname, msg| "#{msg}\n" }
   end
 
-  def collect_params(env)
+  def collect_params(env, raw_body)
     params = {}
 
     # Query string parameters
@@ -61,34 +74,21 @@ class RequestLogMiddleware
       end
     end
 
-    # POST body parameters (form data or JSON)
+    # POST body parameters
     content_type = env["CONTENT_TYPE"].to_s
-    if %w[application/x-www-form-urlencoded multipart/form-data].any? { |ct| content_type.include?(ct) }
-      if env["rack.input"]
-        body = env["rack.input"].read
-        env["rack.input"].rewind if body
-        if body.present?
-          if content_type.include?("multipart")
-            # For multipart, just note it (parsing is complex)
-            params[:_body] = "[multipart]"
-          else
-            Rack::Utils.parse_query(body).each do |k, v|
-              params[k] = v
-            end
+    if raw_body.present?
+      if %w[application/x-www-form-urlencoded multipart/form-data].any? { |ct| content_type.include?(ct) }
+        unless content_type.include?("multipart")
+          Rack::Utils.parse_query(raw_body).each do |k, v|
+            params[k] = v
           end
         end
-      end
-    elsif content_type.include?("application/json")
-      if env["rack.input"]
-        body = env["rack.input"].read
-        env["rack.input"].rewind if body
-        if body.present?
-          begin
-            json = JSON.parse(body)
-            json.each { |k, v| params[k] = v }
-          rescue JSON::ParserError
-            params[:_body] = body.length > 200 ? "#{body[0..197]}..." : body
-          end
+      elsif content_type.include?("application/json")
+        begin
+          json = JSON.parse(raw_body)
+          json.each { |k, v| params[k] = v }
+        rescue JSON::ParserError
+          params[:_body] = raw_body.length > 200 ? "#{raw_body[0..197]}..." : raw_body
         end
       end
     end
