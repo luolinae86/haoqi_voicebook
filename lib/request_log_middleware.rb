@@ -30,10 +30,9 @@ class RequestLogMiddleware
     total_ms = ((end_time - start_time) * 1000).round
     view_ms = [0, total_ms - db_runtime].max
 
-    request = ActionDispatch::Request.new(env)
-    method = request.request_method
-    path = request.path
-    params_str = format_params(request.filtered_parameters)
+    method = env["REQUEST_METHOD"]
+    path = env["PATH_INFO"]
+    params_str = collect_params(env)
 
     formatted = "[#{start_time.strftime('%Y-%m-%d %H:%M:%S %z')}] " \
                 "INFO -- #{status} -- " \
@@ -52,26 +51,69 @@ class RequestLogMiddleware
     @logger.formatter = proc { |_severity, _time, _progname, msg| "#{msg}\n" }
   end
 
-  def format_params(params)
-    return "" if params.empty?
+  def collect_params(env)
+    params = {}
 
-    filtered = params.to_unsafe_h.transform_values do |v|
-      case v
-      when String
-        v.length > 100 ? "#{v[0..97]}..." : v
-      when Array, Hash
-        begin
-          v.to_json
-        rescue StandardError
-          v.to_s
-        end
-      else
-        v.to_s
+    # Query string parameters
+    if env["QUERY_STRING"].present?
+      Rack::Utils.parse_query(env["QUERY_STRING"]).each do |k, v|
+        params[k] = v
       end
     end
 
-    "params=#{filtered}"
+    # POST body parameters (form data or JSON)
+    content_type = env["CONTENT_TYPE"].to_s
+    if %w[application/x-www-form-urlencoded multipart/form-data].any? { |ct| content_type.include?(ct) }
+      if env["rack.input"]
+        body = env["rack.input"].read
+        env["rack.input"].rewind if body
+        if body.present?
+          if content_type.include?("multipart")
+            # For multipart, just note it (parsing is complex)
+            params[:_body] = "[multipart]"
+          else
+            Rack::Utils.parse_query(body).each do |k, v|
+              params[k] = v
+            end
+          end
+        end
+      end
+    elsif content_type.include?("application/json")
+      if env["rack.input"]
+        body = env["rack.input"].read
+        env["rack.input"].rewind if body
+        if body.present?
+          begin
+            json = JSON.parse(body)
+            json.each { |k, v| params[k] = v }
+          rescue JSON::ParserError
+            params[:_body] = body.length > 200 ? "#{body[0..197]}..." : body
+          end
+        end
+      end
+    end
+
+    return "" if params.empty?
+
+    "params=#{truncate_params(params)}"
   rescue StandardError
     ""
+  end
+
+  def truncate_params(hash)
+    result = {}
+    hash.each do |k, v|
+      result[k] = case v
+                  when String
+                    v.length > 200 ? "#{v[0..197]}..." : v
+                  when Hash
+                    truncate_params(v)
+                  when Array
+                    v.map { |item| item.is_a?(Hash) ? truncate_params(item) : item }
+                  else
+                    v
+                  end
+    end
+    result
   end
 end
