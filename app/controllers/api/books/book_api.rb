@@ -12,6 +12,7 @@ module Api
         # ==================== 导入 PDF 电子书 ====================
         desc "上传并导入 PDF 电子书"
         params do
+          requires :device_id, type: String, desc: "设备ID"
           optional :book_id, type: Integer, desc: "已有图书ID"
           optional :title, type: String, desc: "书名"
           optional :author, type: String, desc: "作者"
@@ -26,6 +27,8 @@ module Api
           requires :pdf, type: File, desc: "PDF 文件"
         end
         post :import_pdf do
+          auth_user
+
           upload = params[:pdf]
           filename = upload[:filename].to_s
           raise ArgumentError, "仅支持 PDF 文件" unless filename.downcase.end_with?(".pdf")
@@ -46,6 +49,7 @@ module Api
         # ==================== 导入 EPUB 电子书 ====================
         desc "从 OSS 上的 EPUB 文件导入电子书"
         params do
+          requires :device_id, type: String, desc: "设备ID"
           optional :book_id, type: Integer, desc: "已有图书ID"
           optional :title, type: String, desc: "书名"
           optional :author, type: String, desc: "作者"
@@ -59,6 +63,8 @@ module Api
           requires :epub_oss_key, type: String, desc: "EPUB 文件在 OSS 上的路径"
         end
         post :import_epub do
+          auth_user
+
           epub_oss_key = params[:epub_oss_key]
           raise ArgumentError, "仅支持 EPUB 文件" unless epub_oss_key.downcase.end_with?(".epub")
 
@@ -76,11 +82,14 @@ module Api
         # ==================== 异步导出 EPUB ====================
         desc "从 OSS 上的 PDF 异步生成 EPUB"
         params do
+          requires :device_id, type: String, desc: "设备ID"
           requires :book_id, type: Integer, desc: "图书ID"
           requires :pdf_oss_key, type: String, desc: "PDF 文件在 OSS 上的路径"
           optional :force_image_pages, type: Boolean, desc: "是否强制整页图片模式"
         end
         post :export_epub do
+          auth_user
+
           book = Book.find(params[:book_id])
 
           EpubExportWorker.perform_async({

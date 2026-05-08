@@ -59,9 +59,12 @@ module Api
         # ==================== 获取播放地址 ====================
         desc "获取节目播放地址（需要登录）"
         params do
+          requires :device_id, type: String, desc: "设备ID"
           requires :episode_id, type: Integer, desc: "节目ID"
         end
         get "episodes/:episode_id/play" do
+          auth_user
+
           episode = AudioEpisode.find(params[:episode_id])
           episode.increment!(:play_count)
 
