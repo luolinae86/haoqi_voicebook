@@ -21,7 +21,7 @@ RSpec.describe WechatAuthService do
     let(:openid) { "oABC1234567890xyz" }
 
     it "returns openid on success" do
-      stub_request(:get, %r{api\.weixin\.qq\.com})
+      stub_request(:get, /api\.weixin\.qq\.com/)
         .to_return(status: 200, body: { openid: openid, access_token: "fake_token", expires_in: 7200 }.to_json)
 
       result = described_class.new.get_openid(code)
@@ -29,8 +29,8 @@ RSpec.describe WechatAuthService do
     end
 
     it "raises error when WeChat returns error code" do
-      stub_request(:get, %r{api\.weixin\.qq\.com})
-        .to_return(status: 200, body: { errcode: 40029, errmsg: "invalid code" }.to_json)
+      stub_request(:get, /api\.weixin\.qq\.com/)
+        .to_return(status: 200, body: { errcode: 40_029, errmsg: "invalid code" }.to_json)
 
       expect { described_class.new.get_openid(code) }.to raise_error(StandardError, "invalid code")
     end

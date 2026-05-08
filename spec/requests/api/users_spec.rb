@@ -390,7 +390,7 @@ RSpec.describe "API Users", type: :request do
 
     context "年级不存在" do
       it "返回错误信息" do
-        put "/api/app_users/update_profile", params: { device_id: user.device_id, grade_id: 99999 }
+        put "/api/app_users/update_profile", params: { device_id: user.device_id, grade_id: 99_999 }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)

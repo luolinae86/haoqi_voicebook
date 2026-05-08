@@ -19,7 +19,7 @@ AllCops:
     - "storage/**/*"
 
 Layout/LineLength:
-  Max: 200
+  Max: 220
 
 Metrics/BlockLength:
   Enabled: false

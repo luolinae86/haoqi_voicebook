@@ -30,6 +30,7 @@ module Api
     mount Api::Search::Mount
     mount Api::Rankings::Mount
     mount Api::Memberships::Mount
+    mount Api::Parental::Mount
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(
@@ -47,7 +48,8 @@ module Api
         { name: "categories", description: "分类与年级" },
         { name: "home", description: "首页推荐" },
         { name: "search", description: "搜索功能" },
-        { name: "rankings", description: "排行榜" }
+        { name: "rankings", description: "排行榜" },
+        { name: "parental", description: "家长管控" }
       ],
       hide_documentation_path: false
     )

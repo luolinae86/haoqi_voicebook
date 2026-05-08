@@ -46,7 +46,7 @@ class WechatPaymentService
     timestamp = headers["Wechatpay-Timestamp"]
     nonce = headers["Wechatpay-Nonce"]
     signature = headers["Wechatpay-Signature"]
-    serial = headers["Wechatpay-Serial"]
+    headers["Wechatpay-Serial"]
 
     return false if timestamp.blank? || nonce.blank? || signature.blank?
 
@@ -90,11 +90,9 @@ class WechatPaymentService
 
     response = http.request(request)
 
-    if response.code == "200"
-      JSON.parse(response.body)["prepay_id"]
-    else
-      raise PaymentError, "WeChat prepay failed: #{response.code} #{response.body.to_s.force_encoding('UTF-8')}"
-    end
+    raise PaymentError, "WeChat prepay failed: #{response.code} #{response.body.to_s.force_encoding('UTF-8')}" unless response.code == "200"
+
+    JSON.parse(response.body)["prepay_id"]
   end
 
   def build_auth_header(method, url, body)

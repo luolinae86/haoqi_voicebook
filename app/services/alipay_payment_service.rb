@@ -52,13 +52,13 @@ class AlipayPaymentService
     {
       app_id: ENV.fetch("ALIPAY_APP_ID"),
       biz_content: JSON.generate({
-        timeout_express: "30m",
-        product_code: "QUICK_MSECURITY_PAY",
-        total_amount: format("%.2f", amount),
-        subject: subject,
-        body: subject,
-        out_trade_no: order_no
-      }),
+                                   timeout_express: "30m",
+                                   product_code: "QUICK_MSECURITY_PAY",
+                                   total_amount: format("%.2f", amount),
+                                   subject: subject,
+                                   body: subject,
+                                   out_trade_no: order_no
+                                 }),
       charset: "utf-8",
       method: "alipay.trade.app.pay",
       notify_url: ENV.fetch("ALIPAY_NOTIFY_URL"),

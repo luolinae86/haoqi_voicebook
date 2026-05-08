@@ -119,7 +119,7 @@ RSpec.describe "API Memberships", type: :request do
                params: { device_id: user.device_id, plan_type: "monthly", payment_method: "wechat" },
                as: :json
         end.to change(Order, :count).by(1)
-               .and change(Membership, :count).by(1)
+                                    .and change(Membership, :count).by(1)
       end
 
       it "会员记录关联订单" do

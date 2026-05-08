@@ -79,9 +79,7 @@ class QqAuthService
   # 或错误格式: error=xxx&error_description=xxx
   def parse_form_response(body)
     params = URI.decode_www_form(body).to_h
-    if params["error"]
-      raise StandardError, params["error_description"] || "QQ 授权失败"
-    end
+    raise StandardError, params["error_description"] || "QQ 授权失败" if params["error"]
 
     params["access_token"]
   end

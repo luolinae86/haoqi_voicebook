@@ -12,7 +12,7 @@ class PaymentCallbackWorker
     args = args.symbolize_keys
     order_no = args[:order_no]
     payment_method = args[:payment_method]
-    callback_data = args[:result]
+    args[:result]
 
     order = Order.find_by!(order_no: order_no)
     return if order.paid? # 防止重复处理
@@ -21,7 +21,7 @@ class PaymentCallbackWorker
     order.activate_membership!
 
     Rails.logger.info("[PaymentCallback] #{payment_method} payment confirmed for order ##{order_no}")
-  rescue ActiveRecord::RecordNotFound => e
+  rescue ActiveRecord::RecordNotFound
     Rails.logger.error("[PaymentCallback] Order not found: #{order_no}")
     raise
   rescue StandardError => e
