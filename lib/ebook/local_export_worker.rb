@@ -30,11 +30,13 @@ module Ebook
         force_image_pages: @force_image_pages
       ).call
       export_root = Ebook::ExportPackage.new(book: @book.reload, output_dir: @output_dir).call
-      epub_path = Ebook::EpubExporter.new(
-        package_dir: export_root,
-        output_path: @epub_output,
-        source_pdf_path: @pdf_path
-      ).call if @export_epub
+      if @export_epub
+        epub_path = Ebook::EpubExporter.new(
+          package_dir: export_root,
+          output_path: @epub_output,
+          source_pdf_path: @pdf_path
+        ).call
+      end
 
       puts "导入完成: #{@book.title} (#{@book.page_count} 页)"
       puts "输出目录: #{export_root}"

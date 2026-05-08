@@ -33,12 +33,12 @@ RSpec.describe AliyunOssService do
     end
 
     it "raises UploadError when local file does not exist" do
-      expect {
+      expect do
         oss_service.upload_file(
           local_path: "/nonexistent/file.png",
           object_key: "images/missing.png"
         )
-      }.to raise_error(AliyunOssService::UploadError, /OSS 上传失败/)
+      end.to raise_error(AliyunOssService::UploadError, /OSS 上传失败/)
     end
 
     it "infers content type from filename when not provided" do

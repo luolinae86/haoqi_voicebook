@@ -5,14 +5,14 @@ require "rails_helper"
 RSpec.describe Banner, type: :model do
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:title) }
-    it { should validate_presence_of(:image_url) }
-    it { should validate_presence_of(:sort_order) }
+    it { is_expected.to validate_presence_of(:title) }
+    it { is_expected.to validate_presence_of(:image_url) }
+    it { is_expected.to validate_presence_of(:sort_order) }
   end
 
   # 枚举测试
   describe "enums" do
-    it { should define_enum_for(:link_type).with_values(book: 0, collection: 1, url: 2, no_link: 3) }
+    it { is_expected.to define_enum_for(:link_type).with_values(book: 0, collection: 1, url: 2, no_link: 3) }
   end
 
   # 作用域测试

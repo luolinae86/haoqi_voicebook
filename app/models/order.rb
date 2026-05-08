@@ -10,11 +10,11 @@ class Order < ApplicationRecord
   enum :status, { pending: 0, paid: 1, failed: 2, refunded: 3 }, default: :pending
 
   # 关联关系
-  belongs_to :app_user, class_name: "AppUser"    # 所属用户
-  belongs_to :membership, optional: true        # 关联会员
+  belongs_to :app_user, class_name: "AppUser" # 所属用户
+  belongs_to :membership, optional: true # 关联会员
 
   # 验证规则
-  validates :order_no, presence: true, uniqueness: true  # 订单号必填且唯一
+  validates :order_no, presence: true, uniqueness: true # 订单号必填且唯一
   validates :amount, presence: true, numericality: { greater_than: 0 }
 
   # 创建前自动生成订单号

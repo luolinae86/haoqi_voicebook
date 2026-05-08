@@ -24,9 +24,9 @@ RSpec.describe "API Users", type: :request do
       end
 
       it "创建短信验证记录" do
-        expect {
+        expect do
           post "/api/app_users/send_code", params: { device_id: user_with_device_id.device_id, phone: "13800138001" }
-        }.to change(SmsVerification, :count).by(1)
+        end.to change(SmsVerification, :count).by(1)
       end
     end
 
@@ -109,9 +109,9 @@ RSpec.describe "API Users", type: :request do
         new_phone = "13900139000"
         create(:sms_verification, phone: new_phone, code: "5678", expires_at: 5.minutes.from_now)
 
-        expect {
+        expect do
           post "/api/app_users/login_by_code", params: { phone: new_phone, code: "5678" }
-        }.to change(AppUser, :count).by(1)
+        end.to change(AppUser, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
@@ -120,7 +120,7 @@ RSpec.describe "API Users", type: :request do
 
     context "验证码已过期" do
       it "返回错误信息" do
-        expired_sms = create(:sms_verification, :expired, phone: "13700137000", code: "4321")
+        create(:sms_verification, :expired, phone: "13700137000", code: "4321")
 
         post "/api/app_users/login_by_code", params: { phone: "13700137000", code: "4321" }
 
@@ -205,7 +205,7 @@ RSpec.describe "API Users", type: :request do
 
     context "验证码已过期" do
       it "返回错误信息" do
-        expired_sms = create(:sms_verification, :expired, phone: "13600136000", code: "7777")
+        create(:sms_verification, :expired, phone: "13600136000", code: "7777")
 
         post "/api/app_users/reset_password", params: {
           phone: "13600136000", code: "7777", password: "new_password456"

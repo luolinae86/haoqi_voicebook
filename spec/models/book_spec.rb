@@ -5,33 +5,33 @@ require "rails_helper"
 RSpec.describe Book, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:category).optional }
-    it { should belong_to(:grade).optional }
-    it { should have_many(:chapters).dependent(:destroy) }
-    it { should have_one(:audio_album).dependent(:destroy) }
-    it { should have_many(:collection_items).dependent(:destroy) }
-    it { should have_many(:collections).through(:collection_items) }
-    it { should have_many(:bookshelves).dependent(:destroy) }
-    it { should have_many(:reading_records).dependent(:destroy) }
-    it { should have_many(:bookmarks).dependent(:destroy) }
-    it { should have_many(:ranking_items).dependent(:destroy) }
-    it { should have_many(:recommendation_items).dependent(:destroy) }
-    it { should have_many(:blacklisted_books).dependent(:destroy) }
+    it { is_expected.to belong_to(:category).optional }
+    it { is_expected.to belong_to(:grade).optional }
+    it { is_expected.to have_many(:chapters).dependent(:destroy) }
+    it { is_expected.to have_one(:audio_album).dependent(:destroy) }
+    it { is_expected.to have_many(:collection_items).dependent(:destroy) }
+    it { is_expected.to have_many(:collections).through(:collection_items) }
+    it { is_expected.to have_many(:bookshelves).dependent(:destroy) }
+    it { is_expected.to have_many(:reading_records).dependent(:destroy) }
+    it { is_expected.to have_many(:bookmarks).dependent(:destroy) }
+    it { is_expected.to have_many(:ranking_items).dependent(:destroy) }
+    it { is_expected.to have_many(:recommendation_items).dependent(:destroy) }
+    it { is_expected.to have_many(:blacklisted_books).dependent(:destroy) }
   end
 
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:title) }
-    it { should validate_presence_of(:content_type) }
-    it { should validate_numericality_of(:play_count).is_greater_than_or_equal_to(0).allow_nil }
-    it { should validate_numericality_of(:word_count).is_greater_than_or_equal_to(0).allow_nil }
-    it { should validate_numericality_of(:rating).is_greater_than_or_equal_to(0).is_less_than_or_equal_to(10).allow_nil }
+    it { is_expected.to validate_presence_of(:title) }
+    it { is_expected.to validate_presence_of(:content_type) }
+    it { is_expected.to validate_numericality_of(:play_count).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:word_count).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:rating).is_greater_than_or_equal_to(0).is_less_than_or_equal_to(10).allow_nil }
   end
 
   # 枚举测试
   describe "enums" do
-    it { should define_enum_for(:content_type).with_values(ebook: 0, audio: 1, video: 2, picture_book: 3) }
-    it { should define_enum_for(:status).with_values(draft: 0, published: 1, offline: 2) }
+    it { is_expected.to define_enum_for(:content_type).with_values(ebook: 0, audio: 1, video: 2, picture_book: 3) }
+    it { is_expected.to define_enum_for(:status).with_values(draft: 0, published: 1, offline: 2) }
   end
 
   # 作用域测试
@@ -100,7 +100,7 @@ RSpec.describe Book, type: :model do
 
     describe ".popular" do
       it "按播放次数降序排列" do
-        book_low = create(:book, play_count: 10)
+        create(:book, play_count: 10)
         book_high = create(:book, play_count: 100)
 
         expect(Book.popular.first).to eq(book_high)
@@ -109,7 +109,7 @@ RSpec.describe Book, type: :model do
 
     describe ".highest_rated" do
       it "按评分降序排列" do
-        book_low = create(:book, rating: 5.0)
+        create(:book, rating: 5.0)
         book_high = create(:book, rating: 9.5)
 
         expect(Book.highest_rated.first).to eq(book_high)
@@ -118,7 +118,7 @@ RSpec.describe Book, type: :model do
 
     describe ".recently_added" do
       it "按创建时间降序排列" do
-        old_book = create(:book, created_at: 1.week.ago)
+        create(:book, created_at: 1.week.ago)
         new_book = create(:book, created_at: 1.hour.ago)
 
         expect(Book.recently_added.first).to eq(new_book)

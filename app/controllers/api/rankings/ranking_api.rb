@@ -31,11 +31,11 @@ module Api
                          .page(params[:page]).per(params[:per_page])
 
           present response: success_response,
-                          ranking_id: ranking.id,
-                          name: ranking.name,
-                          ranking_type: ranking.ranking_type,
-                          books: serialize_collection(items, Entities::RankingItem),
-                          pagination: pagination_info(items)
+                  ranking_id: ranking.id,
+                  name: ranking.name,
+                  ranking_type: ranking.ranking_type,
+                  books: serialize_collection(items, Entities::RankingItem),
+                  pagination: pagination_info(items)
         end
       end
     end

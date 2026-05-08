@@ -8,13 +8,14 @@ class AudioAlbum < ApplicationRecord
   has_many :audio_episodes, dependent: :destroy       # 包含的节目
 
   # 验证规则
-  validates :book_id, presence: true, uniqueness: true  # 一本书只能有一个专辑
+  validates :book_id, presence: true, uniqueness: true # 一本书只能有一个专辑
   validates :total_episodes, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :total_duration, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
   # 格式化总时长显示（秒转为时:分:秒）
   def formatted_duration
     return "00:00:00" unless total_duration&.positive?
+
     hours = total_duration / 3600
     minutes = (total_duration % 3600) / 60
     seconds = total_duration % 60

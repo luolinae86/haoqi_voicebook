@@ -6,7 +6,7 @@ module Api
     module AppUserHelpers
       extend Grape::API::Helpers
 
-      PHONE_REGEXP = /\A1[3-9]\d{9}\z/.freeze
+      PHONE_REGEXP = /\A1[3-9]\d{9}\z/
       CODE_EXPIRES_IN = 5.minutes.freeze
       CODE_COOLDOWN = 60.seconds.freeze
       CODE_LENGTH = 4

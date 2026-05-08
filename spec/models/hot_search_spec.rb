@@ -7,9 +7,9 @@ RSpec.describe HotSearch, type: :model do
   describe "validations" do
     subject { create(:hot_search) }
 
-    it { should validate_presence_of(:keyword) }
-    it { should validate_uniqueness_of(:keyword).case_insensitive }
-    it { should validate_presence_of(:sort_order) }
+    it { is_expected.to validate_presence_of(:keyword) }
+    it { is_expected.to validate_uniqueness_of(:keyword).case_insensitive }
+    it { is_expected.to validate_presence_of(:sort_order) }
   end
 
   # 作用域测试
@@ -26,7 +26,7 @@ RSpec.describe HotSearch, type: :model do
 
     describe ".popular" do
       it "按搜索次数降序排列" do
-        hs_low = create(:hot_search, search_count: 10)
+        create(:hot_search, search_count: 10)
         hs_high = create(:hot_search, search_count: 100)
 
         expect(HotSearch.popular.first).to eq(hs_high)

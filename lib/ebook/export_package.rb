@@ -83,7 +83,7 @@ module Ebook
         # OSS URL — skip local copy, EPUB will reference OSS directly
         next if image_block[:image_url].to_s.start_with?("https://")
 
-        source = Rails.root.join("public", image_block[:image_url].delete_prefix("/"))
+        source = Rails.public_path.join(image_block[:image_url].delete_prefix("/"))
         next unless File.exist?(source)
 
         target = assets_dir.join("#{page_number}-#{File.basename(source)}")
@@ -97,8 +97,8 @@ module Ebook
 
       image_blocks = Array(content).select { |block| block["type"] == "image" || block[:type] == "image" }
       text_value = Array(content).select { |block| block["type"] == "text" || block[:type] == "text" }
-                               .map { |block| block["text"] || block[:text] }
-                               .join("\n")
+                                 .map { |block| block["text"] || block[:text] }
+                                 .join("\n")
 
       {
         text: text_value.presence || page.plain_text,
@@ -122,7 +122,7 @@ module Ebook
       lines.each do |line|
         next unless line["marker"].present?
 
-        line["text_with_role"] = "#{line["marker"]} #{line["text"]}\n"
+        line["text_with_role"] = "#{line['marker']} #{line['text']}\n"
       end
 
       export_text = if lines.any?

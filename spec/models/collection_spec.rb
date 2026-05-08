@@ -5,20 +5,20 @@ require "rails_helper"
 RSpec.describe Collection, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:target_grade).class_name("Grade").optional }
-    it { should have_many(:collection_items).dependent(:destroy) }
-    it { should have_many(:books).through(:collection_items) }
+    it { is_expected.to belong_to(:target_grade).class_name("Grade").optional }
+    it { is_expected.to have_many(:collection_items).dependent(:destroy) }
+    it { is_expected.to have_many(:books).through(:collection_items) }
   end
 
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:title) }
-    it { should validate_presence_of(:sort_order) }
+    it { is_expected.to validate_presence_of(:title) }
+    it { is_expected.to validate_presence_of(:sort_order) }
   end
 
   # 枚举测试
   describe "enums" do
-    it { should define_enum_for(:collection_type).with_values(topic: 0, graded: 1, trending: 2, new_arrival: 3) }
+    it { is_expected.to define_enum_for(:collection_type).with_values(topic: 0, graded: 1, trending: 2, new_arrival: 3) }
   end
 
   # 作用域测试

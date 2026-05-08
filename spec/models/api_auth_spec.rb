@@ -7,10 +7,10 @@ RSpec.describe ApiAuth, type: :model do
   describe "validations" do
     subject { create(:api_auth) }
 
-    it { should validate_presence_of(:name) }
-    it { should validate_presence_of(:access_key_id) }
-    it { should validate_uniqueness_of(:access_key_id).case_insensitive }
-    it { should validate_presence_of(:access_key_secret) }
+    it { is_expected.to validate_presence_of(:name) }
+    it { is_expected.to validate_presence_of(:access_key_id) }
+    it { is_expected.to validate_uniqueness_of(:access_key_id).case_insensitive }
+    it { is_expected.to validate_presence_of(:access_key_secret) }
   end
 
   # 回调测试

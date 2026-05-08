@@ -17,9 +17,9 @@ RSpec.xdescribe "API Parental Control", type: :request do
       end
 
       it "创建家长控制记录" do
-        expect {
+        expect do
           post "/api/parental/setup", params: { password: "1234" }, headers: headers
-        }.to change(ParentalControl, :count).by(1)
+        end.to change(ParentalControl, :count).by(1)
       end
 
       it "已设置过不能重复创建" do
@@ -213,9 +213,9 @@ RSpec.xdescribe "API Parental Control", type: :request do
 
     context "已登录" do
       it "添加图书到黑名单成功" do
-        expect {
+        expect do
           post "/api/parental/blacklist", params: { book_id: book.id }, headers: headers
-        }.to change(BlacklistedBook, :count).by(1)
+        end.to change(BlacklistedBook, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
@@ -224,9 +224,9 @@ RSpec.xdescribe "API Parental Control", type: :request do
       it "重复添加不会创建新记录" do
         create(:blacklisted_book, parental_control: parental_control, book: book)
 
-        expect {
+        expect do
           post "/api/parental/blacklist", params: { book_id: book.id }, headers: headers
-        }.not_to change(BlacklistedBook, :count)
+        end.not_to change(BlacklistedBook, :count)
       end
     end
 
@@ -247,9 +247,9 @@ RSpec.xdescribe "API Parental Control", type: :request do
 
     context "已登录" do
       it "从黑名单移除成功" do
-        expect {
+        expect do
           delete "/api/parental/blacklist/#{book.id}", headers: headers
-        }.to change(BlacklistedBook, :count).by(-1)
+        end.to change(BlacklistedBook, :count).by(-1)
 
         expect(response).to have_http_status(200)
         expect(json_response[:code]).to eq(0)

@@ -8,9 +8,9 @@ module Entities
     expose :description
 
     expose :children do |instance, _|
-      instance.children.ordered.map { |child|
+      instance.children.ordered.map do |child|
         { id: child.id, name: child.name, icon: child.icon }
-      }
+      end
     end
   end
 end

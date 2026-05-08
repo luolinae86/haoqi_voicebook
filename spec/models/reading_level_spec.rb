@@ -7,10 +7,10 @@ RSpec.describe ReadingLevel, type: :model do
   describe "validations" do
     subject { create(:reading_level) }
 
-    it { should validate_presence_of(:name) }
-    it { should validate_uniqueness_of(:name).case_insensitive }
-    it { should validate_presence_of(:level) }
-    it { should validate_uniqueness_of(:level) }
+    it { is_expected.to validate_presence_of(:name) }
+    it { is_expected.to validate_uniqueness_of(:name).case_insensitive }
+    it { is_expected.to validate_presence_of(:level) }
+    it { is_expected.to validate_uniqueness_of(:level) }
   end
 
   # 作用域测试

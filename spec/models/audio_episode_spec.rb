@@ -5,15 +5,15 @@ require "rails_helper"
 RSpec.describe AudioEpisode, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:audio_album) }
+    it { is_expected.to belong_to(:audio_album) }
   end
 
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:title) }
-    it { should validate_presence_of(:sort_order) }
-    it { should validate_numericality_of(:duration).is_greater_than(0).allow_nil }
-    it { should validate_numericality_of(:play_count).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_presence_of(:title) }
+    it { is_expected.to validate_presence_of(:sort_order) }
+    it { is_expected.to validate_numericality_of(:duration).is_greater_than(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:play_count).is_greater_than_or_equal_to(0).allow_nil }
   end
 
   # 作用域测试

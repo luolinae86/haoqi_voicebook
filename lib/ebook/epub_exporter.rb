@@ -11,7 +11,7 @@ require "zip"
 require_relative "pdf_font_extractor"
 require_relative "page_image_renderer"
 
-  module Ebook
+module Ebook
   class EpubExporter
     DEFAULT_RIGHT_PAGE_PADDING = 64.0
     DEFAULT_READER_SAFE_SIDE_PADDING = 64.0
@@ -225,7 +225,7 @@ require_relative "page_image_renderer"
       HTML
     end
 
-    def render_page_image(page_number, pdf_width, pdf_height, root)
+    def render_page_image(page_number, pdf_width, pdf_height, _root)
       renderer = page_renderer
       return nil unless renderer&.available?
 
@@ -256,7 +256,7 @@ require_relative "page_image_renderer"
       if image_only_page && title_image_assets.empty? && Array(visible_text_lines || page["lines"]).empty? && current_images.size == 1
         return <<~HTML
           <div class="page-content-frame" style="#{page_content_frame_inline_style(frame_padding, image_only_page)}">
-            #{full_page_image_svg_layer(page["page_number"], current_images.first, page_width, page_height, root)}
+            #{full_page_image_svg_layer(page['page_number'], current_images.first, page_width, page_height, root)}
           </div>
         HTML
       end
@@ -320,12 +320,12 @@ require_relative "page_image_renderer"
         img_h = rendered[:image_height]
       else
         image_url = image["image_url"] || image[:image_url]
-        if image_url.to_s.start_with?("https://")
-          # OSS URL — use directly
-          href = escape_html(image_url.to_s)
-        else
-          href = "../images/#{escape_html(package_asset_for(page_number, image)&.basename.to_s)}"
-        end
+        href = if image_url.to_s.start_with?("https://")
+                 # OSS URL — use directly
+                 escape_html(image_url.to_s)
+               else
+                 "../images/#{escape_html(package_asset_for(page_number, image)&.basename.to_s)}"
+               end
         img_w = dimension(page_width)
         img_h = dimension(page_height)
       end
@@ -423,7 +423,7 @@ require_relative "page_image_renderer"
 
       <<~HTML.strip
         <#{tag} class="#{classes.join(' ')}"
-             style="#{inline_styles.join('; ')};">#{escape_html(line["text"].to_s)}</#{tag}>
+             style="#{inline_styles.join('; ')};">#{escape_html(line['text'].to_s)}</#{tag}>
       HTML
     end
 
@@ -455,9 +455,7 @@ require_relative "page_image_renderer"
 
         sanitized_line = line.deep_dup
         sanitized_line["text"] = sanitized_text
-        if right_overflow_line?(line, page_width)
-          trim_overflow_text!(sanitized_line, page_width, anchor_profile)
-        end
+        trim_overflow_text!(sanitized_line, page_width, anchor_profile) if right_overflow_line?(line, page_width)
         if polluted_line?(line, page_width)
           repair_polluted_line!(sanitized_line, repaired_lines.last, anchor_profile)
         elsif side_noise_shifted_line?(line, lines, index, page_width)
@@ -500,26 +498,20 @@ require_relative "page_image_renderer"
       end
     end
 
-    def sanitize_line_text(line, page_width, strip_side_noise, title_fragments, serial_profile, next_line, previous_line)
+    def sanitize_line_text(line, page_width, _strip_side_noise, title_fragments, serial_profile, next_line, previous_line)
       text = line["text"].to_s
       return if text.blank?
       return if standalone_side_noise?(line, page_width)
 
       text = sanitize_heading_text(text, line["role"], serial_profile)
 
-      if trailing_line_polluted?(text, next_line)
-        text = strip_trailing_line_pollution(text)
-      end
+      text = strip_trailing_line_pollution(text) if trailing_line_polluted?(text, next_line)
       if polluted_line?(line, page_width)
         text = text.sub(/\A[A-Za-z]{1,3}(?=[\p{Han}“”"'‘’《〈（【])/u, "")
         text = strip_duplicated_carry_over(text, previous_line&.dig("text").to_s)
       end
-      if right_title_polluted?(line, page_width, title_fragments)
-        text = strip_title_fragment_suffix(text, title_fragments)
-      end
-      if trailing_serial_polluted?(line, text, serial_profile, next_line)
-        text = strip_trailing_serial(text, serial_profile)
-      end
+      text = strip_title_fragment_suffix(text, title_fragments) if right_title_polluted?(line, page_width, title_fragments)
+      text = strip_trailing_serial(text, serial_profile) if trailing_serial_polluted?(line, text, serial_profile, next_line)
 
       text.presence
     end
@@ -540,7 +532,7 @@ require_relative "page_image_renderer"
       return text if text.blank? || previous_text.blank?
       return text if previous_text.match?(/[。！？!?…]([”’」』】])?\z/u)
 
-      text.sub(/\A([\p{Han}])\1(?=[，。！？；：])/u, '\1')
+      text.sub(/\A(\p{Han})\1(?=[，。！？；：])/u, '\1')
     end
 
     def trailing_line_polluted?(text, next_line)
@@ -607,7 +599,7 @@ require_relative "page_image_renderer"
       end
     end
 
-    def build_anchor_profile(page, page_width, strip_side_noise, title_fragments)
+    def build_anchor_profile(page, page_width, _strip_side_noise, title_fragments)
       anchor_stats = Hash.new { |hash, key| hash[key] = { count: 0, aligns: Hash.new(0), advances: [] } }
 
       Array(page["lines"]).each_with_index do |line, index|
@@ -627,21 +619,19 @@ require_relative "page_image_renderer"
         stats[:aligns][normalized_align(line)] += 1
 
         visual_length = visual_length(line["text"])
-        if visual_length.positive? && dimension(bbox["width"]).positive?
-          stats[:advances] << (dimension(bbox["width"]) / visual_length)
-        end
+        stats[:advances] << (dimension(bbox["width"]) / visual_length) if visual_length.positive? && dimension(bbox["width"]).positive?
       end
 
       ordered = anchor_stats.sort_by { |left, stats| [-stats[:count], left] }
       base_left = ordered.first&.first
       max_indent_delta = maximum_indent_delta(anchor_stats, base_left)
       indent_left = ordered
-                      .map(&:first)
-                      .select do |left|
-                        base_left.present? &&
-                          left > (base_left + 4.0) &&
-                          left <= (base_left + max_indent_delta)
-                      end
+                    .map(&:first)
+                    .select do |left|
+                      base_left.present? &&
+                        left > (base_left + 4.0) &&
+                        left <= (base_left + max_indent_delta)
+                    end
                       .min
 
       {
@@ -700,9 +690,7 @@ require_relative "page_image_renderer"
       max_width = [dimension(page_width) - left, 1.0].max
       tolerance = [average_advance_for_left(anchor_profile, left) * 0.45, 4.0].max
 
-      while text.present? && raw_estimated_line_width(text, anchor_profile, left) > (max_width + tolerance)
-        text = text[0...-1]
-      end
+      text = text[0...-1] while text.present? && raw_estimated_line_width(text, anchor_profile, left) > (max_width + tolerance)
 
       line["text"] = text
     end
@@ -816,7 +804,7 @@ require_relative "page_image_renderer"
       return false unless next_text.match?(/\A[\p{Han}“”"'‘’《〈（【]/u)
 
       previous_char = text[0...-serial.length].to_s[-1]
-      previous_char&.match?(/[\p{Han}”’」』】!?。，“”、；：]/u)
+      previous_char&.match?(/[\p{Han}”’」』】!?。，“、；：]/u)
     end
 
     def strip_trailing_serial(text, serial_profile)
@@ -836,9 +824,7 @@ require_relative "page_image_renderer"
 
     def display_width_for_line(line:, bbox:, page_width:, left:, font_size:, role:, embedded_font_family:, page_height:)
       base_width = dimension(bbox["width"])
-      if page_number_line?(line, page_height)
-        base_width = [base_width, page_number_display_width(line["text"], font_size)].max
-      end
+      base_width = [base_width, page_number_display_width(line["text"], font_size)].max if page_number_line?(line, page_height)
       max_width = [dimension(page_width) - left, 1.0].max
       [[base_width.round(2), max_width].min, 1.0].max.round(2)
     end
@@ -966,7 +952,7 @@ require_relative "page_image_renderer"
       return text unless suffix.present?
 
       stripped = text.sub(/#{Regexp.escape(suffix)}\z/u, "")
-      stripped.present? ? stripped : text
+      stripped.presence || text
     end
 
     def title_fragment_suffix(text, title_fragments)
@@ -1059,13 +1045,13 @@ require_relative "page_image_renderer"
         next unless entry
 
         <<~HTML.strip
-          <li><a href="#{escape_html(entry["href"])}">#{escape_html(directory["title"])}</a></li>
+          <li><a href="#{escape_html(entry['href'])}">#{escape_html(directory['title'])}</a></li>
         HTML
       end.compact.join("\n")
 
       page_list_items = page_entries.map do |entry|
         <<~HTML.strip
-          <li><a href="#{escape_html(entry["href"])}">第 #{entry["page_number"]} 页</a></li>
+          <li><a href="#{escape_html(entry['href'])}">第 #{entry['page_number']} 页</a></li>
         HTML
       end.join("\n")
 
@@ -1107,11 +1093,11 @@ require_relative "page_image_renderer"
         <?xml version="1.0" encoding="UTF-8"?>
         <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">
           <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-            <dc:identifier id="bookid">urn:uuid:#{Digest::SHA256.hexdigest(@book["title"].to_s)[0, 12]}</dc:identifier>
-            <dc:title>#{escape_html(@book["title"].to_s)}</dc:title>
+            <dc:identifier id="bookid">urn:uuid:#{Digest::SHA256.hexdigest(@book['title'].to_s)[0, 12]}</dc:identifier>
+            <dc:title>#{escape_html(@book['title'].to_s)}</dc:title>
             <dc:language>zh-CN</dc:language>
-            <dc:creator>#{escape_html(@book["author"].to_s.presence || "未知作者")}</dc:creator>
-            <meta property="dcterms:modified">#{Time.current.utc.strftime("%Y-%m-%dT%H:%M:%SZ")}</meta>
+            <dc:creator>#{escape_html(@book['author'].to_s.presence || '未知作者')}</dc:creator>
+            <meta property="dcterms:modified">#{Time.current.utc.strftime('%Y-%m-%dT%H:%M:%SZ')}</meta>
             <meta property="rendition:layout">pre-paginated</meta>
             <meta property="rendition:orientation">auto</meta>
             <meta property="rendition:spread">#{spread_mode}</meta>
@@ -1245,7 +1231,7 @@ require_relative "page_image_renderer"
     end
 
     def page_title(page)
-      page.dig("directory", "title").presence || "第 #{page["page_number"]} 页"
+      page.dig("directory", "title").presence || "第 #{page['page_number']} 页"
     end
 
     def render_heading_images(page, visible_text_lines, root, manifest_items)

@@ -3,12 +3,12 @@
 namespace :ebooks do
   desc "导入 PDF 并将结构化结果导出到下载目录"
   task :import, %i[pdf_path title output_dir epub_output] => :environment do |_task, args|
-    pdf_path = args[:pdf_path].presence || ENV["PDF_PATH"]
+    pdf_path = args[:pdf_path].presence || ENV.fetch("PDF_PATH", nil)
     raise ArgumentError, "请提供 PDF_PATH 或 pdf_path 参数" if pdf_path.blank?
 
     title = args[:title].presence || ENV["TITLE"].presence || File.basename(pdf_path, ".pdf")
     output_dir = args[:output_dir].presence || ENV["OUTPUT_DIR"].presence ||
-      File.expand_path("~/Downloads/#{title}")
+                 File.expand_path("~/Downloads/#{title}")
     epub_output = args[:epub_output].presence || ENV["EPUB_OUTPUT"].presence
     export_epub = ENV["SKIP_EPUB"] != "1"
 
@@ -29,7 +29,7 @@ namespace :ebooks do
 
   desc "根据现有导出包（manifest/pages/assets）重新生成 EPUB"
   task :build_epub, %i[package_dir epub_output source_pdf_path] => :environment do |_task, args|
-    package_dir = args[:package_dir].presence || ENV["PACKAGE_DIR"]
+    package_dir = args[:package_dir].presence || ENV.fetch("PACKAGE_DIR", nil)
     raise ArgumentError, "请提供 PACKAGE_DIR 或 package_dir 参数" if package_dir.blank?
 
     package_dir = Pathname.new(package_dir.to_s)

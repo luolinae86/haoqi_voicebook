@@ -7,8 +7,8 @@ class Ranking < ApplicationRecord
   enum :ranking_type, { hot: 0, high_score: 1, new_arrival: 2, award: 3, classic: 4 }, default: :hot
 
   # 关联关系
-  has_many :ranking_items, dependent: :destroy  # 排行项
-  has_many :books, through: :ranking_items       # 上榜图书
+  has_many :ranking_items, dependent: :destroy # 排行项
+  has_many :books, through: :ranking_items # 上榜图书
 
   # 验证规则
   validates :name, presence: true

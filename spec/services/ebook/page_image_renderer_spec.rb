@@ -63,11 +63,11 @@ RSpec.describe Ebook::PageImageRenderer do
       pixels = flipped.unpack("C*").each_slice(4).to_a
 
       expect(pixels).to eq([
-        [0, 0, 255, 255],
-        [255, 255, 0, 255],
-        [255, 0, 0, 255],
-        [0, 255, 0, 255]
-      ])
+                             [0, 0, 255, 255],
+                             [255, 255, 0, 255],
+                             [255, 0, 0, 255],
+                             [0, 255, 0, 255]
+                           ])
     end
   end
 

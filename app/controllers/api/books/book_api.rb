@@ -65,9 +65,9 @@ module Api
           book = build_book_from_file_params(book_id: params[:book_id], title: File.basename(epub_oss_key, ".epub"))
 
           EpubImportWorker.perform_async({
-            "book_id" => book.id,
-            "epub_oss_key" => epub_oss_key
-          })
+                                           "book_id" => book.id,
+                                           "epub_oss_key" => epub_oss_key
+                                         })
 
           status 202
           present response: success_response, book_id: book.id, message: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
@@ -84,10 +84,10 @@ module Api
           book = Book.find(params[:book_id])
 
           EpubExportWorker.perform_async({
-            "book_id" => book.id,
-            "pdf_oss_key" => params[:pdf_oss_key],
-            "force_image_pages" => params[:force_image_pages] == true
-          })
+                                           "book_id" => book.id,
+                                           "pdf_oss_key" => params[:pdf_oss_key],
+                                           "force_image_pages" => params[:force_image_pages] == true
+                                         })
 
           status 202
           present response: success_response, book_id: book.id, epub_export_status: book.epub_export_status, message: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
@@ -179,10 +179,10 @@ module Api
           pages = book.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
           present response: success_response,
-                          book_id: book.id,
-                          page_count: book.page_count,
-                          pages: serialize_collection(pages, Entities::EbookPage),
-                          pagination: pagination_info(pages)
+                  book_id: book.id,
+                  page_count: book.page_count,
+                  pages: serialize_collection(pages, Entities::EbookPage),
+                  pagination: pagination_info(pages)
         end
 
         # ==================== 页面内容 ====================

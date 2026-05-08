@@ -5,15 +5,15 @@ require "rails_helper"
 RSpec.describe Category, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:parent).class_name("Category").optional }
-    it { should have_many(:children).class_name("Category").with_foreign_key(:parent_id).dependent(:destroy) }
-    it { should have_many(:books).dependent(:nullify) }
+    it { is_expected.to belong_to(:parent).class_name("Category").optional }
+    it { is_expected.to have_many(:children).class_name("Category").with_foreign_key(:parent_id).dependent(:destroy) }
+    it { is_expected.to have_many(:books).dependent(:nullify) }
   end
 
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:name) }
-    it { should validate_presence_of(:sort_order) }
+    it { is_expected.to validate_presence_of(:name) }
+    it { is_expected.to validate_presence_of(:sort_order) }
   end
 
   # 作用域测试

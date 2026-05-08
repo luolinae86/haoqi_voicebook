@@ -14,8 +14,8 @@ module Ebook
 
     def initialize(book:, pdf_path:, source_filename: nil,
                    source_pdf_oss_key: nil,
-                   public_root: Rails.root.join("public"),
-                   storage_root: Rails.root.join("public/system/ebooks"),
+                   public_root: Rails.public_path,
+                   storage_root: Rails.public_path.join("system/ebooks"),
                    page_renderer: nil,
                    force_image_pages: false,
                    image_exporter_oss_service: nil,
@@ -108,8 +108,8 @@ module Ebook
         current_directory: current_directory
       )
       page_render_image = forced_page_image_candidate(page, renderer, enabled: force_image_pages) ||
-        image_only_page_candidate(page, text_content[:lines], renderer) ||
-        text_over_image_page_candidate(page, receiver.image_runs, text_content[:lines])
+                          image_only_page_candidate(page, text_content[:lines], renderer) ||
+                          text_over_image_page_candidate(page, receiver.image_runs, text_content[:lines])
       export_text_content = page_render_image ? { text: "", lines: [] } : text_content
       images = build_image_blocks(
         page,
@@ -190,19 +190,19 @@ module Ebook
         begin
           exported = if render_image_crop?(image, renderer)
                        exporter.export_rendered(
-                          rendered: renderer.render_crop(
-                            page_number: page.number,
-                            page_width: page.width,
-                            page_height: page.height,
-                            bbox: render_box,
-                            right_bleed: render_right_bleed_for_image(page, image)
-                          ),
-                          page_number: page.number,
-                          image_number: index + 1
+                         rendered: renderer.render_crop(
+                           page_number: page.number,
+                           page_width: page.width,
+                           page_height: page.height,
+                           bbox: render_box,
+                           right_bleed: render_right_bleed_for_image(page, image)
+                         ),
+                         page_number: page.number,
+                         image_number: index + 1
                        )
-                      else
-                        exporter.export(xobject: image[:xobject], page_number: page.number, image_number: index + 1)
-                      end
+                     else
+                       exporter.export(xobject: image[:xobject], page_number: page.number, image_number: index + 1)
+                     end
         rescue ImageExporter::UnsupportedImageError => e
           Rails.logger.warn("Skip unsupported image on page #{page.number}: #{e.message}")
           next
@@ -502,7 +502,7 @@ module Ebook
     end
 
     def image_only_page_candidate(page, text_lines, renderer)
-      return unless text_lines.blank?
+      return if text_lines.present?
       return unless renderer_available?(renderer)
 
       full_page_candidate_for(page)
@@ -610,7 +610,7 @@ module Ebook
 
     def visible_page_box(page)
       page_attributes = page.respond_to?(:attributes) ? page.attributes : {}
-      raw_box = [:CropBox, :TrimBox, :ArtBox].filter_map { |key| normalized_page_box(page_attributes[key]) }.first
+      raw_box = %i[CropBox TrimBox ArtBox].filter_map { |key| normalized_page_box(page_attributes[key]) }.first
       return raw_box if raw_box
 
       { left: 0.0, bottom: 0.0, width: page.width.to_f, height: page.height.to_f }

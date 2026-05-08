@@ -11,7 +11,7 @@ RSpec.describe Ebook::LocalExportWorker do
   after do
     cleanup_sample_ebook_pdf(files)
     FileUtils.rm_rf(output_dir)
-    FileUtils.rm_rf(Rails.root.join("public/system/ebooks"))
+    FileUtils.rm_rf(Rails.public_path.join("system/ebooks"))
   end
 
   it "imports a pdf and exports text plus image assets to the target directory" do
@@ -148,8 +148,8 @@ RSpec.describe Ebook::LocalExportWorker do
       expect(page_xhtml).to include("overflow:hidden")
       expect(page_xhtml).to include('class="page-full-image"')
       expect(page_xhtml).to include('src="../images/')
-      expect(page_xhtml).to include('width=')
-      expect(page_xhtml).not_to include('<svg')
+      expect(page_xhtml).to include("width=")
+      expect(page_xhtml).not_to include("<svg")
       expect(content_opf).to include('<meta property="rendition:spread">none</meta>')
     end
   end
@@ -256,7 +256,7 @@ RSpec.describe Ebook::LocalExportWorker do
       expect(page_xhtml).to include("overflow:hidden")
       expect(page_xhtml).to include('class="page-full-image"')
       expect(page_xhtml).not_to include('class="page-text-layer')
-      expect(page_xhtml).not_to include('<svg')
+      expect(page_xhtml).not_to include("<svg")
     end
   end
 
@@ -512,8 +512,8 @@ RSpec.describe Ebook::LocalExportWorker do
 
       expect(page_xhtml).to include(">所有人都回过头来看向我。</p>")
       expect(page_xhtml).to include(">“杨歌，你怎么啦？”班主任皱着眉头，问道。</p>")
-      expect(page_xhtml).to include('left: 79.37px; top: 96.0px; width: 110.63px; min-height: 11.5px; text-align: center;')
-      expect(page_xhtml).to include('left: 102.9px; top: 118.0px; width: 87.1px; min-height: 11.5px; text-align: left;')
+      expect(page_xhtml).to include("left: 79.37px; top: 96.0px; width: 110.63px; min-height: 11.5px; text-align: center;")
+      expect(page_xhtml).to include("left: 102.9px; top: 118.0px; width: 87.1px; min-height: 11.5px; text-align: left;")
       expect(page_xhtml).not_to include("H所有人都回过头来看向我。")
       expect(page_xhtml).not_to include("N“杨歌，你怎么啦？”")
     end
@@ -601,9 +601,9 @@ RSpec.describe Ebook::LocalExportWorker do
       expect(page_xhtml).not_to include(">Z<")
       expect(page_xhtml).not_to include(">U<")
       expect(page_xhtml).not_to include(">G<")
-      expect(page_xhtml).to include('left: 79.37px; top: 54.19px; width: 280.62px; min-height: 11.5px; text-align: center;')
-      expect(page_xhtml).to include('left: 79.37px; top: 76.01px; width: 126.52px; min-height: 11.5px; text-align: center;')
-      expect(page_xhtml).to include('left: 102.9px; top: 87.84px; width: 257.09px; min-height: 11.5px; text-align: left;')
+      expect(page_xhtml).to include("left: 79.37px; top: 54.19px; width: 280.62px; min-height: 11.5px; text-align: center;")
+      expect(page_xhtml).to include("left: 79.37px; top: 76.01px; width: 126.52px; min-height: 11.5px; text-align: center;")
+      expect(page_xhtml).to include("left: 102.9px; top: 87.84px; width: 257.09px; min-height: 11.5px; text-align: left;")
     end
   end
 
@@ -652,8 +652,8 @@ RSpec.describe Ebook::LocalExportWorker do
       page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
 
       expect(page_xhtml).to include("“现在是下班高峰期，这条路太堵了，消防车又不")
-      expect(page_xhtml).to include('left: 102.9px; top: 74.0px;')
-      expect(page_xhtml).not_to include('left: 211.18px; top: 74.0px;')
+      expect(page_xhtml).to include("left: 102.9px; top: 74.0px;")
+      expect(page_xhtml).not_to include("left: 211.18px; top: 74.0px;")
     end
   end
 
@@ -704,8 +704,8 @@ RSpec.describe Ebook::LocalExportWorker do
 
       expect(page_xhtml).to include("设计了十二种动物，也就是十二生肖，让它们来与十二地</p>")
       expect(page_xhtml).not_to include("六自古英")
-      expect(page_xhtml).not_to include('width: 361.65px')
-      expect(page_xhtml).to include('left: 68.03px; top: 74.0px;')
+      expect(page_xhtml).not_to include("width: 361.65px")
+      expect(page_xhtml).to include("left: 68.03px; top: 74.0px;")
     end
   end
 
@@ -756,7 +756,7 @@ RSpec.describe Ebook::LocalExportWorker do
 
       expect(page_xhtml).to include("即使魔兽军团不会死灰复燃，你们也会受到大自然的惩</p>")
       expect(page_xhtml).not_to include("二十尾六")
-      expect(page_xhtml).not_to include('width: 361.65px')
+      expect(page_xhtml).not_to include("width: 361.65px")
     end
   end
 
@@ -900,7 +900,7 @@ RSpec.describe Ebook::LocalExportWorker do
 
       expect(page_xhtml).to include(%(class="page-text-layer page-heading"))
       expect(page_xhtml).to include("地球勇士")
-      expect(page_xhtml).to include('left: 287.86px; top: 20.0px; width: 108.42px; height: 75.37px;')
+      expect(page_xhtml).to include("left: 287.86px; top: 20.0px; width: 108.42px; height: 75.37px;")
     end
   end
 
@@ -956,7 +956,7 @@ RSpec.describe Ebook::LocalExportWorker do
 
       expect(page_xhtml).to include(%(class="page-text-layer page-heading"))
       expect(page_xhtml).to include("地球勇士")
-      expect(page_xhtml).to include('left: 287.86px; top: 20.0px; width: 108.42px; height: 75.37px;')
+      expect(page_xhtml).to include("left: 287.86px; top: 20.0px; width: 108.42px; height: 75.37px;")
     end
   end
 
@@ -1002,7 +1002,7 @@ RSpec.describe Ebook::LocalExportWorker do
       expect(page_xhtml).to include('class="page-text-layer page-body page-page-number"')
       expect(page_xhtml).to include('section class="page-canvas" style="width: 492.03px; height: 220.0px; position: relative;')
       expect(page_xhtml).to include('class="page-content-frame" style="padding: 0 32.0px; position: relative;')
-      expect(page_xhtml).to match(/>1<\/p>/)
+      expect(page_xhtml).to match(%r{>1</p>})
       expect(page_xhtml).to match(/page-page-number"\s+style="left: 204\.1px; top: 172\.0px; width: 26\.45px;/)
     end
   end
@@ -1145,8 +1145,8 @@ RSpec.describe Ebook::LocalExportWorker do
       page_xhtml = zip.read("OEBPS/pages/page-0002.xhtml").force_encoding("UTF-8")
 
       expect(page_xhtml).to include('class="page-full-image"')
-      expect(page_xhtml).to include('width=')
-      expect(page_xhtml).not_to include('<svg')
+      expect(page_xhtml).to include("width=")
+      expect(page_xhtml).not_to include("<svg")
       expect(page_xhtml).not_to include('class="page-text-layer')
     end
   end

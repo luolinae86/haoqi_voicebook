@@ -7,7 +7,7 @@ class Collection < ApplicationRecord
   enum :collection_type, { topic: 0, graded: 1, trending: 2, new_arrival: 3 }, default: :topic
 
   # 关联关系
-  belongs_to :target_grade, class_name: "Grade", optional: true  # 目标年级
+  belongs_to :target_grade, class_name: "Grade", optional: true # 目标年级
   has_many :collection_items, dependent: :destroy                 # 合集项
   has_many :books, through: :collection_items                     # 合集中的图书
 

@@ -68,7 +68,7 @@ module Api
           rc = rc.with_indifferent_access if rc.is_a?(Hash)
           rc["directory"]
         end.compact.uniq { |d| [d["title"], d["start_page_number"]] }
-          .map { |d| { title: d["title"], start_page_number: d["start_page_number"], level: d["level"] } }
+                   .map { |d| { title: d["title"], start_page_number: d["start_page_number"], level: d["level"] } }
       end
 
       # 标准化电子书内容

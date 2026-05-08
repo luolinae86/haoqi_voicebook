@@ -9,7 +9,7 @@ module Api
       # 获取分类列表
       def categories_for(parent_id: nil)
         if parent_id.present?
-        Category.by_parent(parent_id).ordered
+          Category.by_parent(parent_id).ordered
         else
           Category.roots.ordered
         end

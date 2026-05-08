@@ -22,7 +22,7 @@ RSpec.describe Ebook::PdfImporter do
   let(:exporter) { instance_double(Ebook::ImageExporter) }
 
   before do
-    importer.instance_variable_set(:@public_root, Rails.root.join("public"))
+    importer.instance_variable_set(:@public_root, Rails.public_path)
     importer.instance_variable_set(:@storage_root, Rails.root.join("tmp/spec_image_export"))
     allow(Ebook::ImageExporter).to receive(:new).and_return(exporter)
     allow(exporter).to receive(:export)

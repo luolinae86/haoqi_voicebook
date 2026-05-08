@@ -5,16 +5,16 @@ require "rails_helper"
 RSpec.describe ParentalControl, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:app_user) }
-    it { should have_many(:blacklisted_books).dependent(:destroy) }
+    it { is_expected.to belong_to(:app_user) }
+    it { is_expected.to have_many(:blacklisted_books).dependent(:destroy) }
   end
 
   # 验证测试
   describe "validations" do
     subject { create(:parental_control) }
 
-    it { should validate_uniqueness_of(:app_user_id) }
-    it { should validate_numericality_of(:time_limit_minutes).is_greater_than(0).allow_nil }
+    it { is_expected.to validate_uniqueness_of(:app_user_id) }
+    it { is_expected.to validate_numericality_of(:time_limit_minutes).is_greater_than(0).allow_nil }
   end
 
   # 密码加密测试

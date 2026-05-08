@@ -11,6 +11,7 @@ require "nokogiri"
 # 注意：Sidekiq 7 要求参数为 JSON 原生类型，使用 Hash with string keys
 class EpubImportWorker
   include Sidekiq::Job
+
   sidekiq_options queue: "export", retry: 2
 
   # @param args [Hash] {"book_id"=>Integer, "epub_oss_key"=>String}
@@ -52,7 +53,7 @@ class EpubImportWorker
       opf_path = find_opf(unzip_dir)
       raise StandardError, "无法找到 EPUB content.opf" unless opf_path&.exist?
 
-      epub_title, spine_items, manifest, page_entries = parse_opf(opf_path)
+      epub_title, _, _, page_entries = parse_opf(opf_path)
 
       # 更新书名（如果 Book 尚无书名）
       book.update!(title: epub_title) if book.title.blank? && epub_title.present?
@@ -109,7 +110,7 @@ class EpubImportWorker
         # 从 viewport meta 提取宽高
         page_width, page_height = extract_viewport_size(xhtml)
 
-        ebook_page = book.ebook_pages.create!(
+        book.ebook_pages.create!(
           page_number: page_entry[:page_number],
           xhtml_content: xhtml,
           rich_content: {},
@@ -221,8 +222,8 @@ class EpubImportWorker
       xhtml = xhtml.gsub(/src="#{Regexp.escape(rel_path)}"/, "src=\"#{oss_url}\"")
     end
     if styles_oss_url
-      xhtml = xhtml.gsub(/href="#{Regexp.escape("../styles/book.css")}"/, "href=\"#{styles_oss_url}\"")
-      xhtml = xhtml.gsub(/href="#{Regexp.escape("styles/book.css")}"/, "href=\"#{styles_oss_url}\"")
+      xhtml = xhtml.gsub(/href="#{Regexp.escape('../styles/book.css')}"/, "href=\"#{styles_oss_url}\"")
+      xhtml = xhtml.gsub(/href="#{Regexp.escape('styles/book.css')}"/, "href=\"#{styles_oss_url}\"")
     end
     xhtml
   end
@@ -248,6 +249,7 @@ class EpubImportWorker
       # 其余文件正常压缩
       unzip_dir.each_child do |entry|
         next if entry.basename.to_s == "mimetype"
+
         add_to_zip(zip, entry, "")
       end
     end
@@ -263,7 +265,7 @@ class EpubImportWorker
   end
 
   def sanitize_dir_name(title)
-    sanitized = title.to_s.gsub(/[\\\/:*?"<>|]/, "")
+    sanitized = title.to_s.gsub(%r{[\\/:*?"<>|]}, "")
     sanitized.strip
   end
 

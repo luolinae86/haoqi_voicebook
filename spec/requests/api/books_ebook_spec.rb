@@ -61,23 +61,25 @@ RSpec.describe "API Books Ebook", type: :request do
         plain_text: "[TITLE] 第一页标题\n[BODY] 第一页内容\n",
         rich_content: {
           text: "[TITLE] 第一页标题\n[BODY] 第一页内容\n",
-           lines: [
-             { id: "line-1", role: "heading", text: "第一页标题", marker: "[TITLE]", text_with_role: "[TITLE] 第一页标题\n", style: { font_family: "SourceHanSansCN-Bold", font_weight: "bold", font_style: "normal" } },
-             { id: "line-2", role: "body", text: "第一页内容", marker: "[BODY]", text_with_role: "[BODY] 第一页内容\n", style: { font_family: "SourceHanSansCN-Regular", font_weight: "normal", font_style: "normal" } }
-           ],
-           images: [
-             { id: "image-1", type: "image", role: "hero_image", image_url: "/system/ebooks/book_1/page_1/image_1.jpg" }
-           ],
-           directory: {
-             title: "第一章 第一页标题",
-             toc_page_number: 1,
-             start_page_number: 1,
-             level: 1,
-             source: "toc"
-           }
-         }
-       )
-     end
+          lines: [
+            { id: "line-1", role: "heading", text: "第一页标题", marker: "[TITLE]", text_with_role: "[TITLE] 第一页标题\n",
+              style: { font_family: "SourceHanSansCN-Bold", font_weight: "bold", font_style: "normal" } },
+            { id: "line-2", role: "body", text: "第一页内容", marker: "[BODY]", text_with_role: "[BODY] 第一页内容\n",
+              style: { font_family: "SourceHanSansCN-Regular", font_weight: "normal", font_style: "normal" } }
+          ],
+          images: [
+            { id: "image-1", type: "image", role: "hero_image", image_url: "/system/ebooks/book_1/page_1/image_1.jpg" }
+          ],
+          directory: {
+            title: "第一章 第一页标题",
+            toc_page_number: 1,
+            start_page_number: 1,
+            level: 1,
+            source: "toc"
+          }
+        }
+      )
+    end
 
     it "returns a single ebook page" do
       get "/api/books/#{book.id}/pages/1"
@@ -151,8 +153,8 @@ RSpec.describe "API Books Ebook", type: :request do
     let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 2, import_status: :ready) }
     let!(:page_one) do
       create(:ebook_page, book: book, page_number: 1, plain_text: "第一页", rich_content: {
-        "directory" => { "title" => "第一章 测试", "start_page_number" => 1, "level" => 1 }
-      })
+               "directory" => { "title" => "第一章 测试", "start_page_number" => 1, "level" => 1 }
+             })
     end
     let!(:page_two) { create(:ebook_page, book: book, page_number: 2, plain_text: "第二页") }
 
@@ -223,7 +225,7 @@ RSpec.describe "API Books Ebook", type: :request do
 
     after do
       cleanup_sample_ebook_pdf(files)
-      FileUtils.rm_rf(Rails.root.join("public/system/ebooks"))
+      FileUtils.rm_rf(Rails.public_path.join("system/ebooks"))
     end
 
     it "imports an uploaded pdf into ebook pages" do

@@ -10,8 +10,8 @@ class Membership < ApplicationRecord
   enum :status, { pending: 0, active: 1, expired: 2, cancelled: 3 }, default: :pending
 
   # 关联关系
-  belongs_to :app_user, class_name: "AppUser"    # 所属用户
-  has_many :orders, dependent: :nullify     # 关联订单
+  belongs_to :app_user, class_name: "AppUser" # 所属用户
+  has_many :orders, dependent: :nullify # 关联订单
 
   # 验证规则
   validates :plan_type, presence: true

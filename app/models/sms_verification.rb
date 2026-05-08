@@ -6,7 +6,7 @@ class SmsVerification < ApplicationRecord
   # 验证规则
   validates :phone, presence: true,
                     format: { with: /\A1[3-9]\d{9}\z/, message: "手机号格式不正确" }
-  validates :code, presence: true, length: { is: 4 }  # 4位验证码
+  validates :code, presence: true, length: { is: 4 } # 4位验证码
   validates :expires_at, presence: true
 
   # 作用域

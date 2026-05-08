@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe Ebook::PdfImporter do
   let(:book) { create(:book, title: "PDF 导入测试", status: :published, content_type: :ebook) }
   let(:files) { create_sample_ebook_pdf }
-  let(:storage_root) { Rails.root.join("public/system/spec_ebooks") }
+  let(:storage_root) { Rails.public_path.join("system/spec_ebooks") }
   let(:rendered_png) { Base64.decode64(PdfFixtureHelper::SAMPLE_PNG) }
   let(:page_renderer) do
     instance_double(
@@ -56,7 +56,7 @@ RSpec.describe Ebook::PdfImporter do
     expect(image_block[:image_url]).to start_with("/system/spec_ebooks/")
     expect(image_block[:mime_type]).to eq("image/png")
     expect(page_renderer).not_to have_received(:render_crop)
-    expect(File).to exist(Rails.root.join("public", image_block[:image_url].delete_prefix("/")))
+    expect(File).to exist(Rails.public_path.join(image_block[:image_url].delete_prefix("/")))
   end
 
   it "can force native pdf pages to export as full-page images while keeping the chapter directory" do

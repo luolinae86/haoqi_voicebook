@@ -10,6 +10,7 @@ require "fileutils"
 # 注意：Sidekiq 7 要求参数为 JSON 原生类型，使用 Hash with string keys
 class EpubExportWorker
   include Sidekiq::Job
+
   sidekiq_options queue: "export", retry: 2
 
   # @param args [Hash] {"book_id"=>Integer, "pdf_oss_key"=>String, "force_image_pages"=>Boolean}
@@ -23,7 +24,6 @@ class EpubExportWorker
 
     # 按书名创建 OSS 目录：{book_title}/
     sanitized_title = sanitize_dir_name(book.title)
-    epub_prefix   = "#{sanitized_title}"
     styles_key    = "#{sanitized_title}/styles/book.css"
     nav_key       = "#{sanitized_title}/nav.xhtml"
     epub_key      = "#{sanitized_title}/#{sanitized_title}.epub"
@@ -150,7 +150,7 @@ class EpubExportWorker
   # 清理书名作为 OSS 目录名：移除特殊字符，保留中英文数字
   def sanitize_dir_name(title)
     # 移除文件名中不允许的字符
-    sanitized = title.to_s.gsub(/[\\\/:*?"<>|]/, "")
+    sanitized = title.to_s.gsub(%r{[\\/:*?"<>|]}, "")
     sanitized.strip
   end
 

@@ -68,7 +68,7 @@ class AliyunSmsService
       Rails.logger.error("阿里云短信发送失败: #{result.inspect}")
       false
     end
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("阿里云短信请求异常: #{e.message}")
     false
   end
@@ -76,10 +76,10 @@ class AliyunSmsService
   def compute_signature(http_method, params)
     # 1. 构建规范化请求字符串
     canonicalized_query = params
-      .map { |k, v| [encode(k), encode(v.to_s)] }
-      .sort
-      .map { |k, v| "#{k}=#{v}" }
-      .join("&")
+                          .map { |k, v| [encode(k), encode(v.to_s)] }
+                          .sort
+                          .map { |k, v| "#{k}=#{v}" }
+                          .join("&")
 
     # 2. 构建待签名字符串
     string_to_sign = "#{http_method}&#{encode('/')}&#{encode(canonicalized_query)}"
@@ -92,8 +92,8 @@ class AliyunSmsService
 
   def encode(value)
     URI.encode_www_form_component(value)
-      .gsub("+", "%20")
-      .gsub("*", "%2A")
-      .gsub("%7E", "~")
+       .gsub("+", "%20")
+       .gsub("*", "%2A")
+       .gsub("%7E", "~")
   end
 end

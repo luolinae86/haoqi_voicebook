@@ -66,11 +66,11 @@ RSpec.xdescribe "API Memberships", type: :request do
       end
 
       it "生成订单记录" do
-        expect {
+        expect do
           post "/api/memberships/purchase",
                params: { plan_type: "monthly", payment_method: "wechat" },
                headers: headers
-        }.to change(Order, :count).by(1)
+        end.to change(Order, :count).by(1)
       end
     end
 

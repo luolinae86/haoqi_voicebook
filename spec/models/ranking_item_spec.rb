@@ -5,17 +5,17 @@ require "rails_helper"
 RSpec.describe RankingItem, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:ranking) }
-    it { should belong_to(:book) }
+    it { is_expected.to belong_to(:ranking) }
+    it { is_expected.to belong_to(:book) }
   end
 
   # 验证测试
   describe "validations" do
     subject { create(:ranking_item) }
 
-    it { should validate_presence_of(:rank) }
-    it { should validate_numericality_of(:rank).is_greater_than(0) }
-    it { should validate_uniqueness_of(:ranking_id).scoped_to(:book_id).with_message("该图书已在排行榜中") }
+    it { is_expected.to validate_presence_of(:rank) }
+    it { is_expected.to validate_numericality_of(:rank).is_greater_than(0) }
+    it { is_expected.to validate_uniqueness_of(:ranking_id).scoped_to(:book_id).with_message("该图书已在排行榜中") }
   end
 
   # 作用域测试

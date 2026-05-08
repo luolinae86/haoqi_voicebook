@@ -118,9 +118,9 @@ RSpec.describe "API Audio", type: :request do
       end
 
       it "播放后增加播放次数" do
-        expect {
+        expect do
           get "/api/audio/episodes/#{free_episode.id}/play", headers: headers
-        }.to change { free_episode.reload.play_count }.by(1)
+        end.to change { free_episode.reload.play_count }.by(1)
       end
     end
 

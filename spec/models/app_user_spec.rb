@@ -5,34 +5,34 @@ require "rails_helper"
 RSpec.describe AppUser, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:grade).optional }
-    it { should have_many(:bookshelves).dependent(:destroy) }
-    it { should have_many(:shelf_books).through(:bookshelves).source(:book) }
-    it { should have_many(:reading_records).dependent(:destroy) }
-    it { should have_many(:memberships).dependent(:destroy) }
-    it { should have_many(:orders).dependent(:destroy) }
-    it { should have_many(:bookmarks).dependent(:destroy) }
-    it { should have_one(:parental_control).dependent(:destroy) }
+    it { is_expected.to belong_to(:grade).optional }
+    it { is_expected.to have_many(:bookshelves).dependent(:destroy) }
+    it { is_expected.to have_many(:shelf_books).through(:bookshelves).source(:book) }
+    it { is_expected.to have_many(:reading_records).dependent(:destroy) }
+    it { is_expected.to have_many(:memberships).dependent(:destroy) }
+    it { is_expected.to have_many(:orders).dependent(:destroy) }
+    it { is_expected.to have_many(:bookmarks).dependent(:destroy) }
+    it { is_expected.to have_one(:parental_control).dependent(:destroy) }
   end
 
   # 验证测试
   describe "validations" do
     subject { create(:app_user) }
 
-    it { should validate_uniqueness_of(:phone).case_insensitive }
-    it { should allow_value(nil).for(:phone) }
-    it { should allow_value("").for(:phone) }
-    it { should allow_value("13800138000").for(:phone) }
-    it { should allow_value("19912345678").for(:phone) }
-    it { should_not allow_value("12345678901").for(:phone) }
-    it { should_not allow_value("1380013800").for(:phone) }
-    it { should_not allow_value("abc").for(:phone) }
-    it { should validate_length_of(:nickname).is_at_most(50) }
+    it { is_expected.to validate_uniqueness_of(:phone).case_insensitive }
+    it { is_expected.to allow_value(nil).for(:phone) }
+    it { is_expected.to allow_value("").for(:phone) }
+    it { is_expected.to allow_value("13800138000").for(:phone) }
+    it { is_expected.to allow_value("19912345678").for(:phone) }
+    it { is_expected.not_to allow_value("12345678901").for(:phone) }
+    it { is_expected.not_to allow_value("1380013800").for(:phone) }
+    it { is_expected.not_to allow_value("abc").for(:phone) }
+    it { is_expected.to validate_length_of(:nickname).is_at_most(50) }
   end
 
   # 枚举测试
   describe "enums" do
-    it { should define_enum_for(:role).with_values(child: 0, parent: 1, admin: 2) }
+    it { is_expected.to define_enum_for(:role).with_values(child: 0, parent: 1, admin: 2) }
   end
 
   # 作用域测试

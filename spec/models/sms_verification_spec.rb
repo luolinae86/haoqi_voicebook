@@ -5,13 +5,13 @@ require "rails_helper"
 RSpec.describe SmsVerification, type: :model do
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:phone) }
-    it { should allow_value("13800138000").for(:phone) }
-    it { should_not allow_value("12345678901").for(:phone) }
-    it { should_not allow_value("1380013800").for(:phone) }
-    it { should validate_presence_of(:code) }
-    it { should validate_length_of(:code).is_equal_to(4) }
-    it { should validate_presence_of(:expires_at) }
+    it { is_expected.to validate_presence_of(:phone) }
+    it { is_expected.to allow_value("13800138000").for(:phone) }
+    it { is_expected.not_to allow_value("12345678901").for(:phone) }
+    it { is_expected.not_to allow_value("1380013800").for(:phone) }
+    it { is_expected.to validate_presence_of(:code) }
+    it { is_expected.to validate_length_of(:code).is_equal_to(4) }
+    it { is_expected.to validate_presence_of(:expires_at) }
   end
 
   # 作用域测试

@@ -1,9 +1,10 @@
 # frozen_string_literal: true
+
 # 用户模型
 # 管理用户账户信息，支持手机号+验证码登录和密码登录
 class AppUser < ApplicationRecord
   self.table_name = "app_users"
-  has_secure_password validations: false  # 密码加密（可选密码）
+  has_secure_password validations: false # 密码加密（可选密码）
 
   before_validation :generate_device_id, on: :create
 
@@ -11,9 +12,9 @@ class AppUser < ApplicationRecord
   enum :role, { child: 0, parent: 1, admin: 2 }, default: :child
 
   # 关联关系
-  belongs_to :grade, optional: true                     # 所属年级
-  has_many :bookshelves, dependent: :destroy             # 用户书架
-  has_many :shelf_books, through: :bookshelves, source: :book  # 书架上的图书
+  belongs_to :grade, optional: true # 所属年级
+  has_many :bookshelves, dependent: :destroy # 用户书架
+  has_many :shelf_books, through: :bookshelves, source: :book # 书架上的图书
   has_many :reading_records, dependent: :destroy         # 阅读记录
   has_many :memberships, dependent: :destroy             # 会员记录
   has_many :orders, dependent: :destroy                  # 订单记录

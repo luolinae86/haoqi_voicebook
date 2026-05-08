@@ -5,16 +5,16 @@ require "rails_helper"
 RSpec.describe CollectionItem, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:collection) }
-    it { should belong_to(:book) }
+    it { is_expected.to belong_to(:collection) }
+    it { is_expected.to belong_to(:book) }
   end
 
   # 验证测试
   describe "validations" do
     subject { create(:collection_item) }
 
-    it { should validate_uniqueness_of(:collection_id).scoped_to(:book_id).with_message("该图书已在合集中") }
-    it { should validate_presence_of(:sort_order) }
+    it { is_expected.to validate_uniqueness_of(:collection_id).scoped_to(:book_id).with_message("该图书已在合集中") }
+    it { is_expected.to validate_presence_of(:sort_order) }
   end
 
   # 作用域测试

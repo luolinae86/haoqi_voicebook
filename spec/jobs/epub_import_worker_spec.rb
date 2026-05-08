@@ -10,7 +10,7 @@ RSpec.describe EpubImportWorker do
   let(:epub_oss_key) { "小老虎历险记.epub" }
 
   after do
-    FileUtils.rm_rf(Rails.root.join("public/system/ebooks"))
+    FileUtils.rm_rf(Rails.public_path.join("system/ebooks"))
   end
 
   def create_test_epub(path)
@@ -111,6 +111,7 @@ RSpec.describe EpubImportWorker do
         zip.write("application/epub+zip")
         root.each_child do |entry|
           next if entry.basename.to_s == "mimetype"
+
           add_entry_to_zip(zip, entry, "")
         end
       end
@@ -141,9 +142,9 @@ RSpec.describe EpubImportWorker do
       end
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "epub_oss_key" => epub_oss_key
-      })
+                                    "book_id" => book.id,
+                                    "epub_oss_key" => epub_oss_key
+                                  })
 
       book.reload
       expect(book.epub_export_status).to eq("completed")
@@ -180,9 +181,9 @@ RSpec.describe EpubImportWorker do
       end
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "epub_oss_key" => epub_oss_key
-      })
+                                    "book_id" => book.id,
+                                    "epub_oss_key" => epub_oss_key
+                                  })
 
       book.reload
       expect(book.ebook_pages.where(page_number: 999).count).to eq(0)
@@ -192,12 +193,12 @@ RSpec.describe EpubImportWorker do
     it "sets export_failed status and records error on failure" do
       allow(AliyunOssService).to receive(:new).and_raise(AliyunOssService::UploadError, "OSS 连接失败")
 
-      expect {
+      expect do
         described_class.new.perform({
-          "book_id" => book.id,
-          "epub_oss_key" => epub_oss_key
-        })
-      }.to raise_error(AliyunOssService::UploadError)
+                                      "book_id" => book.id,
+                                      "epub_oss_key" => epub_oss_key
+                                    })
+      end.to raise_error(AliyunOssService::UploadError)
 
       book.reload
       expect(book.epub_export_status).to eq("export_failed")
@@ -219,9 +220,9 @@ RSpec.describe EpubImportWorker do
       end
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "epub_oss_key" => epub_oss_key
-      })
+                                    "book_id" => book.id,
+                                    "epub_oss_key" => epub_oss_key
+                                  })
 
       book.reload
       expect(book.epub_oss_key).to eq("快乐先生/快乐先生.epub")

@@ -4,7 +4,7 @@
 # 管理图书的章节内容，支持免费/VIP 区分
 class Chapter < ApplicationRecord
   # 关联关系
-  belongs_to :book  # 所属图书
+  belongs_to :book # 所属图书
 
   # 验证规则
   validates :title, presence: true          # 章节标题必填

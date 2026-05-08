@@ -5,24 +5,24 @@ require "rails_helper"
 RSpec.describe Membership, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:app_user) }
-    it { should have_many(:orders).dependent(:nullify) }
+    it { is_expected.to belong_to(:app_user) }
+    it { is_expected.to have_many(:orders).dependent(:nullify) }
   end
 
   # 验证测试
   describe "validations" do
-    it { should validate_presence_of(:plan_type) }
-    it { should validate_presence_of(:price) }
-    it { should validate_numericality_of(:price).is_greater_than(0) }
-    it { should validate_numericality_of(:original_price).is_greater_than(0).allow_nil }
-    it { should validate_presence_of(:start_date) }
-    it { should validate_presence_of(:end_date) }
+    it { is_expected.to validate_presence_of(:plan_type) }
+    it { is_expected.to validate_presence_of(:price) }
+    it { is_expected.to validate_numericality_of(:price).is_greater_than(0) }
+    it { is_expected.to validate_numericality_of(:original_price).is_greater_than(0).allow_nil }
+    it { is_expected.to validate_presence_of(:start_date) }
+    it { is_expected.to validate_presence_of(:end_date) }
   end
 
   # 枚举测试
   describe "enums" do
-    it { should define_enum_for(:plan_type).with_values(monthly: 0, quarterly: 1, annual: 2) }
-    it { should define_enum_for(:status).with_values(pending: 0, active: 1, expired: 2, cancelled: 3) }
+    it { is_expected.to define_enum_for(:plan_type).with_values(monthly: 0, quarterly: 1, annual: 2) }
+    it { is_expected.to define_enum_for(:status).with_values(pending: 0, active: 1, expired: 2, cancelled: 3) }
   end
 
   # 作用域测试

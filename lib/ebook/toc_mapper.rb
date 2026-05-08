@@ -62,8 +62,8 @@ module Ebook
     end
 
     def cleanup_title(title)
-      title.to_s.gsub(/[·•…\.]{2,}/, " ")
-           .gsub(/[\\\/]+$/, "")
+      title.to_s.gsub(/[·•….]{2,}/, " ")
+           .gsub(%r{[\\/]+$}, "")
            .gsub(/\s+/, " ")
            .strip
     end
@@ -98,7 +98,7 @@ module Ebook
     end
 
     def normalize_lookup(text)
-      text.to_s.gsub(/[[:space:]\\\/\-\—\–\·•…"'“”‘’.,，。:：;；!?！？\(\)（）\[\]【】]/, "").downcase
+      text.to_s.gsub(%r{[[:space:]\\/\-—–·•…"'“”‘’.,，。:：;；!?！？()（）\[\]【】]}, "").downcase
     end
 
     def build_page_map(toc_pages, entries)

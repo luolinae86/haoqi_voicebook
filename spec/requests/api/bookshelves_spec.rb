@@ -45,9 +45,9 @@ RSpec.xdescribe "API Bookshelves", type: :request do
   describe "POST /api/bookshelves" do
     context "已登录" do
       it "添加图书成功" do
-        expect {
+        expect do
           post "/api/bookshelves", params: { book_id: book.id }, headers: headers
-        }.to change(Bookshelf, :count).by(1)
+        end.to change(Bookshelf, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
@@ -56,13 +56,13 @@ RSpec.xdescribe "API Bookshelves", type: :request do
       it "重复添加同一本书不会创建新记录" do
         create(:bookshelf, app_user: user, book: book)
 
-        expect {
+        expect do
           post "/api/bookshelves", params: { book_id: book.id }, headers: headers
-        }.not_to change(Bookshelf, :count)
+        end.not_to change(Bookshelf, :count)
       end
 
       it "图书不存在时返回错误" do
-        post "/api/bookshelves", params: { book_id: 999999 }, headers: headers
+        post "/api/bookshelves", params: { book_id: 999_999 }, headers: headers
 
         expect(response).to have_http_status(404).or have_http_status(400)
       end
@@ -83,9 +83,9 @@ RSpec.xdescribe "API Bookshelves", type: :request do
       let!(:shelf_item) { create(:bookshelf, app_user: user, book: book) }
 
       it "移除图书成功" do
-        expect {
+        expect do
           delete "/api/bookshelves/#{book.id}", headers: headers
-        }.to change(Bookshelf, :count).by(-1)
+        end.to change(Bookshelf, :count).by(-1)
 
         expect(response).to have_http_status(200)
         expect(json_response[:code]).to eq(0)
@@ -147,11 +147,11 @@ RSpec.xdescribe "API Bookshelves", type: :request do
       let!(:shelf_item) { create(:bookshelf, app_user: user, book: book) }
 
       it "记录阅读成功" do
-        expect {
+        expect do
           post "/api/bookshelves/#{book.id}/reading_records",
                params: { chapter_id: chapter.id, words_read: 500, duration_minutes: 15 },
                headers: headers
-        }.to change(ReadingRecord, :count).by(1)
+        end.to change(ReadingRecord, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
@@ -206,11 +206,11 @@ RSpec.xdescribe "API Bookshelves", type: :request do
   describe "POST /api/bookmarks" do
     context "已登录" do
       it "添加书签成功" do
-        expect {
+        expect do
           post "/api/bookmarks",
                params: { book_id: book.id, chapter_id: chapter.id, position: 120 },
                headers: headers
-        }.to change(Bookmark, :count).by(1)
+        end.to change(Bookmark, :count).by(1)
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:code]).to eq(0)
@@ -238,9 +238,9 @@ RSpec.xdescribe "API Bookshelves", type: :request do
       let!(:bookmark) { create(:bookmark, app_user: user, book: book) }
 
       it "删除书签成功" do
-        expect {
+        expect do
           delete "/api/bookmarks/#{bookmark.id}", headers: headers
-        }.to change(Bookmark, :count).by(-1)
+        end.to change(Bookmark, :count).by(-1)
 
         expect(response).to have_http_status(200)
         expect(json_response[:code]).to eq(0)

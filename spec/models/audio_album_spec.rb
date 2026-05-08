@@ -5,18 +5,18 @@ require "rails_helper"
 RSpec.describe AudioAlbum, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:book) }
-    it { should have_many(:audio_episodes).dependent(:destroy) }
+    it { is_expected.to belong_to(:book) }
+    it { is_expected.to have_many(:audio_episodes).dependent(:destroy) }
   end
 
   # 验证测试
   describe "validations" do
     subject { create(:audio_album) }
 
-    it { should validate_presence_of(:book_id) }
-    it { should validate_uniqueness_of(:book_id) }
-    it { should validate_numericality_of(:total_episodes).is_greater_than_or_equal_to(0).allow_nil }
-    it { should validate_numericality_of(:total_duration).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_presence_of(:book_id) }
+    it { is_expected.to validate_uniqueness_of(:book_id) }
+    it { is_expected.to validate_numericality_of(:total_episodes).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:total_duration).is_greater_than_or_equal_to(0).allow_nil }
   end
 
   # 实例方法测试

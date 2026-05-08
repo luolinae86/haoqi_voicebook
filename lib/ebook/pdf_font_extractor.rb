@@ -70,7 +70,7 @@ module Ebook
         basefont = (font[:BaseFont] || descendant&.[](:BaseFont)).to_s
         next if basefont.blank?
 
-        embedded_key = [:FontFile, :FontFile2, :FontFile3].find { |key| descriptor[key] }
+        embedded_key = %i[FontFile FontFile2 FontFile3].find { |key| descriptor[key] }
         next unless embedded_key
 
         yield(
@@ -82,7 +82,7 @@ module Ebook
     end
 
     def build_font_asset(page, descriptor, basefont, normalized_name, aliases)
-      embedded_key = [:FontFile, :FontFile2, :FontFile3].find { |key| descriptor[key] }
+      embedded_key = %i[FontFile FontFile2 FontFile3].find { |key| descriptor[key] }
       return unless embedded_key
 
       stream = page.objects.deref_stream(descriptor[embedded_key])

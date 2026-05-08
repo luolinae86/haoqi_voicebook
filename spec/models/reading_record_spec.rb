@@ -5,15 +5,15 @@ require "rails_helper"
 RSpec.describe ReadingRecord, type: :model do
   # 关联测试
   describe "associations" do
-    it { should belong_to(:app_user) }
-    it { should belong_to(:book) }
-    it { should belong_to(:chapter).optional }
+    it { is_expected.to belong_to(:app_user) }
+    it { is_expected.to belong_to(:book) }
+    it { is_expected.to belong_to(:chapter).optional }
   end
 
   # 验证测试
   describe "validations" do
-    it { should validate_numericality_of(:words_read).is_greater_than_or_equal_to(0).allow_nil }
-    it { should validate_numericality_of(:duration_minutes).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:words_read).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to validate_numericality_of(:duration_minutes).is_greater_than_or_equal_to(0).allow_nil }
   end
 
   # 作用域测试

@@ -79,13 +79,13 @@ module Api
           paged_books = books.page(params[:page]).per(params[:per_page])
 
           present response: success_response,
-                          collection: (present collection, with: Entities::Collection),
-                          books: serialize_collection_books(paged_books),
-                          pagination: {
-                            current_page: paged_books.current_page,
-                            total_pages: paged_books.total_pages,
-                            total_count: paged_books.total_count
-                          }
+                  collection: (present collection, with: Entities::Collection),
+                  books: serialize_collection_books(paged_books),
+                  pagination: {
+                    current_page: paged_books.current_page,
+                    total_pages: paged_books.total_pages,
+                    total_count: paged_books.total_count
+                  }
         end
       end
     end

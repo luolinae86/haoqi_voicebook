@@ -64,7 +64,10 @@ rankings.each { |r| Ranking.find_or_create_by!(name: r[:name], ranking_type: r[:
 puts "🔍 创建热门搜索数据..."
 hot_keywords = %w[西游记 三国演义 安徒生童话 格林童话 十万个为什么 弟子规 唐诗三百首 成语故事 伊索寓言 小王子]
 hot_keywords.each_with_index do |kw, i|
-  HotSearch.find_or_create_by!(keyword: kw) { |hs| hs.search_count = rand(100..1000); hs.sort_order = i + 1 }
+  HotSearch.find_or_create_by!(keyword: kw) do |hs|
+    hs.search_count = rand(100..1000)
+    hs.sort_order = i + 1
+  end
 end
 
 # ==================== API 认证 ====================

@@ -10,7 +10,7 @@ RSpec.describe EpubExportWorker do
   let(:pdf_oss_key) { "pdfs/test-book.pdf" }
 
   after do
-    FileUtils.rm_rf(Rails.root.join("public/system/ebooks"))
+    FileUtils.rm_rf(Rails.public_path.join("system/ebooks"))
   end
 
   def create_test_pdf(path)
@@ -39,10 +39,10 @@ RSpec.describe EpubExportWorker do
       end
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "pdf_oss_key" => pdf_oss_key,
-        "force_image_pages" => false
-      })
+                                    "book_id" => book.id,
+                                    "pdf_oss_key" => pdf_oss_key,
+                                    "force_image_pages" => false
+                                  })
 
       book.reload
       expect(book.epub_export_status).to eq("completed")
@@ -60,13 +60,13 @@ RSpec.describe EpubExportWorker do
     it "sets export_failed status and records error on failure" do
       allow(AliyunOssService).to receive(:new).and_raise(AliyunOssService::UploadError, "OSS 连接失败")
 
-      expect {
+      expect do
         described_class.new.perform({
-          "book_id" => book.id,
-          "pdf_oss_key" => pdf_oss_key,
-          "force_image_pages" => false
-        })
-      }.to raise_error(AliyunOssService::UploadError)
+                                      "book_id" => book.id,
+                                      "pdf_oss_key" => pdf_oss_key,
+                                      "force_image_pages" => false
+                                    })
+      end.to raise_error(AliyunOssService::UploadError)
 
       book.reload
       expect(book.epub_export_status).to eq("export_failed")
@@ -90,10 +90,10 @@ RSpec.describe EpubExportWorker do
       allow(Ebook::PdfImporter).to receive(:new).and_return(importer)
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "pdf_oss_key" => pdf_oss_key,
-        "force_image_pages" => true
-      })
+                                    "book_id" => book.id,
+                                    "pdf_oss_key" => pdf_oss_key,
+                                    "force_image_pages" => true
+                                  })
 
       expect(Ebook::PdfImporter).to have_received(:new).with(
         hash_including(force_image_pages: true)
@@ -117,10 +117,10 @@ RSpec.describe EpubExportWorker do
       end
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "pdf_oss_key" => pdf_oss_key,
-        "force_image_pages" => false
-      })
+                                    "book_id" => book.id,
+                                    "pdf_oss_key" => pdf_oss_key,
+                                    "force_image_pages" => false
+                                  })
 
       book.reload
       expect(book.epub_oss_key).to eq("快乐先生/快乐先生.epub")
@@ -145,10 +145,10 @@ RSpec.describe EpubExportWorker do
       end
 
       described_class.new.perform({
-        "book_id" => book.id,
-        "pdf_oss_key" => pdf_oss_key,
-        "force_image_pages" => false
-      })
+                                    "book_id" => book.id,
+                                    "pdf_oss_key" => pdf_oss_key,
+                                    "force_image_pages" => false
+                                  })
 
       book.reload
       sanitized = "TestBookWithSpecialChars"
