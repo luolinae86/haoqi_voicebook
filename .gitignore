@@ -25,6 +25,7 @@
 
 # Ignore Kamal secrets
 /.kamal/secrets
+/.kamal/secrets.*
 .idea/
 # Ignore key files for decrypting credentials and more.
 /config/*.key
