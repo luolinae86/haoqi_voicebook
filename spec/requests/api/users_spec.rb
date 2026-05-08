@@ -60,12 +60,11 @@ RSpec.describe "API Users", type: :request do
     end
 
     context "device_id 为空字符串" do
-      it "返回未授权错误" do
+      it "发送验证码成功（跳过授权）" do
         post "/api/app_users/send_code", params: { device_id: "", phone: "13800138001" }
 
-        expect(response).to have_http_status(200)
-        expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
       end
     end
 
@@ -86,7 +85,7 @@ RSpec.describe "API Users", type: :request do
 
     context "验证码正确" do
       it "登录成功" do
-        post "/api/app_users/login_by_code", params: { phone: "13800138000", code: "1234" }
+        post "/api/app_users/login_by_code", params: { device_id: user.device_id, phone: "13800138000", code: "1234" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
@@ -94,9 +93,19 @@ RSpec.describe "API Users", type: :request do
       end
     end
 
+    context "未授权的设备" do
+      it "返回未授权错误" do
+        post "/api/app_users/login_by_code", params: { device_id: "invalid_device_id", phone: "13800138000", code: "1234" }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+
     context "验证码错误" do
       it "返回错误信息" do
-        post "/api/app_users/login_by_code", params: { phone: "13800138000", code: "9999" }
+        post "/api/app_users/login_by_code", params: { device_id: user.device_id, phone: "13800138000", code: "9999" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
@@ -105,16 +114,18 @@ RSpec.describe "API Users", type: :request do
     end
 
     context "手机号未注册" do
-      it "自动创建新用户" do
+      let(:user_without_phone) { create(:app_user, phone: nil) }
+
+      it "绑定新手机号到当前设备用户" do
         new_phone = "13900139000"
         create(:sms_verification, phone: new_phone, code: "5678", expires_at: 5.minutes.from_now)
 
-        expect do
-          post "/api/app_users/login_by_code", params: { phone: new_phone, code: "5678" }
-        end.to change(AppUser, :count).by(1)
+        post "/api/app_users/login_by_code", params: { device_id: user_without_phone.device_id, phone: new_phone, code: "5678" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
+        user_without_phone.reload
+        expect(user_without_phone.phone).to eq(new_phone)
       end
     end
 
@@ -122,7 +133,7 @@ RSpec.describe "API Users", type: :request do
       it "返回错误信息" do
         create(:sms_verification, :expired, phone: "13700137000", code: "4321")
 
-        post "/api/app_users/login_by_code", params: { phone: "13700137000", code: "4321" }
+        post "/api/app_users/login_by_code", params: { device_id: user.device_id, phone: "13700137000", code: "4321" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
@@ -135,7 +146,7 @@ RSpec.describe "API Users", type: :request do
   describe "POST /api/app_users/login_by_password" do
     context "密码正确" do
       it "登录成功" do
-        post "/api/app_users/login_by_password", params: { phone: user.phone, password: "password123" }
+        post "/api/app_users/login_by_password", params: { device_id: user.device_id, phone: user.phone, password: "password123" }
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
@@ -144,9 +155,19 @@ RSpec.describe "API Users", type: :request do
       end
     end
 
+    context "未授权的设备" do
+      it "返回未授权错误" do
+        post "/api/app_users/login_by_password", params: { device_id: "invalid_device_id", phone: user.phone, password: "password123" }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+
     context "密码错误" do
       it "返回认证失败" do
-        post "/api/app_users/login_by_password", params: { phone: user.phone, password: "wrong_password" }
+        post "/api/app_users/login_by_password", params: { device_id: user.device_id, phone: user.phone, password: "wrong_password" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
@@ -156,11 +177,109 @@ RSpec.describe "API Users", type: :request do
 
     context "手机号不存在" do
       it "返回错误" do
-        post "/api/app_users/login_by_password", params: { phone: "19900001111", password: "password123" }
+        post "/api/app_users/login_by_password", params: { device_id: user.device_id, phone: "19900001111", password: "password123" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
         expect(json_response[:response][:message]).to eq("手机号或密码错误")
+      end
+    end
+  end
+
+  # ==================== 微信登录 ====================
+  describe "POST /api/app_users/login_by_wechat" do
+    let(:wechat_code) { "wechat_auth_code_123" }
+    let(:wechat_openid) { "oABC1234567890xyz" }
+
+    around do |example|
+      ENV["WECHAT_APP_ID"] = "wx_test_id"
+      ENV["WECHAT_APP_SECRET"] = "wx_test_secret"
+      example.run
+      ENV.delete("WECHAT_APP_ID")
+      ENV.delete("WECHAT_APP_SECRET")
+    end
+
+    before do
+      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return(wechat_openid)
+    end
+
+    context "首次微信登录" do
+      it "绑定微信openid到当前设备用户" do
+        post "/api/app_users/login_by_wechat", params: { device_id: user.device_id, code: wechat_code }
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        user.reload
+        expect(user.wechat_openid).to eq(wechat_openid)
+      end
+    end
+
+    context "未授权的设备" do
+      it "返回未授权错误" do
+        post "/api/app_users/login_by_wechat", params: { device_id: "invalid_device_id", code: wechat_code }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+
+    context "微信code无效" do
+      it "返回错误" do
+        allow_any_instance_of(WechatAuthService).to receive(:get_openid).with("bad_code").and_raise(StandardError, "invalid code")
+
+        post "/api/app_users/login_by_wechat", params: { device_id: user.device_id, code: "bad_code" }
+
+        expect(response).to have_http_status(500)
+      end
+    end
+  end
+
+  # ==================== QQ登录 ====================
+  describe "POST /api/app_users/login_by_qq" do
+    let(:qq_code) { "qq_auth_code_456" }
+    let(:qq_openid) { "QQ_OPENID_ABC123" }
+
+    around do |example|
+      ENV["QQ_APP_ID"] = "qq_test_id"
+      ENV["QQ_APP_KEY"] = "qq_test_key"
+      example.run
+      ENV.delete("QQ_APP_ID")
+      ENV.delete("QQ_APP_KEY")
+    end
+
+    before do
+      allow_any_instance_of(QqAuthService).to receive(:get_openid_by_code).with(qq_code).and_return(qq_openid)
+    end
+
+    context "首次QQ登录" do
+      it "绑定QQopenid到当前设备用户" do
+        post "/api/app_users/login_by_qq", params: { device_id: user.device_id, code: qq_code }
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        user.reload
+        expect(user.qq_openid).to eq(qq_openid)
+      end
+    end
+
+    context "未授权的设备" do
+      it "返回未授权错误" do
+        post "/api/app_users/login_by_qq", params: { device_id: "invalid_device_id", code: qq_code }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+
+    context "QQcode无效" do
+      it "返回错误" do
+        allow_any_instance_of(QqAuthService).to receive(:get_openid_by_code).with("bad_code").and_raise(StandardError, "invalid code")
+
+        post "/api/app_users/login_by_qq", params: { device_id: user.device_id, code: "bad_code" }
+
+        expect(response).to have_http_status(500)
       end
     end
   end
@@ -173,19 +292,29 @@ RSpec.describe "API Users", type: :request do
 
     it "通过验证码重置密码成功" do
       post "/api/app_users/reset_password", params: {
-        phone: user.phone, code: "6666", password: "new_password456"
+        device_id: user.device_id, phone: user.phone, code: "6666", password: "new_password456"
       }
 
       expect(response).to have_http_status(200).or have_http_status(201)
       expect(json_response[:response][:code]).to eq(0)
     end
 
-    it "重置后可用新密码登录" do
+    it "未授权的设备返回错误" do
       post "/api/app_users/reset_password", params: {
-        phone: user.phone, code: "6666", password: "new_password456"
+        device_id: "invalid_device_id", phone: user.phone, code: "6666", password: "new_password456"
       }
 
-      post "/api/app_users/login_by_password", params: { phone: user.phone, password: "new_password456" }
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:message]).to eq("未授权访问")
+    end
+
+    it "重置后可用新密码登录" do
+      post "/api/app_users/reset_password", params: {
+        device_id: user.device_id, phone: user.phone, code: "6666", password: "new_password456"
+      }
+
+      post "/api/app_users/login_by_password", params: { device_id: user.device_id, phone: user.phone, password: "new_password456" }
 
       expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:user]).to be_present
@@ -194,7 +323,7 @@ RSpec.describe "API Users", type: :request do
     context "验证码错误" do
       it "返回错误信息" do
         post "/api/app_users/reset_password", params: {
-          phone: user.phone, code: "0000", password: "new_password456"
+          device_id: user.device_id, phone: user.phone, code: "0000", password: "new_password456"
         }
 
         expect(response).to have_http_status(200)
@@ -208,7 +337,7 @@ RSpec.describe "API Users", type: :request do
         create(:sms_verification, :expired, phone: "13600136000", code: "7777")
 
         post "/api/app_users/reset_password", params: {
-          phone: "13600136000", code: "7777", password: "new_password456"
+          device_id: user.device_id, phone: "13600136000", code: "7777", password: "new_password456"
         }
 
         expect(response).to have_http_status(200)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_07_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_08_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -35,10 +35,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_07_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "device_id", limit: 32
+    t.string "wechat_openid", comment: "微信openid"
+    t.string "qq_openid", comment: "QQ openid"
     t.index ["device_id"], name: "index_app_users_on_device_id", unique: true
     t.index ["grade_id"], name: "index_app_users_on_grade_id"
     t.index ["is_vip"], name: "index_app_users_on_is_vip"
     t.index ["phone"], name: "index_app_users_on_phone", unique: true
+    t.index ["qq_openid"], name: "index_app_users_on_qq_openid", unique: true
+    t.index ["wechat_openid"], name: "index_app_users_on_wechat_openid", unique: true
   end
 
   create_table "audio_albums", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "有声专辑表", force: :cascade do |t|

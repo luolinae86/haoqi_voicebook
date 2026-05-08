@@ -45,6 +45,10 @@ env:
     - REDIS_PASSWORD
     - DOCS_USERNAME
     - DOCS_PASSWORD
+    - WECHAT_APP_ID
+    - WECHAT_APP_SECRET
+    - QQ_APP_ID
+    - QQ_APP_KEY
 
 # ==================== SSH 配置 ====================
 ssh:

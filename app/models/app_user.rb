@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # 用户模型
-# 管理用户账户信息，支持手机号+验证码登录和密码登录
+# 管理用户账户信息，支持手机号+验证码登录、密码登录、微信登录、QQ登录
 class AppUser < ApplicationRecord
   self.table_name = "app_users"
   has_secure_password validations: false # 密码加密（可选密码）
@@ -25,6 +25,8 @@ class AppUser < ApplicationRecord
   validates :phone, uniqueness: true,
                     format: { with: /\A1[3-9]\d{9}\z/, message: "手机号格式不正确" },
                     allow_blank: true
+  validates :wechat_openid, uniqueness: true, allow_blank: true
+  validates :qq_openid, uniqueness: true, allow_blank: true
   validates :nickname, length: { maximum: 50 }, allow_blank: true
 
   # 作用域
