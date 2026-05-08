@@ -6,27 +6,6 @@ module Api
     module ParentalHelpers
       extend Grape::API::Helpers
 
-      PHONE_REGEXP = /\A1[3-9]\d{9}\z/.freeze
-      CODE_EXPIRES_IN = 5.minutes.freeze
-
-      # 验证手机号格式
-      def validate_phone!(phone)
-        error_pop_resp("手机号格式不正确") unless phone.match?(PHONE_REGEXP)
-      end
-
-      # 查找并验证短信验证码
-      def find_and_consume_verification(phone, code)
-        verification = SmsVerification.valid_codes
-                                      .for_phone(phone)
-                                      .by_code(code)
-                                      .order(created_at: :desc)
-                                      .first
-        error_pop_resp("验证码无效或已过期") unless verification
-
-        verification.mark_verified!
-        verification
-      end
-
       # 时间限制显示标签
       def time_limit_label(minutes)
         case minutes

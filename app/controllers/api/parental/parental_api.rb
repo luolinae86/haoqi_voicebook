@@ -6,6 +6,7 @@ module Api
   module Parental
     class ParentalApi < Grape::API
       helpers Api::Concerns::CommonHelpers
+      helpers Api::Concerns::SmsHelpers
       helpers Api::Parental::ParentalHelpers
 
       namespace :parental do
