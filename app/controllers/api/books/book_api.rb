@@ -9,43 +9,6 @@ module Api
       helpers Api::Books::BookHelpers
 
       namespace :books do
-        # ==================== 导入 PDF 电子书 ====================
-        desc "上传并导入 PDF 电子书"
-        params do
-          requires :device_id, type: String, desc: "设备ID"
-          optional :book_id, type: Integer, desc: "已有图书ID"
-          optional :title, type: String, desc: "书名"
-          optional :author, type: String, desc: "作者"
-          optional :publisher, type: String, desc: "出版社"
-          optional :description, type: String, desc: "简介"
-          optional :cover_image, type: String, desc: "封面图"
-          optional :category_id, type: Integer, desc: "分类ID"
-          optional :grade_id, type: Integer, desc: "年级ID"
-          optional :is_free, type: Boolean, desc: "是否免费"
-          optional :is_vip, type: Boolean, desc: "是否VIP"
-          optional :force_image_pages, type: Boolean, desc: "是否强制按整页图片模式导入"
-          requires :pdf, type: File, desc: "PDF 文件"
-        end
-        post :import_pdf do
-          auth_user
-
-          upload = params[:pdf]
-          filename = upload[:filename].to_s
-          raise ArgumentError, "仅支持 PDF 文件" unless filename.downcase.end_with?(".pdf")
-
-          book = build_book_from_file_params(book_id: params[:book_id], title: File.basename(filename, ".pdf"))
-
-          Ebook::PdfImporter.new(
-            book: book,
-            pdf_path: upload[:tempfile].path,
-            source_filename: filename,
-            force_image_pages: params[:force_image_pages] == true
-          ).call
-
-          status 200
-          present response: success_response(message: "PDF 导入成功"), book: (present book, with: Entities::BookDetail)
-        end
-
         # ==================== 导入 EPUB 电子书 ====================
         desc "从 OSS 上的 EPUB 文件导入电子书"
         params do
@@ -98,7 +61,6 @@ module Api
                                            "force_image_pages" => params[:force_image_pages] == true
                                          })
 
-          status 202
           present response: success_response, book_id: book.id, epub_export_status: book.epub_export_status, message: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
         end
 

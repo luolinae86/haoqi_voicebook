@@ -15,9 +15,10 @@ class EpubExportWorker
 
   # @param args [Hash] {"book_id"=>Integer, "pdf_oss_key"=>String, "force_image_pages"=>Boolean}
   def perform(args)
-    book_id = args["book_id"]
-    pdf_oss_key = args["pdf_oss_key"]
-    force_image_pages = args["force_image_pages"] == true
+    args = args.symbolize_keys
+    book_id = args[:book_id]
+    pdf_oss_key = args[:pdf_oss_key]
+    force_image_pages = args[:force_image_pages] == true
 
     book = Book.find(book_id)
     book.update!(epub_export_status: :exporting, epub_export_error: nil)

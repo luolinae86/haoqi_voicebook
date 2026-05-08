@@ -142,8 +142,8 @@ RSpec.describe EpubImportWorker do
       end
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "epub_oss_key" => epub_oss_key
+                                    book_id: book.id,
+                                    epub_oss_key: epub_oss_key
                                   })
 
       book.reload
@@ -181,8 +181,8 @@ RSpec.describe EpubImportWorker do
       end
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "epub_oss_key" => epub_oss_key
+                                    book_id: book.id,
+                                    epub_oss_key: epub_oss_key
                                   })
 
       book.reload
@@ -195,8 +195,8 @@ RSpec.describe EpubImportWorker do
 
       expect do
         described_class.new.perform({
-                                      "book_id" => book.id,
-                                      "epub_oss_key" => epub_oss_key
+                                      book_id: book.id,
+                                      epub_oss_key: epub_oss_key
                                     })
       end.to raise_error(AliyunOssService::UploadError)
 
@@ -220,8 +220,8 @@ RSpec.describe EpubImportWorker do
       end
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "epub_oss_key" => epub_oss_key
+                                    book_id: book.id,
+                                    epub_oss_key: epub_oss_key
                                   })
 
       book.reload

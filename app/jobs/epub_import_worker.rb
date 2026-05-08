@@ -16,8 +16,9 @@ class EpubImportWorker
 
   # @param args [Hash] {"book_id"=>Integer, "epub_oss_key"=>String}
   def perform(args)
-    book_id = args["book_id"]
-    epub_oss_key = args["epub_oss_key"]
+    args = args.symbolize_keys
+    book_id = args[:book_id]
+    epub_oss_key = args[:epub_oss_key]
 
     book = Book.find(book_id)
     book.update!(epub_export_status: :exporting, epub_export_error: nil)

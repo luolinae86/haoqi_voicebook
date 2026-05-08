@@ -96,7 +96,7 @@ RSpec.describe "API Audio", type: :request do
   describe "GET /api/audio/episodes/:episode_id/play" do
     context "已登录" do
       it "播放免费单集成功" do
-        get "/api/audio/episodes/#{free_episode.id}/play", headers: headers
+        get "/api/audio/episodes/#{free_episode.id}/play", params: { device_id: user.device_id }, headers: headers
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(0)
@@ -104,7 +104,7 @@ RSpec.describe "API Audio", type: :request do
 
       context "VIP 单集" do
         it "VIP 用户可以播放" do
-          get "/api/audio/episodes/#{vip_episode.id}/play", headers: vip_headers
+          get "/api/audio/episodes/#{vip_episode.id}/play", params: { device_id: vip_user.device_id }, headers: vip_headers
 
           expect(response).to have_http_status(200)
           expect(json_response[:response][:code]).to eq(0)
@@ -119,7 +119,7 @@ RSpec.describe "API Audio", type: :request do
 
       it "播放后增加播放次数" do
         expect do
-          get "/api/audio/episodes/#{free_episode.id}/play", headers: headers
+          get "/api/audio/episodes/#{free_episode.id}/play", params: { device_id: user.device_id }, headers: headers
         end.to change { free_episode.reload.play_count }.by(1)
       end
     end
@@ -134,7 +134,7 @@ RSpec.describe "API Audio", type: :request do
 
     context "单集不存在" do
       it "返回 404" do
-        get "/api/audio/episodes/999999/play", headers: headers
+        get "/api/audio/episodes/999999/play", params: { device_id: user.device_id }, headers: headers
 
         expect(response).to have_http_status(404)
       end

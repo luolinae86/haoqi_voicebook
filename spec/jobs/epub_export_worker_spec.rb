@@ -39,9 +39,9 @@ RSpec.describe EpubExportWorker do
       end
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "pdf_oss_key" => pdf_oss_key,
-                                    "force_image_pages" => false
+                                    book_id: book.id,
+                                    pdf_oss_key: pdf_oss_key,
+                                    force_image_pages: false
                                   })
 
       book.reload
@@ -62,9 +62,9 @@ RSpec.describe EpubExportWorker do
 
       expect do
         described_class.new.perform({
-                                      "book_id" => book.id,
-                                      "pdf_oss_key" => pdf_oss_key,
-                                      "force_image_pages" => false
+                                      book_id: book.id,
+                                      pdf_oss_key: pdf_oss_key,
+                                      force_image_pages: false
                                     })
       end.to raise_error(AliyunOssService::UploadError)
 
@@ -90,9 +90,9 @@ RSpec.describe EpubExportWorker do
       allow(Ebook::PdfImporter).to receive(:new).and_return(importer)
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "pdf_oss_key" => pdf_oss_key,
-                                    "force_image_pages" => true
+                                    book_id: book.id,
+                                    pdf_oss_key: pdf_oss_key,
+                                    force_image_pages: true
                                   })
 
       expect(Ebook::PdfImporter).to have_received(:new).with(
@@ -117,9 +117,9 @@ RSpec.describe EpubExportWorker do
       end
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "pdf_oss_key" => pdf_oss_key,
-                                    "force_image_pages" => false
+                                    book_id: book.id,
+                                    pdf_oss_key: pdf_oss_key,
+                                    force_image_pages: false
                                   })
 
       book.reload
@@ -145,9 +145,9 @@ RSpec.describe EpubExportWorker do
       end
 
       described_class.new.perform({
-                                    "book_id" => book.id,
-                                    "pdf_oss_key" => pdf_oss_key,
-                                    "force_image_pages" => false
+                                    book_id: book.id,
+                                    pdf_oss_key: pdf_oss_key,
+                                    force_image_pages: false
                                   })
 
       book.reload

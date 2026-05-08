@@ -3,15 +3,17 @@
 require "rails_helper"
 
 RSpec.describe "API Books Ebook", type: :request do
+  let(:user) { create(:app_user) }
+
   describe "POST /api/books/export_epub" do
     let(:book) { create(:book, status: :published, content_type: :ebook, page_count: 2, import_status: :ready) }
 
-    it "accepts an EPUB export request and returns 202" do
+    it "accepts an EPUB export request and returns 201" do
       post "/api/books/export_epub",
-           params: { book_id: book.id, pdf_oss_key: "pdfs/test-book.pdf" },
+           params: { device_id: user.device_id, book_id: book.id, pdf_oss_key: "pdfs/test-book.pdf" },
            as: :json
 
-      expect(response).to have_http_status(202)
+      expect(response).to have_http_status(201)
       expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:book_id]).to eq(book.id)
       expect(json_response[:message]).to include("EPUB 导出任务已提交")
@@ -19,7 +21,7 @@ RSpec.describe "API Books Ebook", type: :request do
 
     it "returns 400 when book_id is missing" do
       post "/api/books/export_epub",
-           params: { pdf_oss_key: "pdfs/test-book.pdf" },
+           params: { device_id: user.device_id, pdf_oss_key: "pdfs/test-book.pdf" },
            as: :json
 
       expect(response).to have_http_status(400)
@@ -27,10 +29,10 @@ RSpec.describe "API Books Ebook", type: :request do
 
     it "accepts force_image_pages parameter" do
       post "/api/books/export_epub",
-           params: { book_id: book.id, pdf_oss_key: "pdfs/test-book.pdf", force_image_pages: true },
+           params: { device_id: user.device_id, book_id: book.id, pdf_oss_key: "pdfs/test-book.pdf", force_image_pages: true },
            as: :json
 
-      expect(response).to have_http_status(202)
+      expect(response).to have_http_status(201)
       expect(json_response[:message]).to include("EPUB 导出任务已提交")
     end
   end
@@ -184,7 +186,7 @@ RSpec.describe "API Books Ebook", type: :request do
 
     it "accepts an EPUB import request and returns 202" do
       post "/api/books/import_epub",
-           params: { book_id: book.id, epub_oss_key: "epubs/test-book.epub" },
+           params: { device_id: user.device_id, book_id: book.id, epub_oss_key: "epubs/test-book.epub" },
            as: :json
 
       expect(response).to have_http_status(202)
@@ -195,7 +197,7 @@ RSpec.describe "API Books Ebook", type: :request do
 
     it "returns 400 when epub_oss_key is missing" do
       post "/api/books/import_epub",
-           params: { book_id: book.id },
+           params: { device_id: user.device_id, book_id: book.id },
            as: :json
 
       expect(response).to have_http_status(400)
@@ -203,7 +205,7 @@ RSpec.describe "API Books Ebook", type: :request do
 
     it "rejects non-epub files" do
       post "/api/books/import_epub",
-           params: { book_id: book.id, epub_oss_key: "pdfs/test-book.pdf" },
+           params: { device_id: user.device_id, book_id: book.id, epub_oss_key: "pdfs/test-book.pdf" },
            as: :json
 
       expect(response).to have_http_status(400)
@@ -211,37 +213,12 @@ RSpec.describe "API Books Ebook", type: :request do
 
     it "uses epub filename as book title when title is blank" do
       post "/api/books/import_epub",
-           params: { epub_oss_key: "小老虎历险记.epub" },
+           params: { device_id: user.device_id, epub_oss_key: "小老虎历险记.epub" },
            as: :json
 
       expect(response).to have_http_status(202)
       book = Book.find(json_response[:book_id])
       expect(book.title).to eq("小老虎历险记")
-    end
-  end
-
-  describe "POST /api/books/import_pdf" do
-    let(:files) { create_sample_ebook_pdf }
-
-    after do
-      cleanup_sample_ebook_pdf(files)
-      FileUtils.rm_rf(Rails.public_path.join("system/ebooks"))
-    end
-
-    it "imports an uploaded pdf into ebook pages" do
-      uploaded_file = Rack::Test::UploadedFile.new(files[:pdf].path, "application/pdf")
-
-      post "/api/books/import_pdf",
-           params: { title: "上传测试电子书", pdf: uploaded_file },
-           as: :multipart
-
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:code]).to eq(0)
-      expect(json_response[:book][:title]).to eq("上传测试电子书")
-
-      book = Book.find(json_response[:book][:id])
-      expect(book.page_count).to eq(2)
-      expect(book.ebook_pages.count).to eq(2)
     end
   end
 end
