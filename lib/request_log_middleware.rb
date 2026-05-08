@@ -76,7 +76,7 @@ class RequestLogMiddleware
       end
     end
 
-    # POST body parameters — 优先按 JSON 解析，失败再按 form 解析，再失败直接输出 raw body
+    # POST body parameters — 优先按 JSON 解析，失败再按 form-urlencoded 解析，最后按 multipart 解析
     if raw_body.present?
       begin
         parsed = JSON.parse(raw_body)
@@ -84,15 +84,11 @@ class RequestLogMiddleware
       rescue JSON::ParserError
         # 尝试解析为 form-urlencoded
         parsed = Rack::Utils.parse_query(raw_body)
+        if parsed.empty?
+          # multipart/form-data: 从 Content-Disposition 中提取 name 和值
+          parsed = parse_multipart(raw_body)
+        end
         parsed.each { |k, v| params[k] = v } unless parsed.empty?
-      rescue StandardError
-        # multipart/form-data 等无法解析的格式，直接输出 raw body 片段
-        params[:_body] = raw_body.length > 200 ? "#{raw_body[0..197]}..." : raw_body
-      end
-
-      # 如果 form 解析也失败了（如 multipart），输出 raw body 片段
-      if params.empty? && raw_body.present?
-        params[:_body] = raw_body.length > 200 ? "#{raw_body[0..197]}..." : raw_body
       end
     end
 
@@ -101,6 +97,15 @@ class RequestLogMiddleware
     "params=#{truncate_params(params)}"
   rescue StandardError
     ""
+  end
+
+  def parse_multipart(raw_body)
+    params = {}
+    # 匹配 multipart/form-data 中的 name="xxx" 和其后的值
+    raw_body.scan(/name="([^"]+)"\r\n\r\n(.*?)(?=\r\n--|$)/m).each do |name, value|
+      params[name] = value.strip
+    end
+    params
   end
 
   def truncate_params(hash)
