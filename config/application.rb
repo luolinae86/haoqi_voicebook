@@ -44,9 +44,9 @@ module Voicebook
       allow do
         origins "*"
         resource "*",
-          headers: :any,
-          methods: %i[get post put patch delete options head],
-          expose: %w[X-Total-Count X-Total-Pages X-Current-Page X-Per-Page]
+                 headers: :any,
+                 methods: %i[get post put patch delete options head],
+                 expose: %w[X-Total-Count X-Total-Pages X-Current-Page X-Per-Page]
       end
     end
 
@@ -56,5 +56,9 @@ module Voicebook
       # 必须在 ActionDispatch::Static 之前，否则静态文件不会经过此中间件
       config.middleware.insert_before ActionDispatch::Static, DocsAuthMiddleware
     end
+
+    # 请求日志中间件（Unicorn 风格，写入 log/puma.log）
+    require_relative "../lib/request_log_middleware"
+    config.middleware.use RequestLogMiddleware
   end
 end
