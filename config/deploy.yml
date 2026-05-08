@@ -69,7 +69,7 @@ ssh:
 # SSL 由阿里云 SLB 处理（将 443 流量分发到 web 服务器的 80 端口）
 proxy:
   ssl: true
-  host: api.zheliyuedu.cn
+  host: voicebook.haoqiniu.com
   healthcheck:
     path: /up
     interval: 5
