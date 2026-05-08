@@ -5,8 +5,8 @@ service: voicebook
 image: voicebook/voicebook
 
 # ==================== 服务器配置 ====================
-# 单 web 服务器 + 双 worker 服务器
-# 宕机时手动切换 DNS（TTL 600s），在第二台服务器重新 kamal deploy 即可
+# 单 web 服务器 + 单 worker 服务器
+# 8.136.142.85 已改为测试服务器（见 deploy.staging.yml）
 servers:
   web:
     hosts:
@@ -14,7 +14,6 @@ servers:
   worker:
     hosts:
       - 114.215.208.190
-      - 8.136.142.85
     cmd: "bundle exec sidekiq -C config/sidekiq.yml"
 
 # ==================== Docker Registry 配置 ====================
@@ -58,8 +57,7 @@ ssh:
     - /Users/luolin/.ssh/id_rsa
 
 # ==================== kamal-proxy 代理 ====================
-# 多服务器部署：kamal-proxy 不处理 SSL
-# SSL 由阿里云 SLB 处理（将 443 流量分发到两台服务器的 80 端口）
+# SSL 由阿里云 SLB 处理（将 443 流量分发到 web 服务器的 80 端口）
 proxy:
   ssl: true
   host: api.zheliyuedu.cn

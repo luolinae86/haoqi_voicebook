@@ -1,0 +1,24 @@
+# Kamal 测试环境部署配置
+# 部署到测试服务器 8.136.142.85，使用独立域名 apitest.zheliyuedu.cn
+
+service: voicebook-staging
+image: voicebook/voicebook-staging
+
+# ==================== 服务器配置 ====================
+servers:
+  web:
+    hosts:
+      - 8.136.142.85
+  worker:
+    hosts:
+      - 8.136.142.85
+    cmd: "bundle exec sidekiq -C config/sidekiq.yml"
+
+# ==================== kamal-proxy 代理 ====================
+proxy:
+  ssl: true
+  host: apitest.zheliyuedu.cn
+  healthcheck:
+    path: /up
+    interval: 5
+    timeout: 5
