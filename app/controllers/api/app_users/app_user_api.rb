@@ -117,6 +117,31 @@ module Api
           present response: success_response, user: (present user, with: Entities::AppUser)
         end
 
+        # ==================== 更新用户资料 ====================
+        desc "更新用户资料（昵称、年级等）"
+        params do
+          requires :device_id, type: String, desc: "设备ID"
+          optional :nickname, type: String, desc: "昵称（最长50字）"
+          optional :grade_id, type: Integer, desc: "年级ID"
+        end
+        put :update_profile do
+          auth_user
+
+          updates = {}
+          updates[:nickname] = params[:nickname] if params[:nickname].present?
+
+          if params[:grade_id].present?
+            grade = Grade.find_by(id: params[:grade_id])
+            error_pop_resp("年级不存在") unless grade
+            updates[:grade_id] = params[:grade_id]
+          end
+
+          error_pop_resp("没有需要更新的字段") if updates.empty?
+
+          current_user.update!(updates)
+          present response: success_response, user: (present current_user, with: Entities::AppUser)
+        end
+
         # ==================== 设置/重置密码 ====================
         desc "设置或重置密码"
         params do

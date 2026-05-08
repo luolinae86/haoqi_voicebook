@@ -346,4 +346,76 @@ RSpec.describe "API Users", type: :request do
       end
     end
   end
+
+  # ==================== 更新用户资料 ====================
+  describe "PUT /api/app_users/update_profile" do
+    context "更新昵称" do
+      it "更新昵称成功" do
+        put "/api/app_users/update_profile", params: { device_id: user.device_id, nickname: "小明同学" }
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:user][:nickname]).to eq("小明同学")
+      end
+    end
+
+    context "更新年级" do
+      let!(:grade) { create(:grade, name: "三年级", level: 3, sort_order: 3) }
+
+      it "更新年级成功" do
+        put "/api/app_users/update_profile", params: { device_id: user.device_id, grade_id: grade.id }
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:user][:grade]).to eq("三年级")
+      end
+    end
+
+    context "同时更新昵称和年级" do
+      let!(:grade) { create(:grade, name: "二年级", level: 2, sort_order: 2) }
+
+      it "同时更新多个字段" do
+        put "/api/app_users/update_profile", params: {
+          device_id: user.device_id,
+          nickname: "小红",
+          grade_id: grade.id
+        }
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:user][:nickname]).to eq("小红")
+        expect(json_response[:user][:grade]).to eq("二年级")
+      end
+    end
+
+    context "年级不存在" do
+      it "返回错误信息" do
+        put "/api/app_users/update_profile", params: { device_id: user.device_id, grade_id: 99999 }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("年级不存在")
+      end
+    end
+
+    context "未传任何可更新字段" do
+      it "返回错误信息" do
+        put "/api/app_users/update_profile", params: { device_id: user.device_id }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1001)
+        expect(json_response[:response][:message]).to eq("没有需要更新的字段")
+      end
+    end
+
+    context "未授权的设备" do
+      it "返回未授权错误" do
+        put "/api/app_users/update_profile", params: { device_id: "invalid_device_id", nickname: "test" }
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
+      end
+    end
+  end
 end
