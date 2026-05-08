@@ -32,4 +32,22 @@ class Membership < ApplicationRecord
   def duration_days
     (end_date - start_date).to_i
   end
+
+  # 套餐中文名称
+  PLAN_LABELS = { monthly: "月度会员", quarterly: "季度会员", annual: "年度会员" }.freeze
+
+  def plan_label
+    PLAN_LABELS[plan_type]
+  end
+
+  # 会员套餐价格配置（单位：元）
+  PLAN_PRICES = {
+    monthly: { price: 19.90, original_price: 29.90 },
+    quarterly: { price: 49.90, original_price: 89.70 },
+    annual: { price: 168.00, original_price: 358.80 }
+  }.freeze
+
+  def self.plan_info(plan_type)
+    PLAN_PRICES[plan_type.to_sym]
+  end
 end

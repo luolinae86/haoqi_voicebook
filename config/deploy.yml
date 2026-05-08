@@ -48,6 +48,15 @@ env:
     - WECHAT_APP_SECRET
     - QQ_APP_ID
     - QQ_APP_KEY
+    - ALIPAY_APP_ID
+    - ALIPAY_PRIVATE_KEY
+    - ALIPAY_PUBLIC_KEY
+    - ALIPAY_NOTIFY_URL
+    - WECHAT_MCH_ID
+    - WECHAT_API_CERT
+    - WECHAT_API_CERT_SERIAL
+    - WECHAT_NOTIFY_URL
+    - WECHAT_PLATFORM_CERT
 
 # ==================== SSH 配置 ====================
 ssh:

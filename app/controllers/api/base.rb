@@ -29,6 +29,7 @@ module Api
     mount Api::Home::Mount
     mount Api::Search::Mount
     mount Api::Rankings::Mount
+    mount Api::Memberships::Mount
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(

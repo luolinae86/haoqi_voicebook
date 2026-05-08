@@ -25,7 +25,33 @@ class Order < ApplicationRecord
     update!(status: :paid, paid_at: Time.current)
   end
 
+  # 激活会员（订单支付成功后调用）
+  def activate_membership!
+    return unless membership
+
+    membership.update!(
+      status: :active,
+      start_date: Date.current,
+      end_date: calculate_end_date(membership.plan_type)
+    )
+
+    app_user.update!(
+      is_vip: true,
+      vip_expires_at: calculate_end_date(membership.plan_type).end_of_day
+    )
+
+    Rails.logger.info("[Order] Activated #{membership.plan_type} membership for user ##{app_user_id}")
+  end
+
   private
+
+  def calculate_end_date(plan_type)
+    case plan_type
+    when "monthly"   then 1.month.from_now.to_date
+    when "quarterly" then 3.months.from_now.to_date
+    when "annual"    then 1.year.from_now.to_date
+    end
+  end
 
   # 生成唯一订单号（时间戳+随机数）
   def generate_order_no

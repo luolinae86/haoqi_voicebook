@@ -2,168 +2,179 @@
 
 require "rails_helper"
 
-RSpec.xdescribe "API Memberships", type: :request do
+RSpec.describe "API Memberships", type: :request do
   let(:user) { create(:app_user) }
-  let(:headers) { auth_headers(user) }
 
   # ==================== 会员套餐 ====================
   describe "GET /api/memberships/plans" do
     it "返回会员套餐列表" do
-      get "/api/memberships/plans"
+      get "/api/memberships/plans", params: { device_id: user.device_id }
 
       expect(response).to have_http_status(200)
-      expect(json_response[:code]).to eq(0)
-      expect(json_response[:data]).to be_an(Array)
-      expect(json_response[:data]).not_to be_empty
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:plans]).to be_an(Array)
+      expect(json_response[:plans].size).to eq(3)
     end
 
     it "包含月度、季度、年度套餐" do
-      get "/api/memberships/plans"
+      get "/api/memberships/plans", params: { device_id: user.device_id }
 
-      plan_types = json_response[:data].map { |p| p[:plan_type] }
+      plan_types = json_response[:plans].map { |p| p[:plan_type] }
       expect(plan_types).to include("monthly", "quarterly", "annual")
     end
 
     it "每个套餐包含价格信息" do
-      get "/api/memberships/plans"
+      get "/api/memberships/plans", params: { device_id: user.device_id }
 
-      json_response[:data].each do |plan|
+      json_response[:plans].each do |plan|
         expect(plan[:price]).to be_present
+        expect(plan[:plan_label]).to be_present
+        expect(plan[:original_price]).to be_present
       end
+    end
+
+    it "月度会员价格为19.90" do
+      get "/api/memberships/plans", params: { device_id: user.device_id }
+
+      monthly = json_response[:plans].find { |p| p[:plan_type] == "monthly" }
+      expect(monthly[:price]).to eq(19.90)
+      expect(monthly[:plan_label]).to eq("月度会员")
+    end
+
+    it "年度会员价格为168.00" do
+      get "/api/memberships/plans", params: { device_id: user.device_id }
+
+      annual = json_response[:plans].find { |p| p[:plan_type] == "annual" }
+      expect(annual[:price]).to eq(168.00)
+      expect(annual[:plan_label]).to eq("年度会员")
     end
   end
 
   # ==================== 购买会员 ====================
-  describe "POST /api/memberships/purchase" do
+  describe "POST /api/memberships/create_order" do
+    before do
+      # 设置测试用支付配置
+      private_key = OpenSSL::PKey::RSA.generate(2048)
+      ENV["ALIPAY_APP_ID"] = "test_alipay_app"
+      ENV["ALIPAY_PRIVATE_KEY"] = private_key.to_pem
+      ENV["ALIPAY_PUBLIC_KEY"] = private_key.public_key.to_pem
+      ENV["ALIPAY_NOTIFY_URL"] = "https://test.example.com/alipay/notify"
+
+      ENV["WECHAT_APP_ID"] = "test_wechat_app"
+      ENV["WECHAT_MCH_ID"] = "1234567890"
+      ENV["WECHAT_API_CERT"] = private_key.to_pem
+      ENV["WECHAT_API_CERT_SERIAL"] = "test_serial"
+      ENV["WECHAT_NOTIFY_URL"] = "https://test.example.com/wechat/notify"
+
+      # 阻止微信支付实际 HTTP 调用，返回 mock 预支付 ID
+      stub_request(:post, "https://api.mch.weixin.qq.com/v3/pay/transactions/app")
+        .to_return(
+          status: 200,
+          body: JSON.generate({ prepay_id: "wx_mock_prepay_id" }),
+          headers: { "Content-Type" => "application/json" }
+        )
+    end
+
     context "已登录" do
       it "创建月度会员订单" do
-        post "/api/memberships/purchase",
-             params: { plan_type: "monthly", payment_method: "wechat" },
-             headers: headers
+        post "/api/memberships/create_order",
+             params: { device_id: user.device_id, plan_type: "monthly", payment_method: "wechat" },
+             as: :json
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
-        expect(json_response[:data][:order_no]).to be_present
-        expect(json_response[:data][:amount]).to be_present
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:order][:order_no]).to be_present
+        expect(json_response[:order][:amount].to_f).to eq(19.90)
+        expect(json_response[:order][:payment_method]).to eq("wechat")
+        expect(json_response[:order][:status]).to eq("pending")
+        expect(json_response[:payment_params]).to be_a(Hash)
+        expect(json_response[:payment_params][:prepayid]).to eq("wx_mock_prepay_id")
       end
 
       it "创建季度会员订单" do
-        post "/api/memberships/purchase",
-             params: { plan_type: "quarterly", payment_method: "alipay" },
-             headers: headers
+        post "/api/memberships/create_order",
+             params: { device_id: user.device_id, plan_type: "quarterly", payment_method: "alipay" },
+             as: :json
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:order][:amount].to_f).to eq(49.90)
+        expect(json_response[:payment_params]).to be_a(String)
+        expect(json_response[:payment_params]).to include("test_alipay_app")
       end
 
       it "创建年度会员订单" do
-        post "/api/memberships/purchase",
-             params: { plan_type: "annual", payment_method: "wechat" },
-             headers: headers
+        post "/api/memberships/create_order",
+             params: { device_id: user.device_id, plan_type: "annual", payment_method: "wechat" },
+             as: :json
 
         expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:order][:amount].to_f).to eq(168.00)
       end
 
-      it "生成订单记录" do
+      it "生成订单记录和会员记录" do
         expect do
-          post "/api/memberships/purchase",
-               params: { plan_type: "monthly", payment_method: "wechat" },
-               headers: headers
+          post "/api/memberships/create_order",
+               params: { device_id: user.device_id, plan_type: "monthly", payment_method: "wechat" },
+               as: :json
         end.to change(Order, :count).by(1)
+               .and change(Membership, :count).by(1)
+      end
+
+      it "会员记录关联订单" do
+        post "/api/memberships/create_order",
+             params: { device_id: user.device_id, plan_type: "quarterly", payment_method: "alipay" },
+             as: :json
+
+        order = Order.find_by(order_no: json_response[:order][:order_no])
+        expect(order.membership).to be_present
+        expect(order.membership.plan_type).to eq("quarterly")
+        expect(order.membership.status).to eq("pending")
       end
     end
 
     context "未登录" do
-      it "返回 401 未授权" do
-        post "/api/memberships/purchase",
-             params: { plan_type: "monthly", payment_method: "wechat" }
+      it "返回未授权" do
+        post "/api/memberships/create_order",
+             params: { device_id: "nonexistent-device", plan_type: "monthly", payment_method: "wechat" },
+             as: :json
 
-        expect(response).to have_http_status(401)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
       end
     end
   end
 
   # ==================== 支付回调 ====================
-  describe "POST /api/memberships/payment_callback" do
-    context "已登录" do
-      let!(:membership) { create(:membership, :pending, app_user: user) }
-      let!(:order) { create(:order, app_user: user, status: :pending, membership: membership) }
+  describe "POST /api/memberships/alipay_callback" do
+    it "返回 success 当签名验证成功且支付成功" do
+      private_key = OpenSSL::PKey::RSA.generate(2048)
+      ENV["ALIPAY_PUBLIC_KEY"] = private_key.public_key.to_pem
 
-      it "支付回调成功激活会员" do
-        post "/api/memberships/payment_callback",
-             params: { order_no: order.order_no },
-             headers: headers
+      order = create(:order, status: :pending, membership: create(:membership, status: :pending))
 
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:code]).to eq(0)
-        expect(order.reload.status).to eq("paid")
-      end
+      params = {
+        out_trade_no: order.order_no,
+        trade_status: "TRADE_SUCCESS",
+        total_amount: "19.90"
+      }
 
-      it "用户 VIP 状态被激活" do
-        post "/api/memberships/payment_callback",
-             params: { order_no: order.order_no },
-             headers: headers
+      string_to_sign = params.sort.map { |k, v| "#{k}=#{v}" }.join("&")
+      signature = Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new("SHA256"), string_to_sign))
+      params[:sign] = signature
+      params[:sign_type] = "RSA2"
 
-        expect(user.reload.is_vip).to be true
-        expect(user.reload.vip_expires_at).to be > Time.current
-      end
+      post "/api/memberships/alipay_callback", params: params
 
-      it "订单号不存在返回错误" do
-        post "/api/memberships/payment_callback",
-             params: { order_no: "INVALID_ORDER_NO" },
-             headers: headers
-
-        expect(json_response[:code]).not_to eq(0)
-      end
+      expect(response.body).to include("success")
     end
 
-    context "未登录" do
-      it "返回 401 未授权" do
-        post "/api/memberships/payment_callback",
-             params: { order_no: "ORD123" }
+    it "返回 failure 当签名验证失败" do
+      post "/api/memberships/alipay_callback",
+           params: { out_trade_no: "test", trade_status: "TRADE_SUCCESS", sign: "bad", sign_type: "RSA2" }
 
-        expect(response).to have_http_status(401)
-      end
-    end
-  end
-
-  # ==================== 我的会员 ====================
-  describe "GET /api/memberships/my" do
-    context "已登录" do
-      context "是 VIP 用户" do
-        let(:vip_user) { create(:app_user, :vip) }
-        let(:vip_headers) { auth_headers(vip_user) }
-
-        before do
-          create(:membership, app_user: vip_user, status: :active)
-        end
-
-        it "返回会员信息" do
-          get "/api/memberships/my", headers: vip_headers
-
-          expect(response).to have_http_status(200)
-          expect(json_response[:code]).to eq(0)
-          expect(json_response[:data]).to be_present
-        end
-      end
-
-      context "不是 VIP 用户" do
-        it "返回无会员状态" do
-          get "/api/memberships/my", headers: headers
-
-          expect(response).to have_http_status(200)
-          expect(json_response[:code]).to eq(0)
-        end
-      end
-    end
-
-    context "未登录" do
-      it "返回 401 未授权" do
-        get "/api/memberships/my"
-
-        expect(response).to have_http_status(401)
-      end
+      expect(response.body).to include("failure")
     end
   end
 end
