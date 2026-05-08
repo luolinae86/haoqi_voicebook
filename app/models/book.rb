@@ -45,6 +45,7 @@ class Book < ApplicationRecord
   scope :by_type, ->(type) { where(content_type: type) }
   scope :by_category, ->(category_id) { where(category_id: category_id) }
   scope :by_grade, ->(grade_id) { where(grade_id: grade_id) }
+  scope :by_keyword, ->(kw) { where("title LIKE :kw OR author LIKE :kw OR description LIKE :kw", kw: "%#{kw}%") }
   scope :popular, -> { order(play_count: :desc) }
   scope :highest_rated, -> { order(rating: :desc) }
   scope :recently_added, -> { order(created_at: :desc) }

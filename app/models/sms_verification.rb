@@ -11,6 +11,9 @@ class SmsVerification < ApplicationRecord
 
   # 作用域
   scope :valid_codes, -> { where(verified: false).where("expires_at > ?", Time.current) }
+  scope :sent_recently_for, ->(phone, cooldown = 60.seconds) { where(phone: phone).where("created_at > ?", cooldown.ago) }
+  scope :for_phone, ->(phone) { where(phone: phone) }
+  scope :by_code, ->(code) { where(code: code) }
 
   # 验证码是否过期
   def expired?

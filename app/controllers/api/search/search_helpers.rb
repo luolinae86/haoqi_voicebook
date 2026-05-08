@@ -8,10 +8,7 @@ module Api
 
       # 搜索图书
       def search_books(keyword, content_type: nil)
-        books = Book.published_books.where(
-          "title LIKE :kw OR author LIKE :kw OR description LIKE :kw",
-          kw: "%#{keyword}%"
-        )
+        books = Book.published_books.by_keyword(keyword)
         books = books.by_type(content_type) if content_type.present?
         books.recently_added
       end

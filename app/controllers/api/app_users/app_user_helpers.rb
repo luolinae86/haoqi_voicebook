@@ -18,9 +18,7 @@ module Api
 
       # 检查发送频率限制
       def check_send_rate_limit!(phone)
-        sent_recently = SmsVerification.where(phone: phone)
-                                        .where("created_at > ?", CODE_COOLDOWN.ago)
-                                        .exists?
+        sent_recently = SmsVerification.sent_recently_for(phone, CODE_COOLDOWN).exists?
         error_pop_resp("验证码已发送，请 60 秒后再试") if sent_recently
       end
 
@@ -39,7 +37,8 @@ module Api
       # 查找并验证短信验证码
       def find_and_consume_verification(phone, code)
         verification = SmsVerification.valid_codes
-                                      .where(phone: phone, code: code)
+                                      .for_phone(phone)
+                                      .by_code(code)
                                       .order(created_at: :desc)
                                       .first
         error_pop_resp("验证码无效或已过期") unless verification

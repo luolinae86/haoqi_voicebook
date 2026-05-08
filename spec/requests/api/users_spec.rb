@@ -60,20 +60,20 @@ RSpec.describe "API Users", type: :request do
     end
 
     context "device_id 为空字符串" do
-      it "视为不提供 device_id，正常发送验证码" do
+      it "返回未授权错误" do
         post "/api/app_users/send_code", params: { device_id: "", phone: "13800138001" }
 
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:code]).to eq(0)
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(1002)
+        expect(json_response[:response][:message]).to eq("未授权访问")
       end
     end
 
     context "不提供 device_id" do
-      it "正常发送验证码" do
+      it "返回参数错误" do
         post "/api/app_users/send_code", params: { phone: "13800138002" }
 
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:code]).to eq(0)
+        expect(response).to have_http_status(:bad_request)
       end
     end
   end

@@ -23,11 +23,11 @@ module Api
         # ==================== 发送验证码 ====================
         desc "发送短信验证码"
         params do
-          optional :device_id, type: String, desc: "设备ID（登录时可选）"
+          requires :device_id, type: String, desc: "设备ID（登录时可选）"
           requires :phone, type: String, desc: "手机号"
         end
         post :send_code do
-          auth_user if params[:device_id].present?
+          auth_user
 
           validate_phone!(params[:phone])
           check_send_rate_limit!(params[:phone])

@@ -14,5 +14,6 @@ class Category < ApplicationRecord
 
   # 排序作用域
   scope :ordered, -> { order(sort_order: :asc) }
-  scope :roots, -> { where(parent_id: nil) }  # 顶级分类
+  scope :roots, -> { where(parent_id: nil) }
+  scope :by_parent, ->(parent_id) { where(parent_id: parent_id) }  # 顶级分类
 end

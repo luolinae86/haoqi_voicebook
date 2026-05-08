@@ -17,4 +17,6 @@ class Collection < ApplicationRecord
 
   # 作用域
   scope :ordered, -> { order(sort_order: :asc) }
+  scope :for_grade, ->(grade_id) { where(target_grade_id: [grade_id, nil]) }
+  scope :by_type, ->(type) { where(collection_type: type) }
 end

@@ -22,7 +22,7 @@ module Api
       # 获取推荐列表
       def recommendations_for(grade_id: nil, limit: 10, book_limit: nil)
         recs = Recommendation.ordered
-        recs = recs.where(target_grade_id: [grade_id, nil]) if grade_id.present?
+        recs = recs.for_grade(grade_id) if grade_id.present?
         recs = recs.limit(limit)
         book_limit ? serialize_collection(recs, Entities::Recommendation, book_limit: book_limit) : serialize_collection(recs, Entities::Recommendation)
       end
@@ -30,8 +30,8 @@ module Api
       # 筛选合集
       def filter_collections(grade_id: nil, type: nil)
         collections = Collection.ordered
-        collections = collections.where(target_grade_id: [grade_id, nil]) if grade_id.present?
-        collections = collections.where(collection_type: type) if type.present?
+        collections = collections.for_grade(grade_id) if grade_id.present?
+        collections = collections.by_type(type) if type.present?
         collections
       end
 

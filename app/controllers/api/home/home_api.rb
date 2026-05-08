@@ -36,8 +36,8 @@ module Api
         end
         get :recommendations do
           recs = Recommendation.ordered
-          recs = recs.where(target_grade_id: [params[:grade_id], nil]) if params[:grade_id].present?
-          recs = recs.where(recommendation_type: params[:type]) if params[:type].present?
+          recs = recs.for_grade(params[:grade_id]) if params[:grade_id].present?
+          recs = recs.by_type(params[:type]) if params[:type].present?
 
           present response: success_response, recommendations: serialize_collection(recs, Entities::Recommendation)
         end

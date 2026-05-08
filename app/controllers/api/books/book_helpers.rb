@@ -56,8 +56,8 @@ module Api
           images: content[:images] || [],
           directory: content[:directory],
           navigation: {
-            prev_page: book.ebook_pages.where("page_number < ?", page.page_number).maximum(:page_number),
-            next_page: book.ebook_pages.where("page_number > ?", page.page_number).minimum(:page_number)
+            prev_page: book.ebook_pages.before_page(page.page_number).maximum(:page_number),
+            next_page: book.ebook_pages.after_page(page.page_number).minimum(:page_number)
           }
         }
       end
