@@ -6,7 +6,7 @@ class AddUuidToAppUsers < ActiveRecord::Migration[8.0]
 
     # 为已有记录填充 uuid（包括 nil 和空字符串）
     # 逐条更新以避免在内存中加载所有记录
-    execute "UPDATE app_users SET uuid = REPLACE(UUID(), '-',) WHERE uuid IS NULL OR uuid = ''"
+    execute "UPDATE app_users SET uuid = REPLACE(UUID(), '-', '') WHERE uuid IS NULL OR uuid = ''"
 
     # 确保 NOT NULL 约束
     change_column_null :app_users, :uuid, false
