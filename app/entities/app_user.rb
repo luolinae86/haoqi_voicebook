@@ -7,6 +7,7 @@ module Entities
     expose :nickname
     expose :avatar
     expose :device_id
+    expose :uuid
     expose :reading_words
     expose :reading_minutes
     expose :books_read
