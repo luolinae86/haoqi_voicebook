@@ -52,7 +52,7 @@ class RequestLogMiddleware
     formatted = "[#{start_time.strftime('%Y-%m-%d %H:%M:%S %z')}] " \
                 "INFO -- #{status} -- " \
                 "db=#{db_runtime} total=#{total_ms} view=#{view_ms} -- " \
-                "#{method} #{path}#{params_str}"
+                "#{method} #{path} #{params_str}"
 
     @logger&.info(formatted)
 
@@ -85,7 +85,7 @@ class RequestLogMiddleware
         # 尝试解析为 form-urlencoded
         parsed = Rack::Utils.parse_query(raw_body)
         if parsed.empty?
-          # multipart/form-data: 从 Content-Disposition 中提取 name 和值
+          # multipart/form-data: 按 boundary 分隔后提取 name 和值
           parsed = parse_multipart(raw_body)
         end
         parsed.each { |k, v| params[k] = v } unless parsed.empty?
@@ -101,9 +101,21 @@ class RequestLogMiddleware
 
   def parse_multipart(raw_body)
     params = {}
-    # 匹配 multipart/form-data 中的 name="xxx" 和其后的值
-    raw_body.scan(/name="([^"]+)"\r\n\r\n(.*?)(?=\r\n--|$)/m).each do |name, value|
-      params[name] = value.strip
+    # 从第一行提取 boundary（格式为 ------xxx）
+    boundary = raw_body.match(/\A(--[^\r\n]+)/)
+    return params unless boundary
+
+    parts = raw_body.split(boundary[1])
+    parts.each do |part|
+      # 匹配 name="xxx" 和后面的值
+      match = part.match(/name="([^"]+)"(?:; filename="[^"]*")?\r?\n(?:Content-Type: [^\r\n]+\r?\n)?\r?\n(.*)$/m)
+      next unless match
+
+      name = match[1]
+      value = match[2].strip
+      # 去掉末尾可能残留的 \r
+      value = value.chomp("\r")
+      params[name] = value
     end
     params
   end
