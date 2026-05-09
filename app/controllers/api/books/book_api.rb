@@ -39,7 +39,7 @@ module Api
                                          })
 
           status 202
-          present response: success_response, book_id: book.id, msg: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
+          present response: success_response(book_id: book.id, msg: "EPUB 导入任务已提交，请轮询图书详情接口查看进度")
         end
 
         # ==================== 异步导出 EPUB ====================
@@ -61,7 +61,7 @@ module Api
                                            "force_image_pages" => params[:force_image_pages] == true
                                          })
 
-          present response: success_response, book_id: book.id, epub_export_status: book.epub_export_status, msg: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
+          present response: success_response(book_id: book.id, epub_export_status: book.epub_export_status, msg: "EPUB 导出任务已提交，请轮询图书详情接口查看进度")
         end
 
         # ==================== 页面 XHTML 内容 ====================
@@ -106,7 +106,7 @@ module Api
           book = Book.published_books.find(params[:id])
           toc = build_toc(book)
 
-          present response: success_response, data: toc
+          present response: success_response(toc: toc)
         end
 
         # ==================== 图书列表 ====================
@@ -124,7 +124,7 @@ module Api
           books = filter_books(Book.published_books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
 
           paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
-          present response: success_response, data: paged, pagination: pagination_info(paged)
+          present response: success_response(books: serialize_collection(paged, Entities::Book), pagination: pagination_info(paged))
         end
 
         # ==================== 图书详情 ====================
@@ -135,7 +135,7 @@ module Api
         get ":id" do
           book = Book.published_books.find(params[:id])
 
-          present response: success_response, book: (present book, with: Entities::Book)
+          present response: success_response(book: Entities::Book.represent(book).as_json)
         end
 
         # ==================== 页面清单 ====================
@@ -149,11 +149,12 @@ module Api
           book = Book.published_books.find(params[:id])
           pages = book.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
-          present response: success_response,
+          present response: success_response(
                   book_id: book.id,
                   page_count: book.page_count,
                   pages: serialize_collection(pages, Entities::EbookPage),
                   pagination: pagination_info(pages)
+                )
         end
 
         # ==================== 页面内容 ====================
@@ -166,7 +167,7 @@ module Api
           book = Book.published_books.find(params[:id])
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
 
-          present response: success_response, **page_response(book, page)
+          present response: success_response(page_response(book, page))
         end
       end
     end

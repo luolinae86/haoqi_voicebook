@@ -33,7 +33,7 @@ module Api
             }
           end
 
-          present response: success_response, plans: plans
+          present response: success_response(plans: plans)
         end
 
         # ==================== 创建会员订单 ====================
@@ -85,10 +85,11 @@ module Api
                              )
                            end
 
-          present response: success_response,
-                  order: (present order, with: Entities::Order),
+          present response: success_response(
+                  order: Entities::Order.represent(order).as_json,
                   payment_params: payment_params,
                   msg: "订单创建成功，请完成支付"
+                )
         end
 
         # ==================== 支付宝异步回调 ====================

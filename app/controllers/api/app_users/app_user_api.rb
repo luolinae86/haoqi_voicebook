@@ -18,7 +18,7 @@ module Api
         post :create_by_device do
           user = AppUser.find_or_create_by!(device_id: params[:device_id])
 
-          present response: success_response, user: (present user, with: Entities::AppUser)
+          present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 发送验证码 ====================
@@ -35,7 +35,7 @@ module Api
 
           create_and_send_code(params[:phone])
 
-          present response: success_response, expires_in: 300
+          present response: success_response(expires_in: 300)
         end
 
         # ==================== 验证码登录 ====================
@@ -53,7 +53,7 @@ module Api
           user = AppUser.find_by!(device_id: params[:device_id])
           user.update!(phone: params[:phone]) if user.phone.blank?
 
-          present response: success_response, user: (present user, with: Entities::AppUser)
+          present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 密码登录 ====================
@@ -69,7 +69,7 @@ module Api
           user = AppUser.find_by(phone: params[:phone])
           error_pop_resp("手机号或密码错误") if user.nil? || !user.authenticate(params[:password])
 
-          present response: success_response, user: (present user, with: Entities::AppUser)
+          present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 微信登录 ====================
@@ -93,7 +93,7 @@ module Api
             user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}") unless user.wechat_openid.present?
           end
 
-          present response: success_response, user: (present user, with: Entities::AppUser)
+          present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== QQ登录 ====================
@@ -115,7 +115,7 @@ module Api
             user.update!(qq_openid: openid, nickname: "QQ用户#{openid[-4..]}") unless user.qq_openid.present?
           end
 
-          present response: success_response, user: (present user, with: Entities::AppUser)
+          present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 更新用户资料 ====================
@@ -130,7 +130,7 @@ module Api
           error_pop_resp("没有需要更新的字段") if params[:nickname].blank?
 
           current_user.update!(nickname: params[:nickname])
-          present response: success_response, user: (present current_user, with: Entities::AppUser)
+          present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
         end
 
         # ==================== 设置/重置密码 ====================

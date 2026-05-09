@@ -51,14 +51,14 @@ module Api
           parental = current_user.parental_control
           error_pop_resp("未设置家长管控") unless parental
 
-          present response: success_response, data: {
+          present response: success_response(
             time_limit_minutes: parental.time_limit_minutes,
             time_limit_label: time_limit_label(parental.time_limit_minutes),
             phone: parental.phone,
             phone_masked: mask_phone(parental.phone),
             blacklist_count: parental.blacklisted_books.count,
             is_active: parental.is_active
-          }
+          )
         end
 
         # ==================== 设置时间限制 ====================
@@ -77,10 +77,10 @@ module Api
 
           parental.update!(time_limit_minutes: value.presence)
 
-          present response: success_response, data: {
+          present response: success_response(
             time_limit_minutes: parental.time_limit_minutes,
             time_limit_label: time_limit_label(parental.time_limit_minutes)
-          }
+          )
         end
 
         # ==================== 设置家长手机号 ====================
@@ -100,10 +100,10 @@ module Api
 
           parental.update!(phone: params[:phone])
 
-          present response: success_response, data: {
+          present response: success_response(
             phone: parental.phone,
             phone_masked: mask_phone(parental.phone)
-          }
+          )
         end
 
         # ==================== 黑名单列表 ====================
@@ -130,8 +130,7 @@ module Api
             }
           end
 
-          present response: success_response, data: books,
-                  pagination: pagination_info(items)
+          present response: success_response(books: books, pagination: pagination_info(items))
         end
 
         # ==================== 添加到黑名单 ====================
