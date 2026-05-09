@@ -4,7 +4,8 @@ class AddUuidToAppUsers < ActiveRecord::Migration[8.0]
       add_column :app_users, :uuid, :string
     end
 
-    # 为已有记录填充 uuid
+    # 为已有记录填充 uuid（包括 nil 和空字符串）
+    execute "UPDATE app_users SET uuid = NULL WHERE uuid = ''"
     AppUser.where(uuid: nil).find_each do |user|
       user.update_columns(uuid: SecureRandom.uuid.delete("-"))
     end
