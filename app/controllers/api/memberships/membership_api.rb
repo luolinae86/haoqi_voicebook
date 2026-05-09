@@ -88,7 +88,7 @@ module Api
           present response: success_response,
                   order: (present order, with: Entities::Order),
                   payment_params: payment_params,
-                  message: "订单创建成功，请完成支付"
+                  msg: "订单创建成功，请完成支付"
         end
 
         # ==================== 支付宝异步回调 ====================
@@ -146,13 +146,13 @@ module Api
                                                     })
               end
 
-              { code: "SUCCESS", message: "成功" }
+              { code: "SUCCESS", msg: "成功" }
             rescue JSON::ParserError
-              { code: "FAIL", message: "解析失败" }
+              { code: "FAIL", msg: "解析失败" }
             end
           else
             Rails.logger.warn("[WechatCallback] Signature verification failed")
-            { code: "FAIL", message: "签名验证失败" }
+            { code: "FAIL", msg: "签名验证失败" }
           end
         end
       end

@@ -12,10 +12,10 @@ module Api
       # 成功响应
       # @param data [Object] 响应数据
       # @param message [String] 成功消息
-      def success_response(data = nil, message: "success")
+      def success_response(data = nil, msg: "success")
         {
           code: 0,
-          message: message,
+          msg: msg,
           data: data
         }
       end
@@ -26,7 +26,7 @@ module Api
       def err_response(code, message)
         {
           code: code,
-          message: message,
+          msg: message,
           data: nil
         }
       end
@@ -39,11 +39,11 @@ module Api
       # 分页响应
       # @param collection [ActiveRecord::Relation] 数据集合
       # @param message [String] 成功消息
-      def paginated_response(collection, message: "success")
+      def paginated_response(collection, msg: "success")
         paged = collection.page(params[:page] || 1).per(params[:per_page] || 10)
         {
           code: 0,
-          message: message,
+          msg: msg,
           data: paged,
           pagination: {
             current_page: paged.current_page,

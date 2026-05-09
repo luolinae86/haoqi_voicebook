@@ -39,7 +39,7 @@ module Api
                                          })
 
           status 202
-          present response: success_response, book_id: book.id, message: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
+          present response: success_response, book_id: book.id, msg: "EPUB 导入任务已提交，请轮询图书详情接口查看进度"
         end
 
         # ==================== 异步导出 EPUB ====================
@@ -61,7 +61,7 @@ module Api
                                            "force_image_pages" => params[:force_image_pages] == true
                                          })
 
-          present response: success_response, book_id: book.id, epub_export_status: book.epub_export_status, message: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
+          present response: success_response, book_id: book.id, epub_export_status: book.epub_export_status, msg: "EPUB 导出任务已提交，请轮询图书详情接口查看进度"
         end
 
         # ==================== 页面 XHTML 内容 ====================
@@ -79,7 +79,7 @@ module Api
             content_type "application/xhtml+xml; charset=utf-8"
             page.xhtml_content
           else
-            error!({ code: 1, message: "该页面尚未导出 XHTML" }, 404)
+            error!({ code: 1, msg: "该页面尚未导出 XHTML" }, 404)
           end
         end
 
@@ -93,7 +93,7 @@ module Api
           if book.styles_oss_url.present?
             redirect book.styles_oss_url
           else
-            error!({ code: 1, message: "样式表尚未导出" }, 404)
+            error!({ code: 1, msg: "样式表尚未导出" }, 404)
           end
         end
 

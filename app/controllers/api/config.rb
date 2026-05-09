@@ -16,27 +16,27 @@ module Api
 
     # 捕获 Grape 参数验证异常
     rescue_from Grape::Exceptions::ValidationErrors do |e|
-      error!({ code: 1002, message: e.message, data: nil }, 400)
+      error!({ code: 1002, msg: e.message, data: nil }, 400)
     end
 
     # 捕获 ActiveRecord 记录未找到异常
     rescue_from ActiveRecord::RecordNotFound do |e|
-      error!({ code: 1003, message: "记录不存在: #{e.message}", data: nil }, 404)
+      error!({ code: 1003, msg: "记录不存在: #{e.message}", data: nil }, 404)
     end
 
     # 捕获 ActiveRecord 记录无效异常
     rescue_from ActiveRecord::RecordInvalid do |e|
-      error!({ code: 1002, message: "数据验证失败: #{e.message}", data: nil }, 422)
+      error!({ code: 1002, msg: "数据验证失败: #{e.message}", data: nil }, 422)
     end
 
     # 捕获自定义业务异常
     rescue_from Api::Errors::CommonError do |e|
-      error!({ code: e.code, message: e.message, data: nil }, 400)
+      error!({ code: e.code, msg: e.message, data: nil }, 400)
     end
 
     # 捕获参数错误异常
     rescue_from ArgumentError do |e|
-      error!({ code: 1002, message: "参数错误: #{e.message}", data: nil }, 400)
+      error!({ code: 1002, msg: "参数错误: #{e.message}", data: nil }, 400)
     end
 
     # 捕获所有未知异常（生产环境不暴露详细错误）
@@ -44,9 +44,9 @@ module Api
       Rails.logger.error("API Error: #{e.class} - #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}")
 
       if Rails.env.production?
-        error!({ code: 1005, message: "服务器内部错误", data: nil }, 500)
+        error!({ code: 1005, msg: "服务器内部错误", data: nil }, 500)
       else
-        error!({ code: 1005, message: "#{e.class}: #{e.message}", data: nil }, 500)
+        error!({ code: 1005, msg: "#{e.class}: #{e.message}", data: nil }, 500)
       end
     end
   end

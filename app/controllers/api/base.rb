@@ -12,13 +12,13 @@ module Api
     # 健康检查接口，用于负载均衡和 Docker 健康检查
     desc "健康检查接口"
     get :up do
-      { code: 0, message: "VoiceBook API is running!", data: { status: "ok", time: Time.current.strftime("%Y-%m-%d %H:%M:%S") } }
+      { code: 0, msg: "VoiceBook API is running!", data: { status: "ok", time: Time.current.strftime("%Y-%m-%d %H:%M:%S") } }
     end
 
     # Hello World 首页接口
     desc "首页欢迎接口"
     get "/" do
-      { code: 0, message: "Hello World! Welcome to VoiceBook API!", data: { version: "1.0.0" } }
+      { code: 0, msg: "Hello World! Welcome to VoiceBook API!", data: { version: "1.0.0" } }
     end
 
     # ==================== 挂载子模块 ====================
