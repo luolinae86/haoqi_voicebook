@@ -7,7 +7,6 @@ RSpec.describe Bookshelf, type: :model do
   describe "associations" do
     it { is_expected.to belong_to(:app_user) }
     it { is_expected.to belong_to(:book) }
-    it { is_expected.to belong_to(:last_read_chapter).class_name("Chapter").optional }
   end
 
   # 验证测试
@@ -32,23 +31,13 @@ RSpec.describe Bookshelf, type: :model do
   end
 
   # 实例方法测试
-  describe "#update_progress!" do
+  describe "reading progress" do
     it "更新阅读进度和最后阅读时间" do
       bookshelf = create(:bookshelf, reading_progress: 10)
-      bookshelf.update_progress!(progress: 50)
+      bookshelf.update!(reading_progress: 50, last_read_at: Time.current)
 
       expect(bookshelf.reading_progress).to eq(50)
       expect(bookshelf.last_read_at).to be_present
-    end
-
-    it "同时更新最后阅读章节" do
-      book = create(:book)
-      chapter = create(:chapter, book: book)
-      bookshelf = create(:bookshelf, book: book)
-
-      bookshelf.update_progress!(progress: 30, chapter: chapter)
-
-      expect(bookshelf.last_read_chapter).to eq(chapter)
     end
   end
 end

@@ -135,7 +135,7 @@ module Api
         get ":id" do
           book = Book.published_books.find(params[:id])
 
-          present response: success_response, book: (present book, with: Entities::BookDetail)
+          present response: success_response, book: (present book, with: Entities::Book)
         end
 
         # ==================== 页面清单 ====================
@@ -167,30 +167,6 @@ module Api
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
 
           present response: success_response, **page_response(book, page)
-        end
-
-        # ==================== 章节列表 ====================
-        desc "获取图书章节列表"
-        params do
-          requires :id, type: Integer, desc: "图书ID"
-        end
-        get ":id/chapters" do
-          book = Book.find(params[:id])
-          chapters = book.chapters.ordered
-
-          present response: success_response, chapters: serialize_collection(chapters, Entities::Chapter)
-        end
-
-        # ==================== 章节内容 ====================
-        desc "获取章节内容（需要登录）"
-        params do
-          requires :id, type: Integer, desc: "图书ID"
-          requires :chapter_id, type: Integer, desc: "章节ID"
-        end
-        get ":id/chapters/:chapter_id" do
-          chapter = Chapter.find(params[:chapter_id])
-
-          present response: success_response, chapter: (present chapter, with: Entities::Chapter)
         end
       end
     end

@@ -16,8 +16,6 @@ FactoryBot.define do
     word_count { Faker::Number.between(from: 1000, to: 100_000) }
     rating { Faker::Number.decimal(l_digits: 1, r_digits: 1) }
     status { :published }
-    association :category
-    association :grade
 
     # 草稿状态
     trait :draft do

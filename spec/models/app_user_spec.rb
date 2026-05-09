@@ -5,10 +5,8 @@ require "rails_helper"
 RSpec.describe AppUser, type: :model do
   # 关联测试
   describe "associations" do
-    it { is_expected.to belong_to(:grade).optional }
     it { is_expected.to have_many(:bookshelves).dependent(:destroy) }
     it { is_expected.to have_many(:shelf_books).through(:bookshelves).source(:book) }
-    it { is_expected.to have_many(:reading_records).dependent(:destroy) }
     it { is_expected.to have_many(:memberships).dependent(:destroy) }
     it { is_expected.to have_many(:orders).dependent(:destroy) }
     it { is_expected.to have_many(:bookmarks).dependent(:destroy) }

@@ -24,11 +24,6 @@ module Api
     # ==================== 挂载子模块 ====================
     mount Api::AppUsers::Mount
     mount Api::Books::Mount
-    mount Api::Audio::Mount
-    mount Api::Categories::Mount
-    mount Api::Home::Mount
-    mount Api::Search::Mount
-    mount Api::Rankings::Mount
     mount Api::Memberships::Mount
     mount Api::Parental::Mount
 
@@ -44,11 +39,6 @@ module Api
       tags: [
         { name: "app_users", description: "用户认证与管理" },
         { name: "books", description: "图书管理与电子书阅读" },
-        { name: "audio", description: "有声书播放" },
-        { name: "categories", description: "分类与年级" },
-        { name: "home", description: "首页推荐" },
-        { name: "search", description: "搜索功能" },
-        { name: "rankings", description: "排行榜" },
         { name: "parental", description: "家长管控" }
       ],
       hide_documentation_path: false

@@ -11,9 +11,6 @@ module Entities
     expose :reading_minutes
     expose :books_read
 
-    expose :grade do |instance, _|
-      instance.grade&.name
-    end
     expose :is_vip do |instance, _|
       instance.is_vip?
     end

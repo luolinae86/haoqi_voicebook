@@ -119,27 +119,17 @@ module Api
         end
 
         # ==================== 更新用户资料 ====================
-        desc "更新用户资料（昵称、年级等）"
+        desc "更新用户资料（昵称等）"
         params do
           requires :device_id, type: String, desc: "设备ID"
           optional :nickname, type: String, desc: "昵称（最长50字）"
-          optional :grade_id, type: Integer, desc: "年级ID"
         end
         put :update_profile do
           auth_user
 
-          updates = {}
-          updates[:nickname] = params[:nickname] if params[:nickname].present?
+          error_pop_resp("没有需要更新的字段") if params[:nickname].blank?
 
-          if params[:grade_id].present?
-            grade = Grade.find_by(id: params[:grade_id])
-            error_pop_resp("年级不存在") unless grade
-            updates[:grade_id] = params[:grade_id]
-          end
-
-          error_pop_resp("没有需要更新的字段") if updates.empty?
-
-          current_user.update!(updates)
+          current_user.update!(nickname: params[:nickname])
           present response: success_response, user: (present current_user, with: Entities::AppUser)
         end
 

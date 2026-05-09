@@ -47,10 +47,8 @@ class AppUser < ApplicationRecord
   enum :role, { child: 0, parent: 1, admin: 2 }, default: :child
 
   # 关联关系
-  belongs_to :grade, optional: true # 所属年级
   has_many :bookshelves, dependent: :destroy # 用户书架
   has_many :shelf_books, through: :bookshelves, source: :book # 书架上的图书
-  has_many :reading_records, dependent: :destroy         # 阅读记录
   has_many :memberships, dependent: :destroy             # 会员记录
   has_many :orders, dependent: :destroy                  # 订单记录
   has_many :bookmarks, dependent: :destroy               # 书签

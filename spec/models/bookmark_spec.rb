@@ -7,7 +7,6 @@ RSpec.describe Bookmark, type: :model do
   describe "associations" do
     it { is_expected.to belong_to(:app_user) }
     it { is_expected.to belong_to(:book) }
-    it { is_expected.to belong_to(:chapter).optional }
   end
 
   # 验证测试

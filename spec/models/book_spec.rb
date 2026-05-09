@@ -5,17 +5,8 @@ require "rails_helper"
 RSpec.describe Book, type: :model do
   # 关联测试
   describe "associations" do
-    it { is_expected.to belong_to(:category).optional }
-    it { is_expected.to belong_to(:grade).optional }
-    it { is_expected.to have_many(:chapters).dependent(:destroy) }
-    it { is_expected.to have_one(:audio_album).dependent(:destroy) }
-    it { is_expected.to have_many(:collection_items).dependent(:destroy) }
-    it { is_expected.to have_many(:collections).through(:collection_items) }
     it { is_expected.to have_many(:bookshelves).dependent(:destroy) }
-    it { is_expected.to have_many(:reading_records).dependent(:destroy) }
     it { is_expected.to have_many(:bookmarks).dependent(:destroy) }
-    it { is_expected.to have_many(:ranking_items).dependent(:destroy) }
-    it { is_expected.to have_many(:recommendation_items).dependent(:destroy) }
     it { is_expected.to have_many(:blacklisted_books).dependent(:destroy) }
   end
 
@@ -73,28 +64,6 @@ RSpec.describe Book, type: :model do
 
         expect(Book.by_type(:ebook)).to include(ebook)
         expect(Book.by_type(:ebook)).not_to include(audio)
-      end
-    end
-
-    describe ".by_category" do
-      it "按分类筛选" do
-        category = create(:category)
-        book_in_cat = create(:book, category: category)
-        book_other = create(:book)
-
-        expect(Book.by_category(category.id)).to include(book_in_cat)
-        expect(Book.by_category(category.id)).not_to include(book_other)
-      end
-    end
-
-    describe ".by_grade" do
-      it "按年级筛选" do
-        grade = create(:grade)
-        book_in_grade = create(:book, grade: grade)
-        book_other = create(:book)
-
-        expect(Book.by_grade(grade.id)).to include(book_in_grade)
-        expect(Book.by_grade(grade.id)).not_to include(book_other)
       end
     end
 

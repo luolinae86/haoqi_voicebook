@@ -19,10 +19,5 @@ FactoryBot.define do
       reading_progress { 100.0 }
       last_read_at { Faker::Time.between(from: 30.days.ago, to: Time.current) }
     end
-
-    # 关联最后阅读章节
-    trait :with_last_chapter do
-      association :last_read_chapter, factory: :chapter
-    end
   end
 end

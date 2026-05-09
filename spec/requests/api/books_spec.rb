@@ -8,11 +8,8 @@ RSpec.describe "API Books", type: :request do
   let(:headers) { auth_headers(user) }
   let(:vip_headers) { auth_headers(vip_user) }
 
-  let(:category) { create(:category) }
-  let(:grade) { create(:grade) }
-
-  let!(:ebook) { create(:book, content_type: :ebook, category: category, grade: grade) }
-  let!(:audio_book) { create(:book, :audio, category: category, grade: grade) }
+  let!(:ebook) { create(:book, content_type: :ebook) }
+  let!(:audio_book) { create(:book, :audio) }
   let!(:picture_book) { create(:book, :picture_book) }
   let!(:draft_book) { create(:book, :draft) }
 
@@ -48,28 +45,6 @@ RSpec.describe "API Books", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:data]).to all(include(content_type: "audio"))
-      end
-    end
-
-    context "按分类过滤" do
-      it "过滤指定分类的图书" do
-        get "/api/books", params: { category_id: category.id }
-
-        expect(response).to have_http_status(200)
-        json_response[:data].each do |book|
-          expect(book[:category_id]).to eq(category.id)
-        end
-      end
-    end
-
-    context "按年级过滤" do
-      it "过滤指定年级的图书" do
-        get "/api/books", params: { grade_id: grade.id }
-
-        expect(response).to have_http_status(200)
-        json_response[:data].each do |book|
-          expect(book[:grade_id]).to eq(grade.id)
-        end
       end
     end
 
@@ -114,68 +89,6 @@ RSpec.describe "API Books", type: :request do
       get "/api/books/999999"
 
       expect(response).to have_http_status(404)
-    end
-  end
-
-  # ==================== 章节列表 ====================
-  describe "GET /api/books/:id/chapters" do
-    let!(:chapters) do
-      3.times.map { |i| create(:chapter, book: ebook, sort_order: i + 1) }
-    end
-
-    it "返回章节列表" do
-      get "/api/books/#{ebook.id}/chapters"
-
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:code]).to eq(0)
-      expect(json_response[:chapters]).to be_an(Array)
-      expect(json_response[:chapters].size).to eq(3)
-    end
-
-    it "章节按排序号排列" do
-      get "/api/books/#{ebook.id}/chapters"
-
-      sort_orders = json_response[:chapters].map { |c| c[:sort_order] }
-      expect(sort_orders).to eq(sort_orders.sort)
-    end
-  end
-
-  # ==================== 章节内容 ====================
-  describe "GET /api/books/:id/chapters/:chapter_id" do
-    let!(:free_chapter) { create(:chapter, :free, book: ebook) }
-    let!(:vip_chapter) { create(:chapter, :vip_only, book: ebook) }
-
-    context "已登录" do
-      it "获取免费章节内容" do
-        get "/api/books/#{ebook.id}/chapters/#{free_chapter.id}", headers: headers
-
-        expect(response).to have_http_status(200)
-        expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:chapter][:content]).to be_present
-      end
-
-      context "VIP 章节" do
-        it "VIP 用户可以访问" do
-          get "/api/books/#{ebook.id}/chapters/#{vip_chapter.id}", headers: vip_headers
-
-          expect(response).to have_http_status(200)
-          expect(json_response[:response][:code]).to eq(0)
-        end
-
-        xit "普通用户无法访问" do
-          get "/api/books/#{ebook.id}/chapters/#{vip_chapter.id}", headers: headers
-
-          expect(json_response[:response][:code]).not_to eq(0)
-        end
-      end
-    end
-
-    context "未登录" do
-      xit "返回 401 未授权" do
-        get "/api/books/#{ebook.id}/chapters/#{free_chapter.id}"
-
-        expect(response).to have_http_status(401)
-      end
     end
   end
 end

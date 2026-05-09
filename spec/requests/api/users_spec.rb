@@ -359,46 +359,7 @@ RSpec.describe "API Users", type: :request do
       end
     end
 
-    context "更新年级" do
-      let!(:grade) { create(:grade, name: "三年级", level: 3, sort_order: 3) }
-
-      it "更新年级成功" do
-        put "/api/app_users/update_profile", params: { device_id: user.device_id, grade_id: grade.id }
-
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:user][:grade]).to eq("三年级")
-      end
-    end
-
-    context "同时更新昵称和年级" do
-      let!(:grade) { create(:grade, name: "二年级", level: 2, sort_order: 2) }
-
-      it "同时更新多个字段" do
-        put "/api/app_users/update_profile", params: {
-          device_id: user.device_id,
-          nickname: "小红",
-          grade_id: grade.id
-        }
-
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:user][:nickname]).to eq("小红")
-        expect(json_response[:user][:grade]).to eq("二年级")
-      end
-    end
-
-    context "年级不存在" do
-      it "返回错误信息" do
-        put "/api/app_users/update_profile", params: { device_id: user.device_id, grade_id: 99_999 }
-
-        expect(response).to have_http_status(200)
-        expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("年级不存在")
-      end
-    end
-
-    context "未传任何可更新字段" do
+    context "未传昵称" do
       it "返回错误信息" do
         put "/api/app_users/update_profile", params: { device_id: user.device_id }
 

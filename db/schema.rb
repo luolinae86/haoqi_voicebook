@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_09_013133) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_09_120000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -37,55 +37,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_013133) do
     t.string "device_id", limit: 64
     t.string "wechat_openid", comment: "微信openid"
     t.string "qq_openid", comment: "QQ openid"
+    t.string "uuid", null: false
     t.index ["device_id"], name: "index_app_users_on_device_id", unique: true
     t.index ["grade_id"], name: "index_app_users_on_grade_id"
     t.index ["is_vip"], name: "index_app_users_on_is_vip"
     t.index ["phone"], name: "index_app_users_on_phone", unique: true
     t.index ["qq_openid"], name: "index_app_users_on_qq_openid", unique: true
+    t.index ["uuid"], name: "index_app_users_on_uuid", unique: true
     t.index ["wechat_openid"], name: "index_app_users_on_wechat_openid", unique: true
-  end
-
-  create_table "audio_albums", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "有声专辑表", force: :cascade do |t|
-    t.integer "book_id", null: false, comment: "图书ID"
-    t.string "narrator", comment: "主讲人/播音员"
-    t.integer "total_episodes", default: 0, null: false, comment: "总集数"
-    t.integer "total_duration", default: 0, null: false, comment: "总时长(秒)"
-    t.text "description", comment: "专辑简介"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_audio_albums_on_book_id", unique: true
-  end
-
-  create_table "audio_episodes", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "有声节目表", force: :cascade do |t|
-    t.integer "audio_album_id", null: false, comment: "专辑ID"
-    t.string "title", null: false, comment: "节目标题"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.string "audio_url", comment: "音频URL"
-    t.integer "duration", default: 0, null: false, comment: "时长(秒)"
-    t.integer "play_count", default: 0, null: false, comment: "播放次数"
-    t.boolean "is_free", default: false, null: false, comment: "是否免费"
-    t.boolean "is_vip", default: false, null: false, comment: "是否VIP"
-    t.datetime "published_at", comment: "发布时间"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["audio_album_id", "sort_order"], name: "index_audio_episodes_on_audio_album_id_and_sort_order"
-    t.index ["audio_album_id"], name: "index_audio_episodes_on_audio_album_id"
-  end
-
-  create_table "banners", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "轮播广告表", force: :cascade do |t|
-    t.string "title", null: false, comment: "标题"
-    t.string "image_url", null: false, comment: "图片URL"
-    t.string "link_url", comment: "链接URL"
-    t.integer "link_type", default: 3, null: false, comment: "链接类型：0-图书 1-合集 2-URL 3-无"
-    t.integer "position", default: 0, null: false, comment: "位置"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.datetime "starts_at", comment: "开始时间"
-    t.datetime "ends_at", comment: "结束时间"
-    t.boolean "is_active", default: true, null: false, comment: "是否激活"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["is_active"], name: "index_banners_on_is_active"
-    t.index ["sort_order"], name: "index_banners_on_sort_order"
   end
 
   create_table "blacklisted_books", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "黑名单图书表", force: :cascade do |t|
@@ -165,57 +124,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_013133) do
     t.index ["book_id"], name: "index_bookshelves_on_book_id"
   end
 
-  create_table "categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "分类表", force: :cascade do |t|
-    t.string "name", null: false, comment: "分类名称"
-    t.integer "parent_id", comment: "父分类ID"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.string "icon", comment: "图标URL"
-    t.string "description", comment: "描述"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["parent_id"], name: "index_categories_on_parent_id"
-    t.index ["sort_order"], name: "index_categories_on_sort_order"
-  end
-
-  create_table "chapters", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "章节表", force: :cascade do |t|
-    t.integer "book_id", null: false, comment: "图书ID"
-    t.string "title", null: false, comment: "章节标题"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.text "content", comment: "章节内容"
-    t.boolean "is_free", default: false, null: false, comment: "是否免费"
-    t.boolean "is_vip", default: false, null: false, comment: "是否VIP"
-    t.integer "word_count", default: 0, null: false, comment: "字数"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["book_id", "sort_order"], name: "index_chapters_on_book_id_and_sort_order"
-    t.index ["book_id"], name: "index_chapters_on_book_id"
-  end
-
-  create_table "collection_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "合集项表", force: :cascade do |t|
-    t.integer "collection_id", null: false, comment: "合集ID"
-    t.integer "book_id", null: false, comment: "图书ID"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_collection_items_on_book_id"
-    t.index ["collection_id", "book_id"], name: "index_collection_items_on_collection_id_and_book_id", unique: true
-    t.index ["collection_id"], name: "index_collection_items_on_collection_id"
-  end
-
-  create_table "collections", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "专题合集表", force: :cascade do |t|
-    t.string "title", null: false, comment: "合集标题"
-    t.text "description", comment: "合集描述"
-    t.string "cover_image", comment: "封面图片URL"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.integer "collection_type", default: 0, null: false, comment: "类型：0-专题 1-分级 2-热门 3-新上架"
-    t.integer "target_grade_id", comment: "目标年级ID"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["collection_type"], name: "index_collections_on_collection_type"
-    t.index ["sort_order"], name: "index_collections_on_sort_order"
-    t.index ["target_grade_id"], name: "index_collections_on_target_grade_id"
-  end
-
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
     t.bigint "book_id", null: false, comment: "图书ID"
     t.integer "page_number", null: false, comment: "页码"
@@ -231,27 +139,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_013133) do
     t.text "xhtml_content", comment: "页面 XHTML 内容"
     t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_ebook_pages_on_book_id"
-  end
-
-  create_table "grades", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "年级表", force: :cascade do |t|
-    t.string "name", null: false, comment: "年级名称"
-    t.integer "level", null: false, comment: "年级等级"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.string "description", comment: "描述"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["level"], name: "index_grades_on_level", unique: true
-    t.index ["sort_order"], name: "index_grades_on_sort_order"
-  end
-
-  create_table "hot_searches", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "热门搜索表", force: :cascade do |t|
-    t.string "keyword", null: false, comment: "关键词"
-    t.integer "search_count", default: 0, null: false, comment: "搜索次数"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["keyword"], name: "index_hot_searches_on_keyword", unique: true
-    t.index ["sort_order"], name: "index_hot_searches_on_sort_order"
   end
 
   create_table "memberships", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "会员表", force: :cascade do |t|
@@ -294,75 +181,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_013133) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["app_user_id"], name: "index_parental_controls_on_app_user_id", unique: true
-  end
-
-  create_table "ranking_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "排行项表", force: :cascade do |t|
-    t.integer "ranking_id", null: false, comment: "排行榜ID"
-    t.integer "book_id", null: false, comment: "图书ID"
-    t.integer "rank", null: false, comment: "排名"
-    t.decimal "score", precision: 5, scale: 2, default: "0.0", comment: "得分"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_ranking_items_on_book_id"
-    t.index ["ranking_id", "book_id"], name: "index_ranking_items_on_ranking_id_and_book_id", unique: true
-    t.index ["ranking_id", "rank"], name: "index_ranking_items_on_ranking_id_and_rank"
-    t.index ["ranking_id"], name: "index_ranking_items_on_ranking_id"
-  end
-
-  create_table "rankings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "排行榜表", force: :cascade do |t|
-    t.string "name", null: false, comment: "榜单名称"
-    t.integer "ranking_type", default: 0, null: false, comment: "类型：0-热度 1-高分 2-上新 3-大奖 4-名著"
-    t.string "description", comment: "描述"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["ranking_type"], name: "index_rankings_on_ranking_type"
-  end
-
-  create_table "reading_levels", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "分级阅读表", force: :cascade do |t|
-    t.string "name", null: false, comment: "级别名称"
-    t.integer "level", null: false, comment: "级别"
-    t.text "description", comment: "描述"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["level"], name: "index_reading_levels_on_level", unique: true
-  end
-
-  create_table "reading_records", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "阅读记录表", force: :cascade do |t|
-    t.integer "app_user_id", null: false, comment: "用户ID"
-    t.integer "book_id", null: false, comment: "图书ID"
-    t.integer "chapter_id", comment: "章节ID"
-    t.integer "words_read", default: 0, null: false, comment: "阅读字数"
-    t.integer "duration_minutes", default: 0, null: false, comment: "阅读时长(分钟)"
-    t.datetime "read_at", comment: "阅读时间"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["app_user_id"], name: "index_reading_records_on_app_user_id"
-    t.index ["book_id"], name: "index_reading_records_on_book_id"
-    t.index ["read_at"], name: "index_reading_records_on_read_at"
-  end
-
-  create_table "recommendation_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "推荐项表", force: :cascade do |t|
-    t.integer "recommendation_id", null: false, comment: "推荐ID"
-    t.integer "book_id", null: false, comment: "图书ID"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_recommendation_items_on_book_id"
-    t.index ["recommendation_id", "book_id"], name: "index_recommendation_items_on_recommendation_id_and_book_id", unique: true
-    t.index ["recommendation_id"], name: "index_recommendation_items_on_recommendation_id"
-  end
-
-  create_table "recommendations", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "推荐表", force: :cascade do |t|
-    t.string "title", null: false, comment: "推荐标题"
-    t.text "description", comment: "推荐描述"
-    t.integer "recommendation_type", default: 0, null: false, comment: "类型：0-精选 1-分级 2-热门 3-新书 4-专题"
-    t.integer "target_grade_id", comment: "目标年级ID"
-    t.integer "sort_order", default: 0, null: false, comment: "排序"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["recommendation_type"], name: "index_recommendations_on_recommendation_type"
-    t.index ["sort_order"], name: "index_recommendations_on_sort_order"
-    t.index ["target_grade_id"], name: "index_recommendations_on_target_grade_id"
   end
 
   create_table "sms_verifications", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "短信验证码表", force: :cascade do |t|
