@@ -84,6 +84,9 @@ class RequestLogMiddleware
       rescue JSON::ParserError
         # 尝试解析为 form-urlencoded
         parsed = Rack::Utils.parse_query(raw_body)
+        # form-urlencoded 的 key 不会包含换行符，如果 key 中有换行说明是 multipart 被错误解析了
+        is_valid_form = parsed.all? { |k, _| !k.include?("\n") && !k.include?("\r") }
+        parsed = {} unless is_valid_form
         if parsed.empty?
           # multipart/form-data: 按 boundary 分隔后提取 name 和值
           parsed = parse_multipart(raw_body)
