@@ -31,7 +31,6 @@ env:
     TZ: Asia/Shanghai
   secret:
     - SECRET_KEY_BASE
-    # 测试环境使用独立数据库
     - DATABASE_DEV_HOST
     - DATABASE_DEV_PORT
     - DATABASE_DEV_USERNAME

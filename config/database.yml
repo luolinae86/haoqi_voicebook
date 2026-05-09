@@ -21,12 +21,12 @@ test:
 
 production:
   <<: *default
-  pool: 100
-  database: <%= ENV['DATABASE_PRD_DATABASE'] || ENV['DATABASE_DEV_DATABASE'] %>
-  username: <%= ENV['DATABASE_PRD_USERNAME'] || ENV['DATABASE_DEV_USERNAME'] %>
-  password: <%= ENV['DATABASE_PRD_PASSWORD'] || ENV['DATABASE_DEV_PASSWORD'] %>
-  host: <%= ENV['DATABASE_PRD_HOST'] || ENV['DATABASE_DEV_HOST'] %>
-  port: <%= ENV['DATABASE_PRD_PORT'] || ENV['DATABASE_DEV_PORT'] || 3306 %>
+  pool: <%= ENV.fetch("DATABASE_POOL_SIZE") { 100 } %>
+  database: <%= ENV['DATABASE_DEV_DATABASE'] || ENV['DATABASE_PRD_DATABASE'] %>
+  username: <%= ENV['DATABASE_DEV_USERNAME'] || ENV['DATABASE_PRD_USERNAME'] %>
+  password: <%= ENV['DATABASE_DEV_PASSWORD'] || ENV['DATABASE_PRD_PASSWORD'] %>
+  host: <%= ENV['DATABASE_DEV_HOST'] || ENV['DATABASE_PRD_HOST'] %>
+  port: <%= ENV['DATABASE_DEV_PORT'] || ENV['DATABASE_PRD_PORT'] || 3306 %>
 
 staging:
   <<: *default
