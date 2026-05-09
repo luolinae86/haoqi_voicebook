@@ -45,7 +45,7 @@ RSpec.describe Ebook::LocalExportWorker do
   end
 
   it "passes force_image_pages through to the importer" do
-    book = create(:book, title: "Worker Export Book", status: :published, content_type: :ebook)
+    book = create(:book, name: "Worker Export Book", status: :published, content_type: :ebook)
     importer = instance_double(Ebook::PdfImporter, call: true)
     exporter = instance_double(Ebook::ExportPackage, call: output_dir)
     epub_exporter = instance_double(Ebook::EpubExporter, call: output_dir.join("Worker Export Book.epub"))
@@ -54,7 +54,7 @@ RSpec.describe Ebook::LocalExportWorker do
     allow(Ebook::ExportPackage).to receive(:new).and_return(exporter)
     allow(Ebook::EpubExporter).to receive(:new).and_return(epub_exporter)
     allow(book).to receive(:reload).and_return(book)
-    allow(book).to receive_messages(page_count: 2, title: "Worker Export Book")
+    allow(book).to receive_messages(page_count: 2, name: "Worker Export Book")
 
     described_class.new(
       pdf_path: files[:pdf].path,

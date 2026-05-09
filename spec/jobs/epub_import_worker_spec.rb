@@ -5,7 +5,7 @@ require "zip"
 require "nokogiri"
 
 RSpec.describe EpubImportWorker do
-  let(:book) { create(:book, status: :published, content_type: :ebook, title: "小老虎历险记") }
+  let(:book) { create(:book, status: :published, content_type: :ebook, name: "小老虎历险记") }
   let(:oss_service) { instance_double(AliyunOssService) }
   let(:epub_oss_key) { "小老虎历险记.epub" }
 
@@ -149,7 +149,7 @@ RSpec.describe EpubImportWorker do
       book.reload
       expect(book.epub_export_status).to eq("completed")
       expect(book.epub_oss_url).to include(".epub")
-      expect(book.epub_oss_key).to include(book.title)
+      expect(book.epub_oss_key).to include(book.name)
       expect(book.epub_export_error).to be_nil
       expect(book.styles_oss_url).to include("styles/book.css")
       expect(book.nav_oss_url).to include("nav.xhtml")
@@ -205,11 +205,11 @@ RSpec.describe EpubImportWorker do
       expect(book.epub_export_error).to include("OSS 连接失败")
     end
 
-    it "uses book title as OSS directory name" do
+    it "uses book name as OSS directory name" do
       real_epub = Pathname.new("/tmp/test.epub")
       skip "Test EPUB not found" unless real_epub.exist?
 
-      book.update!(title: "快乐先生")
+      book.update!(name: "快乐先生")
 
       allow(AliyunOssService).to receive(:new).and_return(oss_service)
       allow(oss_service).to receive(:download_file) do |object_key:, local_path:|

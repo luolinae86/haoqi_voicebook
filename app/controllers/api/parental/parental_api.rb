@@ -124,11 +124,8 @@ module Api
           books = items.map do |item|
             {
               id: item.book.id,
-              title: item.book.title,
-              author: item.book.author,
-              publisher: item.book.publisher,
-              cover_image: item.book.cover_image,
-              description: item.book.description,
+              name: item.book.name,
+              cover_image_url: item.book.cover_image_url,
               content_type: item.book.content_type
             }
           end

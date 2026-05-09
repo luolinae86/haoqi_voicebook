@@ -47,7 +47,7 @@ RSpec.describe EpubExportWorker do
       book.reload
       expect(book.epub_export_status).to eq("completed")
       expect(book.epub_oss_url).to include(".epub")
-      expect(book.epub_oss_key).to eq("#{book.title}/#{book.title}.epub")
+      expect(book.epub_oss_key).to eq("#{book.name}/#{book.name}.epub")
       expect(book.epub_export_error).to be_nil
       expect(book.styles_oss_url).to include("book.css")
       expect(book.nav_oss_url).to include("nav.xhtml")
@@ -102,8 +102,8 @@ RSpec.describe EpubExportWorker do
       fake_pdf.close!
     end
 
-    it "uses book title as OSS directory name" do
-      book.update!(title: "快乐先生")
+    it "uses book name as OSS directory name" do
+      book.update!(name: "快乐先生")
       fake_pdf = Tempfile.new(["source", ".pdf"])
       create_test_pdf(fake_pdf.path)
 
@@ -130,8 +130,8 @@ RSpec.describe EpubExportWorker do
       fake_pdf.close!
     end
 
-    it "sanitizes special characters in book title for directory name" do
-      book.update!(title: "Test/Book:With*Special?Chars")
+    it "sanitizes special characters in book name for directory name" do
+      book.update!(name: "Test/Book:With*Special?Chars")
       fake_pdf = Tempfile.new(["source", ".pdf"])
       create_test_pdf(fake_pdf.path)
 

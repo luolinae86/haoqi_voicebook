@@ -24,7 +24,7 @@ class EpubImportWorker
     book.update!(epub_export_status: :exporting, epub_export_error: nil)
 
     # 按书名创建 OSS 目录
-    sanitized_title = sanitize_dir_name(book.title)
+    sanitized_title = sanitize_dir_name(book.name)
     styles_key    = "#{sanitized_title}/styles/book.css"
     nav_key       = "#{sanitized_title}/nav.xhtml"
     images_prefix = "#{sanitized_title}/images"
@@ -57,8 +57,8 @@ class EpubImportWorker
       epub_title, _, _, page_entries = parse_opf(opf_path)
 
       # 更新书名（如果 Book 尚无书名）
-      book.update!(title: epub_title) if book.title.blank? && epub_title.present?
-      sanitized_title = sanitize_dir_name(book.title)
+      book.update!(name: epub_title) if book.name.blank? && epub_title.present?
+      sanitized_title = sanitize_dir_name(book.name)
       styles_key    = "#{sanitized_title}/styles/book.css"
       nav_key       = "#{sanitized_title}/nav.xhtml"
       images_prefix = "#{sanitized_title}/images"

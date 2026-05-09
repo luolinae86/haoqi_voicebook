@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe Ebook::PdfImporter do
-  let(:book) { create(:book, title: "PDF 导入测试", status: :published, content_type: :ebook) }
+  let(:book) { create(:book, name: "PDF 导入测试", status: :published, content_type: :ebook) }
   let(:files) { create_sample_ebook_pdf }
   let(:storage_root) { Rails.public_path.join("system/spec_ebooks") }
   let(:rendered_png) { Base64.decode64(PdfFixtureHelper::SAMPLE_PNG) }

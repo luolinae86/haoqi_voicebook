@@ -38,7 +38,7 @@ module Ebook
         ).call
       end
 
-      puts "导入完成: #{@book.title} (#{@book.page_count} 页)"
+      puts "导入完成: #{@book.name} (#{@book.page_count} 页)"
       puts "输出目录: #{export_root}"
       puts "EPUB 文件: #{epub_path}" if epub_path.present?
       export_root
@@ -49,9 +49,9 @@ module Ebook
     def ensure_book!
       return if @book.present?
 
-      @book = Book.find_or_initialize_by(title: @title)
+      @book = Book.find_or_initialize_by(name: @title)
       @book.assign_attributes(@book_attributes.merge(status: :published, content_type: :ebook))
-      @book.title = @title
+      @book.name = @title
       @book.save! if @book.new_record? || @book.changed?
     end
   end

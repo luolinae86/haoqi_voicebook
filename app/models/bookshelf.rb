@@ -6,8 +6,8 @@
 #   app_user_id          integer(4)         not null
 #   book_id              integer(4)         not null
 #   reading_progress     decimal            default(0.00)
-#   last_read_chapter_id integer(4)         
-#   last_read_at         datetime           
+#   last_read_chapter_id integer(4)
+#   last_read_at         datetime
 #   created_at           datetime           not null
 #   updated_at           datetime           not null
 #

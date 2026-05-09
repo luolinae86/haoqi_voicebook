@@ -3,8 +3,7 @@
 module Entities
   class MinBook < Grape::Entity
     expose :id
-    expose :title
-    expose :cover_image
-    expose :author
+    expose :name
+    expose :cover_image_url
   end
 end

@@ -37,10 +37,5 @@ FactoryBot.define do
       reading_minutes { Faker::Number.between(from: 60, to: 5000) }
       books_read { Faker::Number.between(from: 1, to: 50) }
     end
-
-    # 关联年级
-    trait :with_grade do
-      association :grade
-    end
   end
 end

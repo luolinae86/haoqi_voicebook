@@ -24,7 +24,7 @@ class EpubExportWorker
     book.update!(epub_export_status: :exporting, epub_export_error: nil)
 
     # 按书名创建 OSS 目录：{book_title}/
-    sanitized_title = sanitize_dir_name(book.title)
+    sanitized_title = sanitize_dir_name(book.name)
     styles_key    = "#{sanitized_title}/styles/book.css"
     nav_key       = "#{sanitized_title}/nav.xhtml"
     epub_key      = "#{sanitized_title}/#{sanitized_title}.epub"

@@ -7,7 +7,7 @@ module Api
       extend Grape::API::Helpers
 
       BOOK_ATTRIBUTES = %i[
-        title author publisher description cover_image
+        name author publisher description cover_image_url
         category_id grade_id is_free is_vip
       ].freeze
 
@@ -17,7 +17,7 @@ module Api
         book.assign_attributes(
           declared(params, include_missing: false).slice(*BOOK_ATTRIBUTES).merge(content_type: :ebook)
         )
-        book.title = title if book.title.blank?
+        book.name = title if book.name.blank?
         book.save! if book.new_record? || book.changed?
         book
       end

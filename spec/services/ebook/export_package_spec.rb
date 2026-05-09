@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe Ebook::ExportPackage do
-  let(:book) { create(:book, title: "导出包测试", status: :published, content_type: :ebook) }
+  let(:book) { create(:book, name: "导出包测试", status: :published, content_type: :ebook) }
   let(:output_dir) { Rails.root.join("tmp/spec_export_package_output") }
 
   after do

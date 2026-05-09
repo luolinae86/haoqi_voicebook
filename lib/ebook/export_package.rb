@@ -22,7 +22,7 @@ module Ebook
       manifest = {
         book: {
           id: @book.id,
-          title: @book.title,
+          title: @book.name,
           author: @book.author,
           page_count: @book.page_count,
           imported_at: @book.imported_at,
