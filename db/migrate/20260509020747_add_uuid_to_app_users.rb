@@ -5,12 +5,10 @@ class AddUuidToAppUsers < ActiveRecord::Migration[8.0]
     end
 
     # 为已有记录填充 uuid（包括 nil 和空字符串）
-    execute "UPDATE app_users SET uuid = NULL WHERE uuid = ''"
-    AppUser.where(uuid: nil).find_each do |user|
-      user.update_columns(uuid: SecureRandom.uuid.delete("-"))
-    end
+    # 逐条更新以避免在内存中加载所有记录
+    execute "UPDATE app_users SET uuid = REPLACE(UUID(), '-',) WHERE uuid IS NULL OR uuid = ''"
 
-    # 设置为 NOT NULL
+    # 确保 NOT NULL 约束
     change_column_null :app_users, :uuid, false
 
     unless index_exists?(:app_users, :uuid)
