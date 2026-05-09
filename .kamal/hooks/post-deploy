@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# 部署后清理服务器上的冗余容器和镜像，避免资源泄漏
+IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
+for host in "${HOSTS[@]}"; do
+  echo "[$host] 清理已停止的容器..."
+  ssh "root@$host" "docker container prune -f --filter 'until=1h' && docker image prune -f"
+done
