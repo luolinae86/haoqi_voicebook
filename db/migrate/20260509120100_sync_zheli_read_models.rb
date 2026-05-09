@@ -291,9 +291,12 @@ class SyncZheliReadModels < ActiveRecord::Migration[8.0]
     add_foreign_key :ebook_pages, :books unless foreign_key_exists?(:ebook_pages, :books)
 
     # ---- Update column types (safe to run multiple times) ----
-    change_column :app_users, :grade_id, :bigint if column_for_attribute(:app_users, :grade_id).type != :bigint
-    change_column :bookshelves, :book_id, :bigint if column_for_attribute(:bookshelves, :book_id).type != :bigint
-    change_column :bookshelves, :last_read_chapter_id, :bigint if column_for_attribute(:bookshelves, :last_read_chapter_id)&.type != :bigint
+    col = connection.columns(:app_users).find { |c| c.name == "grade_id" }
+    change_column :app_users, :grade_id, :bigint if col && col.sql_type !~ /bigint/i
+    col = connection.columns(:bookshelves).find { |c| c.name == "book_id" }
+    change_column :bookshelves, :book_id, :bigint if col && col.sql_type !~ /bigint/i
+    col = connection.columns(:bookshelves).find { |c| c.name == "last_read_chapter_id" }
+    change_column :bookshelves, :last_read_chapter_id, :bigint if col && col.sql_type !~ /bigint/i
 
     # ---- Add foreign keys (skip if already exist) ----
     table_fks = [
