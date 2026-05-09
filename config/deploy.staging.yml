@@ -59,7 +59,7 @@ volumes:
 # ==================== kamal-proxy 代理 ====================
 proxy:
   ssl: true
-  host: voicebook.haoqiniu.com
+  host: testvoicebook.haoqiniu.com
   healthcheck:
     path: /up
     interval: 5
