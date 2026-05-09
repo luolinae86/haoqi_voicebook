@@ -1,3 +1,24 @@
+# == Schema Information
+#
+# Table name: banners
+#
+#   id                   integer(8)         not null, primary key
+#   title                string(255)        not null
+#   image_url            string(255)        not null
+#   link_url             string(255)        
+#   link_type            integer(4)         not null, default(3)
+#   position             integer(4)         not null, default(0)
+#   sort_order           integer(4)         not null, default(0)
+#   starts_at            datetime           
+#   ends_at              datetime           
+#   is_active            boolean            not null, default(1)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_banners_on_is_active on is_active
+#  Index: index_banners_on_sort_order on sort_order
+#
+#
 # frozen_string_literal: true
 
 # 轮播广告模型

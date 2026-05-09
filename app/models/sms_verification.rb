@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: sms_verifications
+#
+#   id                   integer(8)         not null, primary key
+#   phone                string(255)        not null
+#   code                 string(255)        not null
+#   verified             boolean            not null, default(0)
+#   expires_at           datetime           not null
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_sms_verifications_on_phone_and_code on phone, code
+#  Index: index_sms_verifications_on_expires_at on expires_at
+#
+#
 # frozen_string_literal: true
 
 # 短信验证码模型

@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: recommendation_items
+#
+#   id                   integer(8)         not null, primary key
+#   recommendation_id    integer(4)         not null
+#   book_id              integer(4)         not null
+#   sort_order           integer(4)         not null, default(0)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_recommendation_items_on_recommendation_id_and_book_id on recommendation_id, book_id (unique)
+#  Index: index_recommendation_items_on_recommendation_id on recommendation_id
+#  Index: index_recommendation_items_on_book_id on book_id
+#
+#
 # frozen_string_literal: true
 
 # 推荐项模型

@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: bookmarks
+#
+#   id                   integer(8)         not null, primary key
+#   app_user_id          integer(4)         not null
+#   book_id              integer(4)         not null
+#   chapter_id           integer(4)         
+#   position             decimal            default(0.00)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_bookmarks_on_app_user_id on app_user_id
+#  Index: index_bookmarks_on_book_id on book_id
+#
+#
 # frozen_string_literal: true
 
 # 书签模型

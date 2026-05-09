@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: audio_albums
+#
+#   id                   integer(8)         not null, primary key
+#   book_id              integer(4)         not null
+#   narrator             string(255)        
+#   total_episodes       integer(4)         not null, default(0)
+#   total_duration       integer(4)         not null, default(0)
+#   description          text(65535)        
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_audio_albums_on_book_id on book_id (unique)
+#
+#
 # frozen_string_literal: true
 
 # 有声专辑模型

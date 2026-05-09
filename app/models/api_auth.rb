@@ -1,3 +1,17 @@
+# == Schema Information
+#
+# Table name: api_auths
+#
+#   id                   integer(8)         not null, primary key
+#   name                 string(255)        not null
+#   access_key_id        string(255)        not null
+#   access_key_secret    string(255)        not null
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_api_auths_on_access_key_id on access_key_id (unique)
+#
+#
 # frozen_string_literal: true
 
 # API 认证模型

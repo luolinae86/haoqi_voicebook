@@ -1,3 +1,24 @@
+# == Schema Information
+#
+# Table name: audio_episodes
+#
+#   id                   integer(8)         not null, primary key
+#   audio_album_id       integer(4)         not null
+#   title                string(255)        not null
+#   sort_order           integer(4)         not null, default(0)
+#   audio_url            string(255)        
+#   duration             integer(4)         not null, default(0)
+#   play_count           integer(4)         not null, default(0)
+#   is_free              boolean            not null, default(0)
+#   is_vip               boolean            not null, default(0)
+#   published_at         datetime           
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_audio_episodes_on_audio_album_id on audio_album_id
+#  Index: index_audio_episodes_on_audio_album_id_and_sort_order on audio_album_id, sort_order
+#
+#
 # frozen_string_literal: true
 
 # 有声节目模型

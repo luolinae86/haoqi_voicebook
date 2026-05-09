@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: collection_items
+#
+#   id                   integer(8)         not null, primary key
+#   collection_id        integer(4)         not null
+#   book_id              integer(4)         not null
+#   sort_order           integer(4)         not null, default(0)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_collection_items_on_collection_id_and_book_id on collection_id, book_id (unique)
+#  Index: index_collection_items_on_collection_id on collection_id
+#  Index: index_collection_items_on_book_id on book_id
+#
+#
 # frozen_string_literal: true
 
 # 合集项模型

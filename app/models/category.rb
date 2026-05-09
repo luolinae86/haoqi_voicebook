@@ -1,3 +1,20 @@
+# == Schema Information
+#
+# Table name: categories
+#
+#   id                   integer(8)         not null, primary key
+#   name                 string(255)        not null
+#   parent_id            integer(4)         
+#   sort_order           integer(4)         not null, default(0)
+#   icon                 string(255)        
+#   description          string(255)        
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_categories_on_parent_id on parent_id
+#  Index: index_categories_on_sort_order on sort_order
+#
+#
 # frozen_string_literal: true
 
 # 分类模型

@@ -1,3 +1,21 @@
+# == Schema Information
+#
+# Table name: bookshelves
+#
+#   id                   integer(8)         not null, primary key
+#   app_user_id          integer(4)         not null
+#   book_id              integer(4)         not null
+#   reading_progress     decimal            default(0.00)
+#   last_read_chapter_id integer(4)         
+#   last_read_at         datetime           
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_bookshelves_on_app_user_id_and_book_id on app_user_id, book_id (unique)
+#  Index: index_bookshelves_on_app_user_id on app_user_id
+#  Index: index_bookshelves_on_book_id on book_id
+#
+#
 # frozen_string_literal: true
 
 # 书架模型

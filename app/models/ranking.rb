@@ -1,3 +1,17 @@
+# == Schema Information
+#
+# Table name: rankings
+#
+#   id                   integer(8)         not null, primary key
+#   name                 string(255)        not null
+#   ranking_type         integer(4)         not null, default(0)
+#   description          string(255)        
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_rankings_on_ranking_type on ranking_type
+#
+#
 # frozen_string_literal: true
 
 # 排行榜模型

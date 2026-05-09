@@ -1,3 +1,22 @@
+# == Schema Information
+#
+# Table name: chapters
+#
+#   id                   integer(8)         not null, primary key
+#   book_id              integer(4)         not null
+#   title                string(255)        not null
+#   sort_order           integer(4)         not null, default(0)
+#   content              text(65535)        
+#   is_free              boolean            not null, default(0)
+#   is_vip               boolean            not null, default(0)
+#   word_count           integer(4)         not null, default(0)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_chapters_on_book_id on book_id
+#  Index: index_chapters_on_book_id_and_sort_order on book_id, sort_order
+#
+#
 # frozen_string_literal: true
 
 # 章节模型

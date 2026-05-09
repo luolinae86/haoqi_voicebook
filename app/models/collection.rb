@@ -1,3 +1,22 @@
+# == Schema Information
+#
+# Table name: collections
+#
+#   id                   integer(8)         not null, primary key
+#   title                string(255)        not null
+#   description          text(65535)        
+#   cover_image          string(255)        
+#   sort_order           integer(4)         not null, default(0)
+#   collection_type      integer(4)         not null, default(0)
+#   target_grade_id      integer(4)         
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_collections_on_collection_type on collection_type
+#  Index: index_collections_on_target_grade_id on target_grade_id
+#  Index: index_collections_on_sort_order on sort_order
+#
+#
 # frozen_string_literal: true
 
 # 专题合集模型

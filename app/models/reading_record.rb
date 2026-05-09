@@ -1,3 +1,22 @@
+# == Schema Information
+#
+# Table name: reading_records
+#
+#   id                   integer(8)         not null, primary key
+#   app_user_id          integer(4)         not null
+#   book_id              integer(4)         not null
+#   chapter_id           integer(4)         
+#   words_read           integer(4)         not null, default(0)
+#   duration_minutes     integer(4)         not null, default(0)
+#   read_at              datetime           
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_reading_records_on_app_user_id on app_user_id
+#  Index: index_reading_records_on_book_id on book_id
+#  Index: index_reading_records_on_read_at on read_at
+#
+#
 # frozen_string_literal: true
 
 # 阅读记录模型

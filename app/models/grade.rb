@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: grades
+#
+#   id                   integer(8)         not null, primary key
+#   name                 string(255)        not null
+#   level                integer(4)         not null
+#   sort_order           integer(4)         not null, default(0)
+#   description          string(255)        
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_grades_on_level on level (unique)
+#  Index: index_grades_on_sort_order on sort_order
+#
+#
 # frozen_string_literal: true
 
 # 年级模型

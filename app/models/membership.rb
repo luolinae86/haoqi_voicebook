@@ -1,3 +1,23 @@
+# == Schema Information
+#
+# Table name: memberships
+#
+#   id                   integer(8)         not null, primary key
+#   app_user_id          integer(4)         not null
+#   plan_type            integer(4)         not null, default(0)
+#   price                decimal            not null
+#   original_price       decimal            
+#   start_date           date               not null
+#   end_date             date               not null
+#   status               integer(4)         not null, default(0)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_memberships_on_app_user_id on app_user_id
+#  Index: index_memberships_on_status on status
+#  Index: index_memberships_on_end_date on end_date
+#
+#
 # frozen_string_literal: true
 
 # 会员模型

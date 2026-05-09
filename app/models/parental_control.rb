@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: parental_controls
+#
+#   id                   integer(8)         not null, primary key
+#   app_user_id          integer(4)         not null
+#   password_digest      string(255)        not null
+#   phone                string(255)        
+#   time_limit_minutes   integer(4)         
+#   is_active            boolean            not null, default(1)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_parental_controls_on_app_user_id on app_user_id (unique)
+#
+#
 # frozen_string_literal: true
 
 # 家长管控模型

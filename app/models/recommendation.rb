@@ -1,3 +1,21 @@
+# == Schema Information
+#
+# Table name: recommendations
+#
+#   id                   integer(8)         not null, primary key
+#   title                string(255)        not null
+#   description          text(65535)        
+#   recommendation_type  integer(4)         not null, default(0)
+#   target_grade_id      integer(4)         
+#   sort_order           integer(4)         not null, default(0)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_recommendations_on_recommendation_type on recommendation_type
+#  Index: index_recommendations_on_target_grade_id on target_grade_id
+#  Index: index_recommendations_on_sort_order on sort_order
+#
+#
 # frozen_string_literal: true
 
 # 推荐模型

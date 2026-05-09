@@ -1,3 +1,24 @@
+# == Schema Information
+#
+# Table name: orders
+#
+#   id                   integer(8)         not null, primary key
+#   app_user_id          integer(4)         not null
+#   order_no             string(255)        not null
+#   amount               decimal            not null
+#   payment_method       integer(4)         not null, default(0)
+#   status               integer(4)         not null, default(0)
+#   paid_at              datetime           
+#   membership_id        integer(4)         
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_orders_on_order_no on order_no (unique)
+#  Index: index_orders_on_app_user_id on app_user_id
+#  Index: index_orders_on_status on status
+#  Index: index_orders_on_membership_id on membership_id
+#
+#
 # frozen_string_literal: true
 
 # 订单模型

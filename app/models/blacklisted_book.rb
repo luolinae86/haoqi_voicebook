@@ -1,3 +1,18 @@
+# == Schema Information
+#
+# Table name: blacklisted_books
+#
+#   id                   integer(8)         not null, primary key
+#   parental_control_id  integer(4)         not null
+#   book_id              integer(4)         not null
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_blacklisted_books_on_parental_control_id_and_book_id on parental_control_id, book_id (unique)
+#  Index: index_blacklisted_books_on_parental_control_id on parental_control_id
+#  Index: index_blacklisted_books_on_book_id on book_id
+#
+#
 # frozen_string_literal: true
 
 # 黑名单图书模型

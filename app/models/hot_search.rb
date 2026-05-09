@@ -1,3 +1,18 @@
+# == Schema Information
+#
+# Table name: hot_searches
+#
+#   id                   integer(8)         not null, primary key
+#   keyword              string(255)        not null
+#   search_count         integer(4)         not null, default(0)
+#   sort_order           integer(4)         not null, default(0)
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#
+#  Index: index_hot_searches_on_keyword on keyword (unique)
+#  Index: index_hot_searches_on_sort_order on sort_order
+#
+#
 # frozen_string_literal: true
 
 # 热门搜索模型

@@ -1,3 +1,51 @@
+# == Schema Information
+#
+# Table name: books
+#
+#   id                   integer(8)         not null, primary key
+#   title                string(255)        not null
+#   author               string(255)        
+#   publisher            string(255)        
+#   cover_image          string(255)        
+#   description          text(65535)        
+#   content_type         integer(4)         not null, default(0)
+#   is_free              boolean            not null, default(0)
+#   is_vip               boolean            not null, default(0)
+#   category_id          integer(4)         
+#   grade_id             integer(4)         
+#   play_count           integer(4)         not null, default(0)
+#   word_count           integer(4)         not null, default(0)
+#   rating               decimal            default(0.0)
+#   status               integer(4)         not null, default(0)
+#   isbn                 string(255)        
+#   created_at           datetime           not null
+#   updated_at           datetime           not null
+#   page_count           integer(4)         not null, default(0)
+#   import_status        integer(4)         not null, default(0)
+#   source_pdf_filename  string(255)        
+#   source_pdf_path      string(255)        
+#   ebook_checksum       string(255)        
+#   imported_at          datetime           
+#   import_error_message text(65535)        
+#   epub_oss_key         string(255)        
+#   epub_oss_url         string(255)        
+#   epub_export_status   integer(4)         default(0)
+#   epub_export_error    text(65535)        
+#   styles_oss_url       string(255)        
+#   nav_oss_url          string(255)        
+#
+#  Index: index_books_on_content_type on content_type
+#  Index: index_books_on_category_id on category_id
+#  Index: index_books_on_grade_id on grade_id
+#  Index: index_books_on_status on status
+#  Index: index_books_on_is_free on is_free
+#  Index: index_books_on_is_vip on is_vip
+#  Index: index_books_on_play_count on play_count
+#  Index: index_books_on_rating on rating
+#  Index: index_books_on_created_at on created_at
+#  Index: index_books_on_import_status on import_status
+#
+#
 # frozen_string_literal: true
 
 # 图书模型
