@@ -3,22 +3,23 @@
 # Table name: app_users
 #
 #   id                   integer(8)         not null, primary key
-#   phone                string(255)        
-#   password_digest      string(255)        
-#   nickname             string(255)        
-#   avatar               string(255)        
-#   grade_id             integer(4)         
+#   phone                string(255)
+#   password_digest      string(255)
+#   nickname             string(255)
+#   avatar               string(255)
+#   grade_id             integer(4)
 #   role                 integer(4)         not null, default(0)
 #   reading_words        integer(4)         not null, default(0)
 #   reading_minutes      integer(4)         not null, default(0)
 #   books_read           integer(4)         not null, default(0)
 #   is_vip               boolean            not null, default(0)
-#   vip_expires_at       datetime           
+#   vip_expires_at       datetime
 #   created_at           datetime           not null
 #   updated_at           datetime           not null
-#   device_id            string(64)         
-#   wechat_openid        string(255)        
-#   qq_openid            string(255)        
+#   device_id            string(64)
+#   wechat_openid        string(255)
+#   qq_openid            string(255)
+#   uuid                 string(32)         not null
 #
 #  Index: index_app_users_on_phone on phone (unique)
 #  Index: index_app_users_on_device_id on device_id (unique)
@@ -26,6 +27,7 @@
 #  Index: index_app_users_on_qq_openid on qq_openid (unique)
 #  Index: index_app_users_on_grade_id on grade_id
 #  Index: index_app_users_on_is_vip on is_vip
+#  Index: index_app_users_on_uuid on uuid (unique)
 #
 #
 # frozen_string_literal: true
@@ -37,6 +39,9 @@ class AppUser < ApplicationRecord
   has_secure_password validations: false # 密码加密（可选密码）
 
   before_validation :generate_device_id, on: :create
+  before_validation :generate_uuid
+
+  validates :uuid, uniqueness: true
 
   # 用户角色枚举
   enum :role, { child: 0, parent: 1, admin: 2 }, default: :child
@@ -78,5 +83,9 @@ class AppUser < ApplicationRecord
 
   def generate_device_id
     self.device_id = SecureRandom.uuid.delete("-") if new_record? && device_id.blank?
+  end
+
+  def generate_uuid
+    write_attribute(:uuid, SecureRandom.uuid.delete("-")) if new_record? || uuid.blank?
   end
 end
