@@ -12,11 +12,12 @@ module Api
       # 成功响应
       # @param data [Object] 响应数据
       # @param message [String] 成功消息
-      def success_response(data = nil, msg: "success")
+      def success_response(data = nil, msg: "success", **kwargs)
+        merged = kwargs.empty? ? data : (data.is_a?(Hash) ? data.merge(kwargs) : kwargs)
         {
           code: 0,
           msg: msg,
-          data: data
+          data: merged.presence
         }
       end
 
