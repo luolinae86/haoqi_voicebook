@@ -26,3 +26,12 @@ production:
   username: <%= ENV['DATABASE_PRD_USERNAME'] %>
   password: <%= ENV['DATABASE_PRD_PASSWORD'] %>
   host: <%= ENV['DATABASE_PRD_HOST'] %>
+
+staging:
+  <<: *default
+  pool: 20
+  database: <%= ENV['DATABASE_DEV_DATABASE'] %>
+  username: <%= ENV['DATABASE_DEV_USERNAME'] %>
+  password: <%= ENV['DATABASE_DEV_PASSWORD'] %>
+  host: <%= ENV['DATABASE_DEV_HOST'] %>
+  port: <%= ENV['DATABASE_DEV_PORT'] %>
