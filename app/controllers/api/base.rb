@@ -39,6 +39,7 @@ module Api
       tags: [
         { name: "app_users", description: "用户认证与管理" },
         { name: "books", description: "图书管理与电子书阅读" },
+        { name: "memberships", description: "会员订阅管理" },
         { name: "parental", description: "家长管控" }
       ],
       hide_documentation_path: false

@@ -86,10 +86,39 @@ module Api
                            end
 
           present response: success_response(
-                  order: Entities::Order.represent(order).as_json,
-                  payment_params: payment_params,
-                  msg: "订单创建成功，请完成支付"
-                )
+            order: Entities::Order.represent(order).as_json,
+            payment_params: payment_params,
+            msg: "订单创建成功，请完成支付"
+          )
+        end
+
+        # ==================== 查询订阅记录 ====================
+        desc "查询当前用户的会员订阅记录"
+        params do
+          requires :device_id, type: String, desc: "设备ID"
+        end
+        get :subscriptions do
+          auth_user
+
+          orders = Order.paid_with_membership(current_user)
+
+          items = orders.map do |order|
+            membership = order.membership
+            end_date = membership.end_date
+            days_left = [0, (end_date - Date.current).to_i].max
+            expired = end_date < Date.current
+
+            {
+              order_no: order.order_no,
+              plan_label: membership.plan_label,
+              price: order.amount,
+              paid_at: order.paid_at&.strftime("%Y-%m-%d %H:%M:%S") || "",
+              days_left: days_left,
+              expired: expired
+            }
+          end
+
+          present response: success_response(items: items)
         end
 
         # ==================== 支付宝异步回调 ====================

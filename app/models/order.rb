@@ -8,8 +8,8 @@
 #   amount               decimal            not null
 #   payment_method       integer(4)         not null, default(0)
 #   status               integer(4)         not null, default(0)
-#   paid_at              datetime           
-#   membership_id        integer(4)         
+#   paid_at              datetime
+#   membership_id        integer(4)
 #   created_at           datetime           not null
 #   updated_at           datetime           not null
 #
@@ -33,6 +33,14 @@ class Order < ApplicationRecord
   # 关联关系
   belongs_to :app_user, class_name: "AppUser" # 所属用户
   belongs_to :membership, optional: true # 关联会员
+
+  # 作用域
+  scope :paid_with_membership, lambda { |user|
+    joins(:membership)
+      .where(app_user: user, status: :paid)
+      .includes(:membership)
+      .order(created_at: :desc)
+  }
 
   # 验证规则
   validates :order_no, presence: true, uniqueness: true # 订单号必填且唯一

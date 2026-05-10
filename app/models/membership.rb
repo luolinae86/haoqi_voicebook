@@ -6,7 +6,7 @@
 #   app_user_id          integer(4)         not null
 #   plan_type            integer(4)         not null, default(0)
 #   price                decimal            not null
-#   original_price       decimal            
+#   original_price       decimal
 #   start_date           date               not null
 #   end_date             date               not null
 #   status               integer(4)         not null, default(0)
@@ -57,7 +57,7 @@ class Membership < ApplicationRecord
   PLAN_LABELS = { monthly: "月度会员", quarterly: "季度会员", annual: "年度会员" }.freeze
 
   def plan_label
-    PLAN_LABELS[plan_type]
+    PLAN_LABELS[plan_type.to_sym]
   end
 
   # 会员套餐价格配置（单位：元）
