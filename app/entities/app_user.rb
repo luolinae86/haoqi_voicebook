@@ -8,6 +8,7 @@ module Entities
     expose :avatar
     expose :device_id
     expose :uuid
+    expose :grade_id
     expose :reading_words
     expose :reading_minutes
     expose :books_read

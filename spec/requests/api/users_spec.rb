@@ -20,7 +20,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:expires_in]).to eq(300)
+        expect(json_response[:response][:data][:expires_in]).to eq(300)
       end
 
       it "创建短信验证记录" do
@@ -36,7 +36,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("手机号格式不正确")
+        expect(json_response[:response][:msg]).to eq("手机号格式不正确")
         expect(json_response[:response][:data]).to be_nil
       end
     end
@@ -55,7 +55,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(json_response[:response][:msg]).to eq("未授权访问")
       end
     end
 
@@ -89,7 +89,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:user]).to be_present
+        expect(json_response[:response][:data][:user]).to be_present
       end
     end
 
@@ -99,7 +99,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(json_response[:response][:msg]).to eq("未授权访问")
       end
     end
 
@@ -109,7 +109,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
+        expect(json_response[:response][:msg]).to eq("验证码无效或已过期")
       end
     end
 
@@ -137,7 +137,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
+        expect(json_response[:response][:msg]).to eq("验证码无效或已过期")
       end
     end
   end
@@ -150,8 +150,8 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:user]).to be_present
-        expect(json_response[:user][:phone]).to eq(user.phone)
+        expect(json_response[:response][:data][:user]).to be_present
+        expect(json_response[:response][:data][:user][:phone]).to eq(user.phone)
       end
     end
 
@@ -161,7 +161,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(json_response[:response][:msg]).to eq("未授权访问")
       end
     end
 
@@ -171,7 +171,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("手机号或密码错误")
+        expect(json_response[:response][:msg]).to eq("手机号或密码错误")
       end
     end
 
@@ -181,7 +181,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("手机号或密码错误")
+        expect(json_response[:response][:msg]).to eq("手机号或密码错误")
       end
     end
   end
@@ -220,7 +220,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(json_response[:response][:msg]).to eq("未授权访问")
       end
     end
 
@@ -269,7 +269,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(json_response[:response][:msg]).to eq("未授权访问")
       end
     end
 
@@ -306,7 +306,7 @@ RSpec.describe "API Users", type: :request do
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(1002)
-      expect(json_response[:response][:message]).to eq("未授权访问")
+      expect(json_response[:response][:msg]).to eq("未授权访问")
     end
 
     it "重置后可用新密码登录" do
@@ -317,7 +317,7 @@ RSpec.describe "API Users", type: :request do
       post "/api/app_users/login_by_password", params: { device_id: user.device_id, phone: user.phone, password: "new_password456" }
 
       expect(json_response[:response][:code]).to eq(0)
-      expect(json_response[:user]).to be_present
+      expect(json_response[:response][:data][:user]).to be_present
     end
 
     context "验证码错误" do
@@ -328,7 +328,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
+        expect(json_response[:response][:msg]).to eq("验证码无效或已过期")
       end
     end
 
@@ -342,7 +342,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("验证码无效或已过期")
+        expect(json_response[:response][:msg]).to eq("验证码无效或已过期")
       end
     end
   end
@@ -355,7 +355,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:user][:nickname]).to eq("小明同学")
+        expect(json_response[:response][:data][:user][:nickname]).to eq("小明同学")
       end
     end
 
@@ -365,7 +365,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1001)
-        expect(json_response[:response][:message]).to eq("没有需要更新的字段")
+        expect(json_response[:response][:msg]).to eq("没有需要更新的字段")
       end
     end
 
@@ -375,7 +375,7 @@ RSpec.describe "API Users", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
-        expect(json_response[:response][:message]).to eq("未授权访问")
+        expect(json_response[:response][:msg]).to eq("未授权访问")
       end
     end
   end

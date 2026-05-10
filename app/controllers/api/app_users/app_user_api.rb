@@ -119,17 +119,22 @@ module Api
         end
 
         # ==================== 更新用户资料 ====================
-        desc "更新用户资料（昵称等）"
+        desc "更新用户资料（昵称、年纪等）"
         params do
           requires :device_id, type: String, desc: "设备ID"
           optional :nickname, type: String, desc: "昵称（最长50字）"
+          optional :grade_id, type: Integer, desc: "年纪（grade_id）"
         end
         put :update_profile do
           auth_user
 
-          error_pop_resp("没有需要更新的字段") if params[:nickname].blank?
+          error_pop_resp("没有需要更新的字段") if params[:nickname].blank? && params[:grade_id].nil?
 
-          current_user.update!(nickname: params[:nickname])
+          attrs = {}
+          attrs[:nickname] = params[:nickname] if params[:nickname].present?
+          attrs[:grade_id] = params[:grade_id] unless params[:grade_id].nil?
+
+          current_user.update!(attrs)
           present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
         end
 
