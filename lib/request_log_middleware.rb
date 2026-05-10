@@ -13,6 +13,16 @@ class RequestLogMiddleware
     setup_logger
   end
 
+  # 忽略无意义的请求路径（健康检查、静态资源等）
+  IGNORED_PATHS = %w[
+    /up
+    /favicon.ico
+    /
+    /robots.txt
+    /browserconfig.xml
+    /site.webmanifest
+  ].freeze
+
   def call(env)
     start_time = Time.current
     db_runtime = 0
@@ -41,12 +51,16 @@ class RequestLogMiddleware
       ActiveSupport::Notifications.unsubscribe(subscriber)
     end
 
+    method = env["REQUEST_METHOD"]
+    path = env["PATH_INFO"]
+
+    # 忽略无意义的请求
+    return [status, headers, body] if should_skip_log?(method, path)
+
     end_time = Time.current
     total_ms = ((end_time - start_time) * 1000).round
     view_ms = [0, total_ms - db_runtime].max
 
-    method = env["REQUEST_METHOD"]
-    path = env["PATH_INFO"]
     params_str = collect_params(env, raw_body)
 
     formatted = "[#{start_time.strftime('%Y-%m-%d %H:%M:%S %z')}] " \
@@ -60,6 +74,13 @@ class RequestLogMiddleware
   end
 
   private
+
+  def should_skip_log?(method, path)
+    return false unless method == "GET"
+    return true if IGNORED_PATHS.include?(path)
+
+    false
+  end
 
   def setup_logger
     @logger = Logger.new(@log_path, 10, 100.megabytes)
@@ -85,7 +106,7 @@ class RequestLogMiddleware
         # 尝试解析为 form-urlencoded
         parsed = Rack::Utils.parse_query(raw_body)
         # form-urlencoded 的 key 不会包含换行符，如果 key 中有换行说明是 multipart 被错误解析了
-        is_valid_form = parsed.all? { |k, _| !k.include?("\n") && !k.include?("\r") }
+        is_valid_form = parsed.all? { |k, _| k.exclude?("\n") && k.exclude?("\r") }
         parsed = {} unless is_valid_form
         if parsed.empty?
           # multipart/form-data: 按 boundary 分隔后提取 name 和值

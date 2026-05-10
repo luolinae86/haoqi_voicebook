@@ -28,7 +28,7 @@ Rails.application.configure do
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to file with the current request id as a default log tag.
-  config.log_tags = [ :request_id ]
+  config.log_tags = [:request_id]
   config.logger   = ActiveSupport::TaggedLogging.new(
     ActiveSupport::Logger.new(Rails.root.join("log/#{Rails.env}.log"), 10, 100.megabytes)
   )
@@ -36,8 +36,10 @@ Rails.application.configure do
   # Change to "debug" to log everything (including potentially personally-identifiable information!).
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-  # Prevent health checks from clogging up the logs.
-  config.silence_healthcheck_path = "/up"
+  # Prevent health checks and static paths from clogging up the logs.
+  config.silence_healthcheck_path = lambda { |path|
+    %w[/ /up /favicon.ico /robots.txt /browserconfig.xml /site.webmanifest].include?(path)
+  }
 
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
@@ -56,7 +58,7 @@ Rails.application.configure do
   config.active_record.dump_schema_after_migration = false
 
   # Only use :id for inspections in production.
-  config.active_record.attributes_for_inspect = [ :id ]
+  config.active_record.attributes_for_inspect = [:id]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
