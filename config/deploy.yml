@@ -28,7 +28,7 @@ registry:
 env:
   clear:
     RAILS_ENV: production
-    WEB_CONCURRENCY: 2
+    WEB_CONCURRENCY: 1
     RAILS_MAX_THREADS: 5
     TZ: Asia/Shanghai
   secret:
