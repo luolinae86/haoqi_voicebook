@@ -6,7 +6,9 @@ module Entities
     expose :phone
     expose :nickname
     expose :avatar
-    expose :device_id
+    expose :device_id do |instance, _|
+      instance.devices.order(:created_at).last&.device_id || instance.device_id
+    end
     expose :uuid
     expose :grade_id
     expose :reading_words

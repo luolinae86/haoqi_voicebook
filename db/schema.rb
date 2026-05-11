@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_09_120101) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_11_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -226,10 +226,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_120101) do
     t.string "banner_image_name", comment: "合辑banner图片文件名"
     t.string "landscape_cover_url", comment: "横图封面URL (1125x540, <=500KB)"
     t.string "landscape_cover_name", comment: "横图封面文件名"
-    t.string "portrait_cover_url", comment: "长方形封面URL (600x768, <=300KB)"
-    t.string "portrait_cover_name", comment: "长方形封面文件名"
-    t.string "square_cover_url", comment: "正方形封面URL (600x600, <=300KB)"
-    t.string "square_cover_name", comment: "正方形封面文件名"
     t.string "editor_recommendation", limit: 15, comment: "编辑推荐语（15字以内）"
     t.string "publisher", comment: "出版社"
     t.integer "total_count", default: 0, comment: "合辑总集数"
@@ -241,6 +237,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_120101) do
     t.text "description", comment: "内容简介"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "portrait_cover_url"
+    t.string "portrait_cover_name"
+    t.string "square_cover_url"
+    t.string "square_cover_name"
     t.index ["name"], name: "index_compilations_on_name", unique: true
   end
 
@@ -266,6 +266,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_120101) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["content_group_id"], name: "index_contents_on_content_group_id"
+  end
+
+  create_table "devices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "app_user_id", null: false
+    t.string "device_id", limit: 64, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_user_id"], name: "index_devices_on_app_user_id"
+    t.index ["device_id"], name: "index_devices_on_device_id", unique: true
   end
 
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
@@ -379,6 +388,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_120101) do
   add_foreign_key "compilation_grades", "grades"
   add_foreign_key "content_groups", "recommends"
   add_foreign_key "contents", "content_groups"
+  add_foreign_key "devices", "app_users"
   add_foreign_key "ebook_pages", "books"
   add_foreign_key "recommends", "grades"
 end

@@ -16,7 +16,13 @@ module Api
           requires :device_id, type: String, desc: "设备ID"
         end
         post :create_by_device do
-          user = AppUser.find_or_create_by!(device_id: params[:device_id])
+          device = Device.find_by(device_id: params[:device_id])
+          if device
+            user = device.app_user
+          else
+            user = AppUser.create!
+            Device.bind!(params[:device_id], user)
+          end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
@@ -39,57 +45,73 @@ module Api
         end
 
         # ==================== 验证码登录 ====================
-        desc "手机号+验证码登录/注册"
+        desc "手机号+验证码登录/注册（支持多设备共享同一账户）"
         params do
           requires :device_id, type: String, desc: "设备ID"
           requires :phone, type: String, desc: "手机号"
           requires :code, type: String, desc: "验证码"
         end
         post :login_by_code do
-          auth_user
+          # 验证码登录不需要预先 auth_user，因为 device_id 可能是新设备
+          device = Device.find_by(device_id: params[:device_id])
+          error_pop_resp("设备未注册，请先调用 create_by_device") unless device
 
           find_and_consume_verification(params[:phone], params[:code])
 
-          user = AppUser.find_by!(device_id: params[:device_id])
-          user.update!(phone: params[:phone]) if user.phone.blank?
+          existing_user = AppUser.find_by(phone: params[:phone])
+          if existing_user
+            # 手机号已绑定其他账户，将当前设备绑定到该账户
+            device.update!(app_user: existing_user)
+            user = existing_user
+          else
+            # 首次使用该手机号，绑定到当前设备用户
+            device.app_user.update!(phone: params[:phone])
+            user = device.app_user
+          end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 密码登录 ====================
-        desc "手机号+密码登录"
+        desc "手机号+密码登录（支持多设备共享同一账户）"
         params do
           requires :device_id, type: String, desc: "设备ID"
           requires :phone, type: String, desc: "手机号"
           requires :password, type: String, desc: "密码"
         end
         post :login_by_password do
-          auth_user
+          device = Device.find_by(device_id: params[:device_id])
+          error_pop_resp("设备未注册，请先调用 create_by_device") unless device
 
           user = AppUser.find_by(phone: params[:phone])
           error_pop_resp("手机号或密码错误") if user.nil? || !user.authenticate(params[:password])
+
+          # 将当前设备绑定到该账户（如果尚未绑定）
+          device.update!(app_user: user) if device.app_user_id != user.id
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 微信登录 ====================
-        desc "微信授权登录"
+        desc "微信授权登录（支持多设备共享同一账户）"
         params do
           requires :device_id, type: String, desc: "设备ID"
           requires :code, type: String, desc: "微信授权码"
         end
         post :login_by_wechat do
-          auth_user
+          device = Device.find_by(device_id: params[:device_id])
+          error_pop_resp("设备未注册，请先调用 create_by_device") unless device
 
           openid = WechatAuthService.new.get_openid(params[:code])
 
           existing_user = AppUser.find_by(wechat_openid: openid)
           if existing_user
-            # 该微信已绑定过，直接返回该账号
+            # 该微信已绑定过，将当前设备绑定到该账户
+            device.update!(app_user: existing_user)
             user = existing_user
           else
             # 首次微信登录，绑定到当前设备用户
-            user = AppUser.find_by!(device_id: params[:device_id])
+            user = device.app_user
             user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}") unless user.wechat_openid.present?
           end
 
@@ -97,21 +119,23 @@ module Api
         end
 
         # ==================== QQ登录 ====================
-        desc "QQ授权登录"
+        desc "QQ授权登录（支持多设备共享同一账户）"
         params do
           requires :device_id, type: String, desc: "设备ID"
           requires :code, type: String, desc: "QQ授权码"
         end
         post :login_by_qq do
-          auth_user
+          device = Device.find_by(device_id: params[:device_id])
+          error_pop_resp("设备未注册，请先调用 create_by_device") unless device
 
           openid = QqAuthService.new.get_openid_by_code(params[:code])
 
           existing_user = AppUser.find_by(qq_openid: openid)
           if existing_user
+            device.update!(app_user: existing_user)
             user = existing_user
           else
-            user = AppUser.find_by!(device_id: params[:device_id])
+            user = device.app_user
             user.update!(qq_openid: openid, nickname: "QQ用户#{openid[-4..]}") unless user.qq_openid.present?
           end
 
@@ -147,12 +171,16 @@ module Api
           requires :password, type: String, desc: "新密码"
         end
         post :reset_password do
-          auth_user
+          device = Device.find_by(device_id: params[:device_id])
+          error_pop_resp("设备未注册，请先调用 create_by_device") unless device
 
           find_and_consume_verification(params[:phone], params[:code])
 
           user = AppUser.find_by!(phone: params[:phone])
           user.update!(password: params[:password])
+
+          # 将当前设备绑定到该账户
+          device.update!(app_user: user) if device.app_user_id != user.id
 
           present response: success_response
         end

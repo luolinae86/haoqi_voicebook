@@ -13,7 +13,11 @@ module Api
       # @param data [Object] 响应数据
       # @param message [String] 成功消息
       def success_response(data = nil, msg: "success", **kwargs)
-        merged = kwargs.empty? ? data : (data.is_a?(Hash) ? data.merge(kwargs) : kwargs)
+        merged = if kwargs.empty?
+                   data
+                 else
+                   (data.is_a?(Hash) ? data.merge(kwargs) : kwargs)
+                 end
         {
           code: 0,
           msg: msg,
@@ -73,9 +77,15 @@ module Api
       # ==================== 认证相关 ====================
 
       # 根据 device_id 查找当前用户
+      # 优先通过 Device 表查找（支持多设备登录），回退到旧版 app_users.device_id
       # @return [AppUser, nil]
       def current_user
-        @current_user ||= AppUser.find_by(device_id: params[:device_id])
+        @current_user ||= begin
+          Device.find_user_by_device_id(params[:device_id]) || AppUser.find_by(device_id: params[:device_id])
+        rescue ActiveRecord::StatementInvalid
+          # Device 表尚未创建时回退到旧版
+          AppUser.find_by(device_id: params[:device_id])
+        end
       end
 
       # 验证用户已授权（device_id 有效）

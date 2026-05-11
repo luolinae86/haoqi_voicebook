@@ -14,6 +14,11 @@ FactoryBot.define do
     reading_minutes { 0 }
     books_read { 0 }
 
+    after(:create) do |user|
+      # 为每个用户创建一个默认设备
+      create(:device, app_user: user) unless user.devices.any?
+    end
+
     # 管理员
     trait :admin do
       role { :admin }
@@ -37,5 +42,10 @@ FactoryBot.define do
       reading_minutes { Faker::Number.between(from: 60, to: 5000) }
       books_read { Faker::Number.between(from: 1, to: 50) }
     end
+  end
+
+  factory :device do
+    sequence(:device_id) { |n| "device_#{n}_#{SecureRandom.hex(16)}" }
+    app_user
   end
 end

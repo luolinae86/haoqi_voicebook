@@ -47,6 +47,7 @@ class AppUser < ApplicationRecord
   enum :role, { child: 0, parent: 1, admin: 2 }, default: :child
 
   # 关联关系
+  has_many :devices, dependent: :destroy # 设备绑定（一个账户可绑定多个设备）
   has_many :bookshelves, dependent: :destroy # 用户书架
   has_many :shelf_books, through: :bookshelves, source: :book # 书架上的图书
   has_many :memberships, dependent: :destroy             # 会员记录
@@ -70,6 +71,11 @@ class AppUser < ApplicationRecord
     is_vip? && vip_expires_at.present? && vip_expires_at > Time.current
   end
 
+  # 获取当前设备ID（优先从 devices 表，回退到旧字段兼容）
+  def device_id
+    devices.order(:created_at).last&.device_id || super
+  end
+
   # 更新阅读统计
   def update_reading_stats!(words: 0, minutes: 0, books: 0)
     increment!(:reading_words, words) if words > 0
@@ -84,6 +90,6 @@ class AppUser < ApplicationRecord
   end
 
   def generate_uuid
-    write_attribute(:uuid, SecureRandom.uuid.delete("-")) if new_record? || uuid.blank?
+    self[:uuid] = SecureRandom.uuid.delete("-") if new_record? || uuid.blank?
   end
 end
