@@ -1,23 +1,24 @@
 # == Schema Information
 #
-# Table name: orders
+# Table name: orders(订单表)
 #
-#   id                   integer(8)         not null, primary key
-#   app_user_id          integer(4)         not null
-#   order_no             string(255)        not null
-#   amount               decimal            not null
-#   payment_method       integer(4)         not null, default(0)
-#   status               integer(4)         not null, default(0)
-#   paid_at              datetime
-#   membership_id        integer(4)
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
+#  id                                              :bigint           not null, primary key
+#  amount(金额)                                    :decimal(10, 2)   not null
+#  order_no(订单号)                                :string(255)      not null
+#  paid_at(支付时间)                               :datetime
+#  payment_method(支付方式：0-支付宝 1-微信)       :integer          default("alipay"), not null
+#  status(状态：0-待支付 1-已支付 2-失败 3-已退款) :integer          default("pending"), not null
+#  created_at                                      :datetime         not null
+#  updated_at                                      :datetime         not null
+#  app_user_id(用户ID)                             :integer          not null
+#  membership_id(会员ID)                           :integer
 #
-#  Index: index_orders_on_order_no on order_no (unique)
-#  Index: index_orders_on_app_user_id on app_user_id
-#  Index: index_orders_on_status on status
-#  Index: index_orders_on_membership_id on membership_id
+# Indexes
 #
+#  index_orders_on_app_user_id    (app_user_id)
+#  index_orders_on_membership_id  (membership_id)
+#  index_orders_on_order_no       (order_no) UNIQUE
+#  index_orders_on_status         (status)
 #
 # frozen_string_literal: true
 

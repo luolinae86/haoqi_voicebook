@@ -2,17 +2,18 @@
 #
 # Table name: bookmarks
 #
-#   id                   integer(8)         not null, primary key
-#   app_user_id          integer(4)         not null
-#   book_id              integer(4)         not null
-#   chapter_id           integer(4)         
-#   position             decimal            default(0.00)
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
+#  id                  :bigint           not null, primary key
+#  position(位置(%))   :decimal(5, 2)    default(0.0)
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  app_user_id(用户ID) :integer          not null
+#  book_id(图书ID)     :integer          not null
+#  chapter_id(章节ID)  :integer
 #
-#  Index: index_bookmarks_on_app_user_id on app_user_id
-#  Index: index_bookmarks_on_book_id on book_id
+# Indexes
 #
+#  index_bookmarks_on_app_user_id  (app_user_id)
+#  index_bookmarks_on_book_id      (book_id)
 #
 # frozen_string_literal: true
 

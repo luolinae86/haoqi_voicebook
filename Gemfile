@@ -22,6 +22,7 @@ gem "sidekiq", "~> 7.3"
 gem "tzinfo-data", platforms: %i[windows jruby]
 
 group :development, :test do
+  gem "annotaterb", "~> 4.22"
   gem "database_cleaner-active_record"
   gem "factory_bot_rails"
   gem "faker"

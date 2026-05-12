@@ -1,34 +1,35 @@
 # == Schema Information
 #
-# Table name: app_users
+# Table name: app_users(用户表)
 #
-#   id                   integer(8)         not null, primary key
-#   phone                string(255)
-#   password_digest      string(255)
-#   nickname             string(255)
-#   avatar               string(255)
-#   grade_id             integer(4)
-#   role                 integer(4)         not null, default(0)
-#   reading_words        integer(4)         not null, default(0)
-#   reading_minutes      integer(4)         not null, default(0)
-#   books_read           integer(4)         not null, default(0)
-#   is_vip               boolean            not null, default(0)
-#   vip_expires_at       datetime
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
-#   device_id            string(64)
-#   wechat_openid        string(255)
-#   qq_openid            string(255)
-#   uuid                 string(32)         not null
+#  id                                 :bigint           not null, primary key
+#  avatar(头像URL)                    :string(255)
+#  books_read(读过的书(本))           :integer          default(0), not null
+#  is_vip(是否VIP)                    :boolean          default(FALSE), not null
+#  nickname(昵称)                     :string(255)
+#  password_digest(加密密码)          :string(255)
+#  phone(手机号)                      :string(255)
+#  qq_openid(QQ openid)               :string(255)
+#  reading_minutes(阅读时长(分钟))    :integer          default(0), not null
+#  reading_words(阅读字数)            :integer          default(0), not null
+#  role(角色：0-孩子 1-家长 2-管理员) :integer          default("child"), not null
+#  uuid                               :string(255)      not null
+#  vip_expires_at(VIP过期时间)        :datetime
+#  wechat_openid(微信openid)          :string(255)
+#  created_at                         :datetime         not null
+#  updated_at                         :datetime         not null
+#  device_id                          :string(64)
+#  grade_id(年级ID)                   :bigint
 #
-#  Index: index_app_users_on_phone on phone (unique)
-#  Index: index_app_users_on_device_id on device_id (unique)
-#  Index: index_app_users_on_wechat_openid on wechat_openid (unique)
-#  Index: index_app_users_on_qq_openid on qq_openid (unique)
-#  Index: index_app_users_on_grade_id on grade_id
-#  Index: index_app_users_on_is_vip on is_vip
-#  Index: index_app_users_on_uuid on uuid (unique)
+# Indexes
 #
+#  index_app_users_on_device_id      (device_id) UNIQUE
+#  index_app_users_on_grade_id       (grade_id)
+#  index_app_users_on_is_vip         (is_vip)
+#  index_app_users_on_phone          (phone) UNIQUE
+#  index_app_users_on_qq_openid      (qq_openid) UNIQUE
+#  index_app_users_on_uuid           (uuid) UNIQUE
+#  index_app_users_on_wechat_openid  (wechat_openid) UNIQUE
 #
 # frozen_string_literal: true
 

@@ -2,6 +2,25 @@
 
 # 设备模型
 # 一个账户可以绑定多个设备，实现多设备登录共享数据
+# == Schema Information
+#
+# Table name: devices
+#
+#  id          :bigint           not null, primary key
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  app_user_id :bigint           not null
+#  device_id   :string(64)       not null
+#
+# Indexes
+#
+#  index_devices_on_app_user_id  (app_user_id)
+#  index_devices_on_device_id    (device_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (app_user_id => app_users.id)
+#
 class Device < ApplicationRecord
   belongs_to :app_user, class_name: "AppUser"
 

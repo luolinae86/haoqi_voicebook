@@ -1,5 +1,30 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: chapters
+#
+#  id                                             :bigint           not null, primary key
+#  content_file_name(章节内容文件名)              :string(255)
+#  content_file_type(内容文件类型 (epub/pdf/txt)) :string(255)
+#  content_file_url(章节内容文件URL)              :string(255)
+#  cover_image_url(章节封面图片URL)               :string(255)
+#  is_free(是否免费)                              :boolean          default(FALSE)
+#  is_published(是否上线)                         :boolean          default(FALSE)
+#  name(章节名称)                                 :string(255)      not null
+#  sn(排序)                                       :integer          default(0)
+#  created_at                                     :datetime         not null
+#  updated_at                                     :datetime         not null
+#  book_id(所属绘本)                              :bigint           not null
+#
+# Indexes
+#
+#  index_chapters_on_book_id  (book_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (book_id => books.id)
+#
 class Chapter < ApplicationRecord
   belongs_to :book
 

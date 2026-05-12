@@ -1,18 +1,19 @@
 # == Schema Information
 #
-# Table name: parental_controls
+# Table name: parental_controls(家长管控表)
 #
-#   id                   integer(8)         not null, primary key
-#   app_user_id          integer(4)         not null
-#   password_digest      string(255)        not null
-#   phone                string(255)        
-#   time_limit_minutes   integer(4)         
-#   is_active            boolean            not null, default(1)
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
+#  id                                 :bigint           not null, primary key
+#  is_active(是否启用)                :boolean          default(TRUE), not null
+#  password_digest(家长密码)          :string(255)      not null
+#  phone(家长手机号)                  :string(255)
+#  time_limit_minutes(时间限制(分钟)) :integer
+#  created_at                         :datetime         not null
+#  updated_at                         :datetime         not null
+#  app_user_id(用户ID)                :integer          not null
 #
-#  Index: index_parental_controls_on_app_user_id on app_user_id (unique)
+# Indexes
 #
+#  index_parental_controls_on_app_user_id  (app_user_id) UNIQUE
 #
 # frozen_string_literal: true
 

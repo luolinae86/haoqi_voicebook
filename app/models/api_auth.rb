@@ -1,16 +1,17 @@
 # == Schema Information
 #
-# Table name: api_auths
+# Table name: api_auths(API认证表)
 #
-#   id                   integer(8)         not null, primary key
-#   name                 string(255)        not null
-#   access_key_id        string(255)        not null
-#   access_key_secret    string(255)        not null
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
+#  id                            :bigint           not null, primary key
+#  access_key_secret(客户端密钥) :string(255)      not null
+#  name(客户端名称)              :string(255)      not null
+#  created_at                    :datetime         not null
+#  updated_at                    :datetime         not null
+#  access_key_id(客户端ID)       :string(255)      not null
 #
-#  Index: index_api_auths_on_access_key_id on access_key_id (unique)
+# Indexes
 #
+#  index_api_auths_on_access_key_id  (access_key_id) UNIQUE
 #
 # frozen_string_literal: true
 

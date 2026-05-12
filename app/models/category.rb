@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: categories
+#
+#  id         :bigint           not null, primary key
+#  active     :boolean          default(TRUE)
+#  level      :integer          default(1), not null
+#  name       :string(255)      not null
+#  sn         :integer          default(0)
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_categories_on_level  (level)
+#
 class Category < ApplicationRecord
   has_and_belongs_to_many :compilations, join_table: :compilation_categories
   has_many :books

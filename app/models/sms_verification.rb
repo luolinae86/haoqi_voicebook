@@ -1,18 +1,19 @@
 # == Schema Information
 #
-# Table name: sms_verifications
+# Table name: sms_verifications(短信验证码表)
 #
-#   id                   integer(8)         not null, primary key
-#   phone                string(255)        not null
-#   code                 string(255)        not null
-#   verified             boolean            not null, default(0)
-#   expires_at           datetime           not null
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
+#  id                   :bigint           not null, primary key
+#  code(验证码)         :string(255)      not null
+#  expires_at(过期时间) :datetime         not null
+#  phone(手机号)        :string(255)      not null
+#  verified(是否已验证) :boolean          default(FALSE), not null
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
 #
-#  Index: index_sms_verifications_on_phone_and_code on phone, code
-#  Index: index_sms_verifications_on_expires_at on expires_at
+# Indexes
 #
+#  index_sms_verifications_on_expires_at      (expires_at)
+#  index_sms_verifications_on_phone_and_code  (phone,code)
 #
 # frozen_string_literal: true
 

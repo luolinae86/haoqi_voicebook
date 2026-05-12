@@ -2,12 +2,11 @@
 #
 # Table name: book_levels
 #
-#  id         :bigint           not null, primary key
-#  name      :string(50)      not null              # 等级名称
-#  sn        :integer         not null, default: 0  # 序号
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  deleted_at :datetime         # 软删除
+#  id             :bigint           not null, primary key
+#  name(等级名称) :string(50)       not null
+#  sn(序号)       :integer          default(0), not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
 #
 class BookLevel < ApplicationRecord
   validates :name, presence: true, length: { maximum: 50 }

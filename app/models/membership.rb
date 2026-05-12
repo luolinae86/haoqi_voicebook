@@ -1,22 +1,23 @@
 # == Schema Information
 #
-# Table name: memberships
+# Table name: memberships(会员表)
 #
-#   id                   integer(8)         not null, primary key
-#   app_user_id          integer(4)         not null
-#   plan_type            integer(4)         not null, default(0)
-#   price                decimal            not null
-#   original_price       decimal
-#   start_date           date               not null
-#   end_date             date               not null
-#   status               integer(4)         not null, default(0)
-#   created_at           datetime           not null
-#   updated_at           datetime           not null
+#  id                                              :bigint           not null, primary key
+#  end_date(结束日期)                              :date             not null
+#  original_price(原价)                            :decimal(10, 2)
+#  plan_type(套餐：0-月度 1-季度 2-年度)           :integer          default("monthly"), not null
+#  price(实付价格)                                 :decimal(10, 2)   not null
+#  start_date(开始日期)                            :date             not null
+#  status(状态：0-待支付 1-有效 2-已过期 3-已取消) :integer          default("pending"), not null
+#  created_at                                      :datetime         not null
+#  updated_at                                      :datetime         not null
+#  app_user_id(用户ID)                             :integer          not null
 #
-#  Index: index_memberships_on_app_user_id on app_user_id
-#  Index: index_memberships_on_status on status
-#  Index: index_memberships_on_end_date on end_date
+# Indexes
 #
+#  index_memberships_on_app_user_id  (app_user_id)
+#  index_memberships_on_end_date     (end_date)
+#  index_memberships_on_status       (status)
 #
 # frozen_string_literal: true
 
