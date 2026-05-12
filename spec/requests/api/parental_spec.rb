@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe "API Parental Control", type: :request do
   let(:user) { create(:app_user) }
-  let(:auth_params) { { device_id: user.device_id } }
+  let(:auth_params) { { uuid: user.uuid } }
 
   # ==================== 设置家长密码 ====================
   describe "POST /api/parental/setup" do

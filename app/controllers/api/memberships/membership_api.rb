@@ -19,7 +19,7 @@ module Api
         # ==================== 获取会员套餐列表 ====================
         desc "获取会员套餐列表（年度/季度/月度）"
         params do
-          requires :device_id, type: String, desc: "设备ID"
+          requires :uuid, type: String, desc: "用户uuid"
         end
         get :plans do
           auth_user
@@ -39,7 +39,7 @@ module Api
         # ==================== 创建会员订单 ====================
         desc "创建会员购买订单，返回支付参数"
         params do
-          requires :device_id, type: String, desc: "设备ID"
+          requires :uuid, type: String, desc: "用户uuid"
           requires :plan_type, type: String, desc: "套餐类型：monthly/quarterly/annual", values: %w[monthly quarterly annual]
           requires :payment_method, type: String, desc: "支付方式：alipay/wechat", values: %w[alipay wechat]
         end
@@ -95,7 +95,7 @@ module Api
         # ==================== 查询订阅记录 ====================
         desc "查询当前用户的会员订阅记录"
         params do
-          requires :device_id, type: String, desc: "设备ID"
+          requires :uuid, type: String, desc: "用户uuid"
         end
         get :subscriptions do
           auth_user

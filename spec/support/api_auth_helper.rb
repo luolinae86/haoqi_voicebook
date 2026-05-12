@@ -3,7 +3,7 @@
 # API 认证辅助方法
 module ApiAuthHelper
   def auth_headers(user)
-    { "device_id" => user.device_id }
+    { "uuid" => user.uuid }
   end
 end
 

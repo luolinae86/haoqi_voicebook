@@ -12,7 +12,7 @@ module Api
         # ==================== 导入 EPUB 电子书 ====================
         desc "从 OSS 上的 EPUB 文件导入电子书"
         params do
-          requires :device_id, type: String, desc: "设备ID"
+          requires :uuid, type: String, desc: "用户uuid"
           optional :book_id, type: Integer, desc: "已有图书ID"
           optional :title, type: String, desc: "书名"
           optional :author, type: String, desc: "作者"
@@ -45,7 +45,7 @@ module Api
         # ==================== 异步导出 EPUB ====================
         desc "从 OSS 上的 PDF 异步生成 EPUB"
         params do
-          requires :device_id, type: String, desc: "设备ID"
+          requires :uuid, type: String, desc: "用户uuid"
           requires :book_id, type: Integer, desc: "图书ID"
           requires :pdf_oss_key, type: String, desc: "PDF 文件在 OSS 上的路径"
           optional :force_image_pages, type: Boolean, desc: "是否强制整页图片模式"

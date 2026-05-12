@@ -76,19 +76,15 @@ module Api
 
       # ==================== 认证相关 ====================
 
-      # 根据 device_id 查找当前用户
-      # 优先通过 Device 表查找（支持多设备登录），回退到旧版 app_users.device_id
+      # 根据 uuid 查找当前用户
       # @return [AppUser, nil]
       def current_user
-        @current_user ||= begin
-          Device.find_user_by_device_id(params[:device_id]) || AppUser.find_by(device_id: params[:device_id])
-        rescue ActiveRecord::StatementInvalid
-          # Device 表尚未创建时回退到旧版
-          AppUser.find_by(device_id: params[:device_id])
+        @current_user ||= Rails.cache.fetch("app_user_#{params[:uuid]}", expires_in: 1.hours) do
+          AppUser.find_by(uuid: params[:uuid])
         end
       end
 
-      # 验证用户已授权（device_id 有效）
+      # 验证用户已授权（uuid 有效）
       def auth_user
         error!({ response: err_response(ERR_CODE[:UN_AUTH], "未授权访问") }, 200) unless current_user
       end

@@ -10,7 +10,7 @@ RSpec.describe "API AppUsers", type: :request do
     context "更新昵称" do
       it "成功更新昵称" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id, nickname: "新昵称" },
+            params: { uuid: user.uuid, nickname: "新昵称" },
             as: :json
 
         expect(response).to have_http_status(200)
@@ -20,18 +20,18 @@ RSpec.describe "API AppUsers", type: :request do
 
       it "返回更新后的用户信息" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id, nickname: "测试昵称" },
+            params: { uuid: user.uuid, nickname: "测试昵称" },
             as: :json
 
         expect(json_response[:response][:data][:user][:id]).to eq(user.id)
-        expect(json_response[:response][:data][:user][:device_id]).to eq(user.device_id)
+        expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
       end
     end
 
     context "更新年纪" do
       it "成功更新年纪" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id, grade_id: 6 },
+            params: { uuid: user.uuid, grade_id: 6 },
             as: :json
 
         expect(response).to have_http_status(200)
@@ -41,7 +41,7 @@ RSpec.describe "API AppUsers", type: :request do
 
       it "可以更新为0岁" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id, grade_id: 0 },
+            params: { uuid: user.uuid, grade_id: 0 },
             as: :json
 
         expect(response).to have_http_status(200)
@@ -50,7 +50,7 @@ RSpec.describe "API AppUsers", type: :request do
 
       it "可以同时更新昵称和年纪" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id, nickname: "小明", grade_id: 8 },
+            params: { uuid: user.uuid, nickname: "小明", grade_id: 8 },
             as: :json
 
         expect(response).to have_http_status(200)
@@ -62,7 +62,7 @@ RSpec.describe "API AppUsers", type: :request do
     context "参数校验" do
       it "两个字段都为空时返回错误" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id },
+            params: { uuid: user.uuid },
             as: :json
 
         expect(response).to have_http_status(200)
@@ -71,7 +71,7 @@ RSpec.describe "API AppUsers", type: :request do
 
       it "只有空字符串昵称时返回错误" do
         put "/api/app_users/update_profile",
-            params: { device_id: user.device_id, nickname: "" },
+            params: { uuid: user.uuid, nickname: "" },
             as: :json
 
         expect(response).to have_http_status(200)
@@ -80,9 +80,9 @@ RSpec.describe "API AppUsers", type: :request do
     end
 
     context "未授权" do
-      it "无效设备ID返回错误" do
+      it "无效uuid返回错误" do
         put "/api/app_users/update_profile",
-            params: { device_id: "nonexistent-device", nickname: "test" },
+            params: { uuid: "nonexistent-uuid", nickname: "test" },
             as: :json
 
         expect(response).to have_http_status(200)
