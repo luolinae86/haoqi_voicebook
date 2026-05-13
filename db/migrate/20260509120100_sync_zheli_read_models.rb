@@ -2,7 +2,7 @@
 
 class SyncZheliReadModels < ActiveRecord::Migration[8.0]
   def up
-    # ---- Remove foreign key constraints that block table drops ----
+    remove_foreign_key :book_grades, :books, if_exists: true
     remove_foreign_key :ebook_pages, :books, if_exists: true
     remove_foreign_key :audio_albums, :books, if_exists: true
     remove_foreign_key :bookmarks, column: :book_id, if_exists: true
