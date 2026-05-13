@@ -29,6 +29,7 @@
 #
 class EbookPage < ApplicationRecord
   belongs_to :book
+  belongs_to :chapter, optional: true
 
   validates :page_number, presence: true, uniqueness: { scope: :book_id }
   validates :page_width, :page_height, presence: true

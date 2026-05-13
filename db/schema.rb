@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_11_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_12_000001) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -187,6 +187,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_11_000000) do
     t.integer "sn", default: 0, comment: "排序"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "epub_oss_key", comment: "EPUB 文件 OSS 路径"
+    t.string "epub_oss_url", comment: "EPUB 文件公网 URL"
+    t.integer "epub_export_status", default: 0, comment: "EPUB 导出状态：0-未导出 1-导出中 2-已完成 3-失败"
+    t.text "epub_export_error", comment: "EPUB 导出失败原因"
+    t.string "styles_oss_url", comment: "book.css 的 OSS URL"
+    t.string "nav_oss_url", comment: "nav.xhtml 的 OSS URL"
     t.index ["book_id"], name: "index_chapters_on_book_id"
   end
 
@@ -279,6 +285,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_11_000000) do
 
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
     t.bigint "book_id", null: false, comment: "图书ID"
+    t.bigint "chapter_id"
     t.integer "page_number", null: false, comment: "页码"
     t.decimal "page_width", precision: 8, scale: 2, null: false, comment: "页面宽度(pt)"
     t.decimal "page_height", precision: 8, scale: 2, null: false, comment: "页面高度(pt)"
@@ -292,6 +299,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_11_000000) do
     t.datetime "updated_at", null: false
     t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_ebook_pages_on_book_id"
+    t.index ["chapter_id"], name: "index_ebook_pages_on_chapter_id"
   end
 
   create_table "grades", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -390,5 +398,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_11_000000) do
   add_foreign_key "contents", "content_groups"
   add_foreign_key "devices", "app_users"
   add_foreign_key "ebook_pages", "books"
+  add_foreign_key "ebook_pages", "chapters"
   add_foreign_key "recommends", "grades"
 end

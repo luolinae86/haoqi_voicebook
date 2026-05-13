@@ -27,6 +27,9 @@
 #
 class Chapter < ApplicationRecord
   belongs_to :book
+  has_many :ebook_pages, dependent: :destroy
+
+  enum :epub_export_status, { not_exported: 0, exporting: 1, completed: 2, export_failed: 3 }, default: :not_exported, prefix: true
 
   # 内容文件类型
   FILE_TYPES = {

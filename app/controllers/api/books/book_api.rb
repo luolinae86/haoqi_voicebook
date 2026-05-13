@@ -9,61 +9,6 @@ module Api
       helpers Api::Books::BookHelpers
 
       namespace :books do
-        # ==================== 导入 EPUB 电子书 ====================
-        desc "从 OSS 上的 EPUB 文件导入电子书"
-        params do
-          requires :uuid, type: String, desc: "用户uuid"
-          optional :book_id, type: Integer, desc: "已有图书ID"
-          optional :title, type: String, desc: "书名"
-          optional :author, type: String, desc: "作者"
-          optional :publisher, type: String, desc: "出版社"
-          optional :description, type: String, desc: "简介"
-          optional :cover_image, type: String, desc: "封面图"
-          optional :category_id, type: Integer, desc: "分类ID"
-          optional :grade_id, type: Integer, desc: "年级ID"
-          optional :is_free, type: Boolean, desc: "是否免费"
-          optional :is_vip, type: Boolean, desc: "是否VIP"
-          requires :epub_oss_key, type: String, desc: "EPUB 文件在 OSS 上的路径"
-        end
-        post :import_epub do
-          auth_user
-
-          epub_oss_key = params[:epub_oss_key]
-          raise ArgumentError, "仅支持 EPUB 文件" unless epub_oss_key.downcase.end_with?(".epub")
-
-          book = build_book_from_file_params(book_id: params[:book_id], title: File.basename(epub_oss_key, ".epub"))
-
-          EpubImportWorker.perform_async({
-                                           "book_id" => book.id,
-                                           "epub_oss_key" => epub_oss_key
-                                         })
-
-          status 202
-          present response: success_response(book_id: book.id, msg: "EPUB 导入任务已提交，请轮询图书详情接口查看进度")
-        end
-
-        # ==================== 异步导出 EPUB ====================
-        desc "从 OSS 上的 PDF 异步生成 EPUB"
-        params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :book_id, type: Integer, desc: "图书ID"
-          requires :pdf_oss_key, type: String, desc: "PDF 文件在 OSS 上的路径"
-          optional :force_image_pages, type: Boolean, desc: "是否强制整页图片模式"
-        end
-        post :export_epub do
-          auth_user
-
-          book = Book.find(params[:book_id])
-
-          EpubExportWorker.perform_async({
-                                           "book_id" => book.id,
-                                           "pdf_oss_key" => params[:pdf_oss_key],
-                                           "force_image_pages" => params[:force_image_pages] == true
-                                         })
-
-          present response: success_response(book_id: book.id, epub_export_status: book.epub_export_status, msg: "EPUB 导出任务已提交，请轮询图书详情接口查看进度")
-        end
-
         # ==================== 页面 XHTML 内容 ====================
         desc "获取单页 XHTML 内容（EPUB 导出后可用）"
         params do

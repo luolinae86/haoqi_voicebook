@@ -6,22 +6,6 @@ module Api
     module BookHelpers
       extend Grape::API::Helpers
 
-      BOOK_ATTRIBUTES = %i[
-        name author publisher description cover_image_url
-        category_id grade_id is_free is_vip
-      ].freeze
-
-      # 从上传的文件构建或更新图书
-      def build_book_from_file_params(book_id: nil, title: nil)
-        book = book_id.present? ? Book.find(book_id) : Book.new(status: :published)
-        book.assign_attributes(
-          declared(params, include_missing: false).slice(*BOOK_ATTRIBUTES).merge(content_type: :ebook)
-        )
-        book.name = title if book.name.blank?
-        book.save! if book.new_record? || book.changed?
-        book
-      end
-
       # 筛选和排序图书
       def filter_books(scope, filters)
         books = scope
