@@ -27,6 +27,7 @@ module Api
     mount Api::Chapters::Mount
     mount Api::Grades::Mount
     mount Api::Memberships::Mount
+    mount Api::Oss::Mount
     mount Api::Parental::Mount
 
     # ==================== Swagger 文档 ====================
@@ -43,6 +44,7 @@ module Api
         { name: "books", description: "图书管理与电子书阅读" },
         { name: "chapters", description: "章节与 EPUB" },
         { name: "memberships", description: "会员订阅管理" },
+        { name: "oss", description: "OSS 临时授权" },
         { name: "parental", description: "家长管控" }
       ],
       hide_documentation_path: false

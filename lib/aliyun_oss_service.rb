@@ -65,6 +65,16 @@ class AliyunOssService
     "https://#{OSS_BUCKET_NAME}.#{OSS_ENDPOINT}/#{object_key}"
   end
 
+  # 生成签名 URL（临时授权访问私有 bucket）
+  # @param object_key [String] OSS 对象路径
+  # @param expires [Integer] 过期时间（秒），默认 3600
+  # @return [String] 签名 URL
+  def generate_signed_url(object_key, expires: 3600)
+    @bucket.sign_url(:get, object_key, expires)
+  rescue StandardError => e
+    raise UploadError, "OSS 签名失败: #{e.message}"
+  end
+
   private
 
   def infer_content_type(filename)
