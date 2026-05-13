@@ -2,6 +2,9 @@
 
 class SyncZheliReadModels < ActiveRecord::Migration[8.0]
   def up
+    # Skip if already applied (books table has voicebook-specific columns and FK exists)
+    return if column_exists?(:books, :content_type) && foreign_key_exists?(:ebook_pages, :books)
+
     remove_foreign_key :book_grades, :books, if_exists: true
     remove_foreign_key :chapters, :books, if_exists: true
     remove_foreign_key :compilation_books, :books, if_exists: true
