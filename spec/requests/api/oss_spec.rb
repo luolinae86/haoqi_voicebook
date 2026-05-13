@@ -4,56 +4,44 @@ require "rails_helper"
 
 RSpec.describe "API Oss", type: :request do
   let(:user) { create(:app_user) }
-  let(:oss_service) { instance_double(AliyunOssService) }
 
-  # ==================== 获取签名 URL ====================
-  describe "GET /api/oss/signed_url" do
-    it "返回 OSS 对象签名 URL" do
-      allow(AliyunOssService).to receive(:new).and_return(oss_service)
-      allow(oss_service).to receive(:generate_signed_url).and_return("https://epub-files.oss-cn-beijing.aliyuncs.com/test.pdf?Signature=xxx&Expires=1234567890&OSSAccessKeyId=xxx")
+  # ==================== 获取 STS 临时凭证 ====================
+  describe "GET /api/oss/token" do
+    let(:sts_client) { instance_double(Aliyun::STS::Client) }
+    let(:sts_token) do
+      OpenStruct.new(
+        access_key_id: "STS.tmp-access-key-id",
+        access_key_secret: "STS.tmp-access-key-secret",
+        security_token: "STS.tmp-security-token",
+        expiration: "2026-05-13T15:00:00Z",
+        session_name: "voicebook-oss-1234567890"
+      )
+    end
 
-      get "/api/oss/signed_url", params: {
-        uuid: user.uuid,
-        object_key: "test.pdf",
-        expires: 3600
-      }
+    before do
+      allow(Aliyun::STS::Client).to receive(:new).and_return(sts_client)
+      allow(sts_client).to receive(:assume_role).and_return(sts_token)
+    end
+
+    it "返回 OSS STS 临时凭证" do
+      get "/api/oss/token", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(:success)
       expect(json_response[:response][:code]).to eq(0)
-      expect(json_response[:response][:data][:signed_url]).to include("Signature=")
+      info = json_response[:response][:data][:info]
+      expect(info[:end_point]).to eq(OSS_ENDPOINT)
+      expect(info[:bucket]).to eq(OSS_BUCKET_NAME)
+      expect(info[:access_key_id]).to eq("STS.tmp-access-key-id")
+      expect(info[:security_token]).to eq("STS.tmp-security-token")
+      expect(info[:expiration]).to be_a(String)
+      expect(info[:expiration]).not_to be_empty
     end
 
     it "未登录时返回未授权错误" do
-      get "/api/oss/signed_url", params: {
-        uuid: "invalid-uuid",
-        object_key: "test.pdf"
-      }
+      get "/api/oss/token", params: { uuid: "invalid-uuid" }
 
       body = json_response[:response]
       expect(body[:code]).to be > 0
-    end
-
-    it "object_key 缺失时返回参数错误" do
-      get "/api/oss/signed_url", params: {
-        uuid: user.uuid
-      }
-
-      expect(response).to have_http_status(400)
-    end
-
-    it "签名失败时返回错误" do
-      allow(AliyunOssService).to receive(:new).and_return(oss_service)
-      allow(oss_service).to receive(:generate_signed_url).and_raise(AliyunOssService::UploadError, "OSS 签名失败: bucket 不存在")
-
-      get "/api/oss/signed_url", params: {
-        uuid: user.uuid,
-        object_key: "nonexistent.pdf"
-      }
-
-      expect(response).to have_http_status(:success)
-      body = json_response[:response]
-      expect(body[:code]).to be > 0
-      expect(body[:msg]).to include("签名失败")
     end
   end
 end

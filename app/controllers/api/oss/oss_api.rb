@@ -7,19 +7,16 @@ module Api
       helpers Api::Oss::OssHelpers
 
       namespace :oss do
-        # ==================== 获取签名 URL ====================
-        desc "获取 OSS 对象的签名 URL（临时授权访问私有 bucket）"
+        desc "获取 OSS 临时授权凭证（STSToken）"
         params do
           requires :uuid, type: String, desc: "用户uuid"
-          requires :object_key, type: String, desc: "OSS 对象路径"
-          optional :expires, type: Integer, desc: "过期时间（秒），默认3600", default: 3600
         end
-        get :signed_url do
+        get :token do
           auth_user
 
-          signed_url = generate_oss_signed_url(params[:object_key], expires: params[:expires] || 3600)
+          info = oss_token(OSS_ENDPOINT, OSS_BUCKET_NAME)
 
-          present response: success_response(signed_url: signed_url)
+          present response: success_response(info: info)
         end
       end
     end

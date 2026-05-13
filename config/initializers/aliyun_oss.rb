@@ -14,11 +14,13 @@ if Rails.env.development? || Rails.env.test?
 end
 
 require "aliyun/oss"
+require "aliyun/sts"
 
 OSS_BUCKET_NAME = ENV.fetch("OSS_BUCKET_NAME", "epub-files")
 OSS_ENDPOINT = ENV.fetch("OSS_ENDPOINT", "oss-cn-beijing.aliyuncs.com")
 OSS_ACCESS_KEY_ID = ENV.fetch("ALIYUN_ACCESS_KEY_ID")
 OSS_ACCESS_KEY_SECRET = ENV.fetch("ALIYUN_ACCESS_KEY_SECRET")
+OSS_STS_ROLE_ARN = ENV.fetch("OSS_STS_ROLE_ARN")
 
 OSS_CLIENT = Aliyun::OSS::Client.new(
   endpoint: "https://#{OSS_ENDPOINT}",
