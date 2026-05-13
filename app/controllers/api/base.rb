@@ -26,6 +26,7 @@ module Api
     mount Api::Books::Mount
     mount Api::Chapters::Mount
     mount Api::Grades::Mount
+    mount Api::Home::Mount
     mount Api::Memberships::Mount
     mount Api::Oss::Mount
     mount Api::Parental::Mount
@@ -40,6 +41,7 @@ module Api
       },
       openapi_version: "3.0",
       tags: [
+        { name: "home", description: "首页推荐" },
         { name: "app_users", description: "用户认证与管理" },
         { name: "books", description: "图书管理与电子书阅读" },
         { name: "chapters", description: "章节与 EPUB" },

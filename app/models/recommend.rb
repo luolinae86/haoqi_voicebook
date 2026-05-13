@@ -29,6 +29,8 @@ class Recommend < ApplicationRecord
   validates :grade_id, presence: true
   default_scope { order(sn: :asc, id: :desc) }
   scope :sorted, -> { order(sn: :asc, id: :desc) }
+  scope :published, -> { where(status: true) }
+  scope :by_grade, ->(grade_id) { where(grade_id: grade_id) }
 
   def status_text
     published? ? '已发布' : '未发布'
