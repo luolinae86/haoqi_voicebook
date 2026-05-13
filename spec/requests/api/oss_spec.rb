@@ -44,4 +44,54 @@ RSpec.describe "API Oss", type: :request do
       expect(body[:code]).to be > 0
     end
   end
+
+  # ==================== 签名 URL 转换 ====================
+  describe "signed_oss_url helper" do
+    let(:helper_class) do
+      Class.new do
+        include Api::Oss::OssHelpers
+
+        def self.oss_service
+          @oss_service ||= AliyunOssService.new
+        end
+      end
+    end
+
+    it "将 OSS URL 转换为签名 URL" do
+      original_url = "https://epub-files.oss-cn-beijing.aliyuncs.com/epub-assets/test/book.css"
+      expected_key = "epub-assets/test/book.css"
+
+      oss_mock = instance_double(AliyunOssService)
+      allow(AliyunOssService).to receive(:new).and_return(oss_mock)
+      allow(oss_mock).to receive(:generate_signed_url)
+        .with(expected_key, expires: 3600)
+        .and_return("https://signed.url?OSSAccessKeyId=xxx")
+
+      helper = helper_class.new
+      result = helper.signed_oss_url(original_url)
+
+      expect(result).to eq("https://signed.url?OSSAccessKeyId=xxx")
+    end
+
+    it "nil URL 返回 nil" do
+      helper = helper_class.new
+      result = helper.signed_oss_url(nil)
+
+      expect(result).to be_nil
+    end
+
+    it "空字符串 URL 返回 nil" do
+      helper = helper_class.new
+      result = helper.signed_oss_url("")
+
+      expect(result).to be_nil
+    end
+
+    it "解析失败的 URL 原样返回" do
+      helper = helper_class.new
+      result = helper.signed_oss_url("not-a-valid-url")
+
+      expect(result).to eq("not-a-valid-url")
+    end
+  end
 end

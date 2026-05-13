@@ -6,6 +6,7 @@ module Api
       helpers Api::Concerns::CommonHelpers
       helpers Api::Books::BookHelpers
       helpers Api::Chapters::ChapterHelpers
+      helpers Api::Oss::OssHelpers
 
       namespace :chapters do
         # ==================== 导出章节 EPUB ====================
@@ -44,9 +45,9 @@ module Api
           present response: success_response(
                   chapter_id: chapter.id,
                   epub_export_status: chapter.epub_export_status,
-                  epub_oss_url: chapter.epub_oss_url,
-                  styles_oss_url: chapter.styles_oss_url,
-                  nav_oss_url: chapter.nav_oss_url,
+                  epub_oss_url: signed_oss_url(chapter.epub_oss_url),
+                  styles_oss_url: signed_oss_url(chapter.styles_oss_url),
+                  nav_oss_url: signed_oss_url(chapter.nav_oss_url),
                   epub_export_error: chapter.epub_export_error
                 )
         end
@@ -78,7 +79,7 @@ module Api
         get ":id/styles" do
           chapter = Chapter.find(params[:id])
           if chapter.styles_oss_url.present?
-            redirect chapter.styles_oss_url
+            redirect signed_oss_url(chapter.styles_oss_url)
           else
             error!({ code: 1, msg: "样式表尚未导出" }, 404)
           end

@@ -7,6 +7,7 @@ module Api
     class BookApi < Grape::API
       helpers Api::Concerns::CommonHelpers
       helpers Api::Books::BookHelpers
+      helpers Api::Oss::OssHelpers
 
       namespace :books do
         # ==================== 页面 XHTML 内容 ====================
@@ -36,7 +37,7 @@ module Api
         get ":id/styles" do
           book = Book.published_books.find(params[:id])
           if book.styles_oss_url.present?
-            redirect book.styles_oss_url
+            redirect signed_oss_url(book.styles_oss_url)
           else
             error!({ code: 1, msg: "样式表尚未导出" }, 404)
           end

@@ -4,6 +4,7 @@ module Api
   module Home
     module HomeHelpers
       extend Grape::API::Helpers
+      include Api::Oss::OssHelpers
 
       def home_recommends_for_grade(grade_id)
         Recommend.by_grade(grade_id).published.includes(content_groups: :contents).map do |recommend|
@@ -51,7 +52,7 @@ module Api
         {
           id: compilation.id,
           name: compilation.name,
-          cover_url: compilation.banner_image_url,
+          cover_url: signed_oss_url(compilation.banner_image_url),
           editor_recommendation: compilation.editor_recommendation,
           total_count: compilation.total_count,
           author: compilation.author,
@@ -64,7 +65,7 @@ module Api
         {
           id: book.id,
           name: book.name,
-          cover_url: book.cover_image_url,
+          cover_url: signed_oss_url(book.cover_image_url),
           category_id: book.category_id
         }
       end
@@ -73,7 +74,7 @@ module Api
         {
           id: author.id,
           name: author.name,
-          head_img: author.head_img
+          head_img: signed_oss_url(author.head_img)
         }
       end
     end

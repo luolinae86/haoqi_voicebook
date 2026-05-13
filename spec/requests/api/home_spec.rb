@@ -5,6 +5,14 @@ require "rails_helper"
 RSpec.describe "API Home", type: :request do
   let(:user) { create(:app_user) }
   let(:grade) { create(:grade, name: "二年级") }
+  let(:aliyun_oss_service) { instance_double(AliyunOssService) }
+
+  before do
+    allow(AliyunOssService).to receive(:new).and_return(aliyun_oss_service)
+    allow(aliyun_oss_service).to receive(:generate_signed_url) do |object_key, **|
+      "https://epub-files.oss-cn-beijing.aliyuncs.com/#{object_key}?OSSAccessKeyId=xxx&Expires=1234567890&Signature=yyy"
+    end
+  end
 
   # ==================== 获取首页推荐 ====================
   describe "GET /api/home" do
@@ -77,7 +85,8 @@ RSpec.describe "API Home", type: :request do
         compilation_content = contents.find { |c| c[:content_type] == "compilation" }
         expect(compilation_content[:compilation][:name]).to eq("经典文学合集")
         expect(compilation_content[:compilation][:total_count]).to eq(10)
-        expect(compilation_content[:compilation][:cover_url]).to eq("https://example.com/banner.jpg")
+        expect(compilation_content[:compilation][:cover_url]).to include("banner.jpg")
+        expect(compilation_content[:compilation][:cover_url]).to include("OSSAccessKeyId")
       end
 
       it "单本内容包含 book 信息" do
@@ -86,7 +95,8 @@ RSpec.describe "API Home", type: :request do
         contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
         book_content = contents.find { |c| c[:content_type] == "book" }
         expect(book_content[:book][:name]).to eq("小王子")
-        expect(book_content[:book][:cover_url]).to eq("https://example.com/book-cover.jpg")
+        expect(book_content[:book][:cover_url]).to include("book-cover.jpg")
+        expect(book_content[:book][:cover_url]).to include("OSSAccessKeyId")
       end
 
       it "不返回草稿状态的推荐内容" do
@@ -137,7 +147,8 @@ RSpec.describe "API Home", type: :request do
         author_group_data = content_groups.find { |g| g[:group_type] == "author_display" }
         author_content = author_group_data[:contents].first
         expect(author_content[:author][:name]).to eq("安徒生")
-        expect(author_content[:author][:head_img]).to eq("https://example.com/author.jpg")
+        expect(author_content[:author][:head_img]).to include("author.jpg")
+        expect(author_content[:author][:head_img]).to include("OSSAccessKeyId")
       end
 
       it "只返回当前用户年级的推荐内容" do

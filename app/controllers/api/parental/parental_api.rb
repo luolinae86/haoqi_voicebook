@@ -8,6 +8,7 @@ module Api
       helpers Api::Concerns::CommonHelpers
       helpers Api::Concerns::SmsHelpers
       helpers Api::Parental::ParentalHelpers
+      helpers Api::Oss::OssHelpers
 
       namespace :parental do
         # ==================== 设置家长密码 ====================
@@ -125,7 +126,7 @@ module Api
             {
               id: item.book.id,
               name: item.book.name,
-              cover_image_url: item.book.cover_image_url,
+              cover_image_url: signed_oss_url(item.book.cover_image_url),
               content_type: item.book.content_type
             }
           end

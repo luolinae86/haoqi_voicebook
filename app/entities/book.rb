@@ -4,7 +4,9 @@ module Entities
   class Book < Grape::Entity
     expose :id
     expose :name
-    expose :cover_image_url
+    expose :cover_image_url do |instance, _|
+      sign_oss_url(instance.cover_image_url)
+    end
     expose :themes
     expose :category_id
     expose :supplier_id
@@ -20,9 +22,23 @@ module Entities
     expose :rating
     expose :status
     expose :page_count
-    expose :epub_oss_url
-    expose :styles_oss_url
+    expose :epub_oss_url do |instance, _|
+      sign_oss_url(instance.epub_oss_url)
+    end
+    expose :styles_oss_url do |instance, _|
+      sign_oss_url(instance.styles_oss_url)
+    end
     expose :created_at
     expose :updated_at
+
+    def self.sign_oss_url(url)
+      return nil if url.blank?
+
+      uri = URI.parse(url)
+      object_key = uri.path.sub(/\A\//, "")
+      AliyunOssService.new.generate_signed_url(object_key, expires: 3600)
+    rescue URI::InvalidURIError, StandardError
+      url
+    end
   end
 end
