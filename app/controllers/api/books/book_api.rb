@@ -10,9 +10,8 @@ module Api
 
       namespace :books do
         # ==================== 图书列表 ====================
-        desc "获取图书列表（按合集筛选）"
+        desc "获取图书列表"
         params do
-          optional :compilation_id, type: Integer, desc: "合集ID"
           optional :content_type, type: String, desc: "内容类型：ebook/audio/video/picture_book"
           optional :category_id, type: Integer, desc: "分类ID"
           optional :grade_id, type: Integer, desc: "年级ID"
@@ -22,38 +21,41 @@ module Api
           optional :per_page, type: Integer, desc: "每页数量", default: 10
         end
         get do
-          # 按合集筛选时需要 uuid 鉴权
-          if params[:compilation_id].present?
-            params[:uuid] ||= params[:uuid]
-            auth_user
-            compilation = Compilation.find(params[:compilation_id])
-            # 返回合集下的所有资源：books + contents
-            books = compilation.books.published_books.order(created_at: :desc)
-            contents = compilation.contents.includes(:book, :author).sorted
+          books = Book.published_books
+          books = filter_books(books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
+          paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
+          present response: success_response(books: serialize_collection(paged, Entities::Book), pagination: pagination_info(paged))
+        end
 
-            serialized_books = serialize_collection(books, Entities::Book)
-            serialized_contents = contents.map do |content|
-              {
-                id: content.id,
-                content_type: content.content_type,
-                img_url: content.display_img_url,
-                sn: content.sn,
-                book_id: content.book_id,
-                compilation_id: content.compilation_id
-              }
-            end
+        # ==================== 合集资源 ====================
+        desc "获取合集下的所有资源（需 uuid 鉴权）"
+        params do
+          requires :uuid, type: String, desc: "用户uuid"
+          requires :compilation_id, type: Integer, desc: "合集ID"
+        end
+        get :compilation do
+          auth_user
+          compilation = Compilation.find(params[:compilation_id])
+          books = compilation.books.published_books.order(created_at: :desc)
+          contents = compilation.contents.includes(:book, :author).sorted
 
-            present response: success_response(
-              compilation: { id: compilation.id, name: compilation.name },
-              books: serialized_books,
-              contents: serialized_contents
-            )
-          else
-            books = Book.published_books
-            books = filter_books(books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
-            paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
-            present response: success_response(books: serialize_collection(paged, Entities::Book), pagination: pagination_info(paged))
+          serialized_books = serialize_collection(books, Entities::Book)
+          serialized_contents = contents.map do |content|
+            {
+              id: content.id,
+              content_type: content.content_type,
+              img_url: content.display_img_url,
+              sn: content.sn,
+              book_id: content.book_id,
+              compilation_id: content.compilation_id
+            }
           end
+
+          present response: success_response(
+            compilation: { id: compilation.id, name: compilation.name },
+            books: serialized_books,
+            contents: serialized_contents
+          )
         end
 
         # ==================== 图书详情 ====================
