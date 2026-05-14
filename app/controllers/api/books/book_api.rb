@@ -50,7 +50,8 @@ module Api
         get ":id" do
           auth_user
 
-          book = Book.published_books.find(params[:id])
+          # book = Book.published_books.find(params[:id])
+          book = Book.find(params[:id])
 
           present response: success_response(book: Entities::Book.represent(book).as_json)
         end

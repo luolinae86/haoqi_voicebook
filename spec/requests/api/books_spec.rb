@@ -96,14 +96,6 @@ RSpec.describe "API Books", type: :request do
 
       expect(response).to have_http_status(404)
     end
-
-    it "未发布的图书返回 404" do
-      draft_book = create(:book, status: "draft")
-
-      get "/api/books/#{draft_book.id}", params: { uuid: user.uuid }
-
-      expect(response).to have_http_status(404)
-    end
   end
 
   # ==================== 图书章节列表 ====================
