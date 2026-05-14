@@ -1,5 +1,22 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: parental_controls(家长管控表)
+#
+#  id                                 :bigint           not null, primary key
+#  is_active(是否启用)                :boolean          default(TRUE), not null
+#  password_digest(家长密码)          :string(255)      not null
+#  phone(家长手机号)                  :string(255)
+#  time_limit_minutes(时间限制(分钟)) :integer
+#  created_at                         :datetime         not null
+#  updated_at                         :datetime         not null
+#  app_user_id(用户ID)                :integer          not null
+#
+# Indexes
+#
+#  index_parental_controls_on_app_user_id  (app_user_id) UNIQUE
+#
 require "rails_helper"
 
 RSpec.describe ParentalControl, type: :model do

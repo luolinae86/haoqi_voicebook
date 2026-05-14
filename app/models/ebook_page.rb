@@ -17,15 +17,18 @@
 #  created_at                     :datetime         not null
 #  updated_at                     :datetime         not null
 #  book_id(图书ID)                :bigint           not null
+#  chapter_id                     :bigint
 #
 # Indexes
 #
 #  index_ebook_pages_on_book_id                  (book_id)
 #  index_ebook_pages_on_book_id_and_page_number  (book_id,page_number) UNIQUE
+#  index_ebook_pages_on_chapter_id               (chapter_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (book_id => books.id)
+#  fk_rails_...  (chapter_id => chapters.id)
 #
 class EbookPage < ApplicationRecord
   belongs_to :book

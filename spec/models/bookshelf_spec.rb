@@ -1,5 +1,24 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: bookshelves(书架表)
+#
+#  id                                   :bigint           not null, primary key
+#  last_read_at(最后阅读时间)           :datetime
+#  reading_progress(阅读进度(%))        :decimal(5, 2)    default(0.0)
+#  created_at                           :datetime         not null
+#  updated_at                           :datetime         not null
+#  app_user_id(用户ID)                  :integer          not null
+#  book_id(图书ID)                      :bigint           not null
+#  last_read_chapter_id(最后阅读章节ID) :bigint
+#
+# Indexes
+#
+#  index_bookshelves_on_app_user_id              (app_user_id)
+#  index_bookshelves_on_app_user_id_and_book_id  (app_user_id,book_id) UNIQUE
+#  index_bookshelves_on_book_id                  (book_id)
+#
 require "rails_helper"
 
 RSpec.describe Bookshelf, type: :model do

@@ -1,5 +1,16 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: grades
+#
+#  id          :bigint           not null, primary key
+#  description :string(32)
+#  group_name  :string(8)
+#  name        :string(16)
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#
 require "rails_helper"
 
 RSpec.describe Grade, type: :model do

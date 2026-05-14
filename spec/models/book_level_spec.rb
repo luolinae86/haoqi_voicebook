@@ -1,5 +1,15 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: book_levels
+#
+#  id             :bigint           not null, primary key
+#  name(等级名称) :string(50)       not null
+#  sn(序号)       :integer          default(0), not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#
 require "rails_helper"
 
 RSpec.describe BookLevel, type: :model do

@@ -1,6 +1,28 @@
 # frozen_string_literal: true
 
 # 订单工厂
+# == Schema Information
+#
+# Table name: orders(订单表)
+#
+#  id                                              :bigint           not null, primary key
+#  amount(金额)                                    :decimal(10, 2)   not null
+#  order_no(订单号)                                :string(255)      not null
+#  paid_at(支付时间)                               :datetime
+#  payment_method(支付方式：0-支付宝 1-微信)       :integer          default("alipay"), not null
+#  status(状态：0-待支付 1-已支付 2-失败 3-已退款) :integer          default("pending"), not null
+#  created_at                                      :datetime         not null
+#  updated_at                                      :datetime         not null
+#  app_user_id(用户ID)                             :integer          not null
+#  membership_id(会员ID)                           :integer
+#
+# Indexes
+#
+#  index_orders_on_app_user_id    (app_user_id)
+#  index_orders_on_membership_id  (membership_id)
+#  index_orders_on_order_no       (order_no) UNIQUE
+#  index_orders_on_status         (status)
+#
 FactoryBot.define do
   factory :order do
     association :app_user

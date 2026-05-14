@@ -1,6 +1,23 @@
 # frozen_string_literal: true
 
 # 短信验证码工厂
+# == Schema Information
+#
+# Table name: sms_verifications(短信验证码表)
+#
+#  id                   :bigint           not null, primary key
+#  code(验证码)         :string(255)      not null
+#  expires_at(过期时间) :datetime         not null
+#  phone(手机号)        :string(255)      not null
+#  verified(是否已验证) :boolean          default(FALSE), not null
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
+#
+# Indexes
+#
+#  index_sms_verifications_on_expires_at      (expires_at)
+#  index_sms_verifications_on_phone_and_code  (phone,code)
+#
 FactoryBot.define do
   factory :sms_verification do
     phone { "1#{rand(3..9)}#{Faker::Number.number(digits: 9)}" }
