@@ -19,7 +19,7 @@ module Api
         get :compilation do
           auth_user
           compilation = Compilation.find(params[:compilation_id])
-          books = compilation.books.published_books.order(created_at: :desc)
+          books = compilation.books.order(created_at: :desc)
           contents = compilation.contents.includes(:book, :author).sorted
 
           serialized_books = serialize_collection(books, Entities::Book)
@@ -50,7 +50,6 @@ module Api
         get ":id" do
           auth_user
 
-          # book = Book.published_books.find(params[:id])
           book = Book.find(params[:id])
 
           present response: success_response(book: Entities::Book.represent(book).as_json)
@@ -65,7 +64,7 @@ module Api
         get ":id/chapters" do
           auth_user
 
-          book = Book.published_books.find(params[:id])
+          book = Book.find(params[:id])
           chapters = book.chapters.order(sn: :asc, id: :asc)
 
           present response: success_response(chapters: serialize_collection(chapters, Entities::Chapter))
