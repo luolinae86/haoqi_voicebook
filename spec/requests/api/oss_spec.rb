@@ -50,27 +50,20 @@ RSpec.describe "API Oss", type: :request do
     let(:helper_class) do
       Class.new do
         include Api::Oss::OssHelpers
-
-        def self.oss_service
-          @oss_service ||= AliyunOssService.new
-        end
       end
     end
 
     it "将 OSS URL 转换为签名 URL" do
       original_url = "https://epub-files.oss-cn-beijing.aliyuncs.com/epub-assets/test/book.css"
-      expected_key = "epub-assets/test/book.css"
-
-      oss_mock = instance_double(AliyunOssService)
-      allow(AliyunOssService).to receive(:new).and_return(oss_mock)
-      allow(oss_mock).to receive(:generate_signed_url)
-        .with(expected_key, expires: 3600)
-        .and_return("https://signed.url?OSSAccessKeyId=xxx")
 
       helper = helper_class.new
       result = helper.signed_oss_url(original_url)
 
-      expect(result).to eq("https://signed.url?OSSAccessKeyId=xxx")
+      expect(result).to include("OSSAccessKeyId=")
+      expect(result).to include("Signature=")
+      expect(result).to include("Expires=")
+      expect(result).to include("epub-files.oss-cn-beijing.aliyuncs.com")
+      expect(result).to include("epub-assets/test/book.css")
     end
 
     it "nil URL 返回 nil" do
@@ -87,17 +80,22 @@ RSpec.describe "API Oss", type: :request do
       expect(result).to be_nil
     end
 
-    it "普通字符串也生成签名 URL（URI.parse 不抛异常）" do
-      oss_mock = instance_double(AliyunOssService)
-      allow(AliyunOssService).to receive(:new).and_return(oss_mock)
-      allow(oss_mock).to receive(:generate_signed_url)
-        .with("not-a-valid-url", expires: 3600)
-        .and_return("https://signed.url?OSSAccessKeyId=xxx")
-
+    it "非 OSS 格式的普通字符串原样返回" do
       helper = helper_class.new
       result = helper.signed_oss_url("not-a-valid-url")
 
-      expect(result).to eq("https://signed.url?OSSAccessKeyId=xxx")
+      expect(result).to eq("not-a-valid-url")
+    end
+
+    it "对不同 bucket 的 URL 使用正确的 bucket 签名" do
+      original_url = "https://zheli.oss-cn-beijing.aliyuncs.com/test/file.png"
+
+      helper = helper_class.new
+      result = helper.signed_oss_url(original_url)
+
+      expect(result).to include("zheli.oss-cn-beijing.aliyuncs.com")
+      expect(result).to include("test/file.png")
+      expect(result).to include("Signature=")
     end
   end
 end

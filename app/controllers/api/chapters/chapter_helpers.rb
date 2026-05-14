@@ -32,22 +32,16 @@ module Api
 
       # 替换 XHTML 中的 OSS URL 为签名 URL
       def sign_xhtml_urls(xhtml, chapter)
-        # 替换已知的 OSS 资源 URL
-        [chapter.styles_oss_url, chapter.nav_oss_url, chapter.epub_oss_url].each do |url|
-          next if url.blank?
+        # 收集所有已知 OSS 资源 URL
+        known_urls = [chapter.styles_oss_url, chapter.nav_oss_url, chapter.epub_oss_url].compact.reject(&:blank?)
+        # 先替换已知 URL
+        known_urls.each do |url|
           signed = signed_oss_url(url)
           xhtml = xhtml.gsub(url, signed) if signed
         end
-        # 替换 XHTML 中所有匹配的 OSS 图片/资源 URL
+        # 再替换 XHTML 中所有其他 oss 资源 URL
         xhtml = xhtml.gsub(%r{(https?://[^"'<>\s]+\.aliyuncs\.com/[^\s"'>]+)}) do |match|
-          begin
-            uri = URI.parse(match)
-            object_key = uri.path.sub(/\A\//, "")
-            oss_service = AliyunOssService.new
-            oss_service.generate_signed_url(object_key, expires: 3600)
-          rescue URI::InvalidURIError, StandardError
-            match
-          end
+          signed_oss_url(match) || match
         end
         xhtml
       end

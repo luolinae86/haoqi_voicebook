@@ -15,13 +15,26 @@ module Api
       def signed_oss_url(url, expires: 3600)
         return nil if url.blank?
 
-        # 从完整 URL 中提取 object_key
-        # 格式: https://#{bucket}.#{endpoint}/#{object_key}
         uri = URI.parse(url)
-        object_key = uri.path.sub(/\A\//, "") # 去掉前导 /
+        # 检查是否为有效的 OSS URL（有 host 且包含 bucket.subdomain 结构）
+        host_parts = uri.host.to_s.split(".", 2)
+        return url if host_parts.size < 2 || host_parts.first.empty? || host_parts.last.empty?
 
-        oss_service = AliyunOssService.new
-        oss_service.generate_signed_url(object_key, expires: expires)
+        bucket_name = host_parts.first
+        endpoint = host_parts.last
+        object_key = uri.path.sub(/\A\//, "")
+
+        # 手动生成签名（使用 URL 中的实际 bucket，而非配置常量）
+        expires_at = Time.now.to_i + expires
+        canonicalized_resource = "/#{bucket_name}/#{object_key}"
+        string_to_sign = "GET\n\n\n#{expires_at}\n#{canonicalized_resource}"
+
+        signature = Base64.strict_encode64(
+          OpenSSL::HMAC.digest("sha1", OSS_ACCESS_KEY_SECRET, string_to_sign)
+        )
+
+        query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
+        "https://#{bucket_name}.#{endpoint}/#{object_key}?#{query}"
       rescue URI::InvalidURIError, StandardError
         # 若解析失败，原样返回
         url
