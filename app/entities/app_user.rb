@@ -18,5 +18,8 @@ module Entities
     expose :is_vip do |instance, _|
       instance.is_vip?
     end
+    expose :has_password do |instance, _|
+      instance.password_digest.present?
+    end
   end
 end
