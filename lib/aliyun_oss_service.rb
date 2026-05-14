@@ -70,7 +70,7 @@ class AliyunOssService
   # @param expires [Integer] 过期时间（秒），默认 3600
   # @return [String] 签名 URL
   def generate_signed_url(object_key, expires: 3600)
-    @bucket.sign_url(:get, object_key, expires)
+    @bucket.object_url(object_key, true, expires)
   rescue StandardError => e
     raise UploadError, "OSS 签名失败: #{e.message}"
   end
