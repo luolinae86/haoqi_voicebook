@@ -83,7 +83,16 @@ proxy:
   healthcheck:
     path: /up
     interval: 5
-    timeout: 5
+    timeout: 10
+  response_timeout: 60
+
+# ==================== 部署超时与优雅下线 ====================
+# 数据库迁移时间较长，增加到 90 秒
+deploy_timeout: 90
+# 旧容器停止前等待的时间，确保在途请求完成
+drain_timeout: 30
+# 保留最近 3 个版本，便于快速回滚
+retain_containers: 3
 
 # ==================== 构建配置 ====================
 # 远端构建：在阿里云服务器上 build，解决国内拉取 Docker Hub 镜像慢的问题

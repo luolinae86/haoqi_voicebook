@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
-# 部署后清理服务器上的冗余容器和镜像，避免资源泄漏
+# 部署后验证服务健康，再清理冗余容器和镜像
 IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
 for host in "${HOSTS[@]}"; do
+  echo "[$host] 验证服务健康..."
+  HEALTH_OK=false
+  for i in $(seq 1 10); do
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://voicebook.haoqiniu.com/up 2>/dev/null)
+    if [ "$STATUS" = "200" ]; then
+      HEALTH_OK=true
+      echo "[$host] 健康检查通过 (HTTP $STATUS)"
+      break
+    fi
+    echo "[$host] 健康检查失败 (HTTP $STATUS)，等待 ${i}5 秒后重试..."
+    sleep 5
+  done
+  if [ "$HEALTH_OK" != "true" ]; then
+    echo "[$host] 警告: 部署后健康检查未通过，跳过清理"
+    echo "[$host] 请手动检查: kamal app details"
+    echo "[$host] 回滚命令: kamal app rollback"
+    exit 1
+  fi
+
   echo "[$host] 清理已停止的容器..."
   ssh "root@$host" "docker container prune -f --filter 'until=1h' && docker image prune -f"
 done
