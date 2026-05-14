@@ -25,9 +25,9 @@ class ContentGroup < ApplicationRecord
   has_many :contents, dependent: :destroy
 
   enum :group_type, {
-    multi_images: 'multi_images',           # 多张图片
+    multi_images: 'multi_images', # 多张图片
     one_row_three_columns: 'one_row_three_columns', # 一排3列
-    one_row_display: 'one_row_display',     # 一排展示
+    one_row_display: 'one_row_display', # 一排展示
     two_rows_three_columns: 'two_rows_three_columns', # 双排3列展示
     one_row_two_columns: 'one_row_two_columns', # 一排双列
     single_column: 'single_column',         # 单列展示

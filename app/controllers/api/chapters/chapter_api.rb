@@ -28,10 +28,10 @@ module Api
                                                 })
 
           present response: success_response(
-                  chapter_id: chapter.id,
-                  epub_export_status: chapter.epub_export_status,
-                  msg: "EPUB 导出任务已提交，请轮询状态接口查看进度"
-                )
+            chapter_id: chapter.id,
+            epub_export_status: chapter.epub_export_status,
+            msg: "EPUB 导出任务已提交，请轮询状态接口查看进度"
+          )
         end
 
         # ==================== 查询 EPUB 状态 ====================
@@ -43,13 +43,13 @@ module Api
           chapter = Chapter.find(params[:id])
 
           present response: success_response(
-                  chapter_id: chapter.id,
-                  epub_export_status: chapter.epub_export_status,
-                  epub_oss_url: signed_oss_url(chapter.epub_oss_url),
-                  styles_oss_url: signed_oss_url(chapter.styles_oss_url),
-                  nav_oss_url: signed_oss_url(chapter.nav_oss_url),
-                  epub_export_error: chapter.epub_export_error
-                )
+            chapter_id: chapter.id,
+            epub_export_status: chapter.epub_export_status,
+            epub_oss_url: signed_oss_url(chapter.epub_oss_url),
+            styles_oss_url: signed_oss_url(chapter.styles_oss_url),
+            nav_oss_url: signed_oss_url(chapter.nav_oss_url),
+            epub_export_error: chapter.epub_export_error
+          )
         end
 
         # ==================== 页面 XHTML 内容 ====================
@@ -97,11 +97,11 @@ module Api
           pages = chapter.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
           present response: success_response(
-                  chapter_id: chapter.id,
-                  page_count: pages.count,
-                  pages: serialize_collection(pages, Entities::EbookPage),
-                  pagination: pagination_info(pages)
-                )
+            chapter_id: chapter.id,
+            page_count: pages.count,
+            pages: serialize_collection(pages, Entities::EbookPage),
+            pagination: pagination_info(pages)
+          )
         end
 
         # ==================== 页面内容 ====================
