@@ -20,7 +20,7 @@ module Api
           if device
             user = device.app_user
           else
-            user = AppUser.create!
+            user = AppUser.create!(grade_id: Grade.find_by(name: "三年级")&.id)
             Device.bind!(params[:device_id], user)
           end
 
