@@ -79,7 +79,7 @@ RSpec.describe "API Chapters", type: :request do
     it "返回章节 EPUB 导出状态" do
       chapter.update!(epub_export_status: :completed, epub_oss_url: "https://example.com/test.epub")
 
-      get "/api/chapters/#{chapter.id}/epub_status"
+      get "/api/chapters/#{chapter.id}/epub_status", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
@@ -89,10 +89,23 @@ RSpec.describe "API Chapters", type: :request do
     end
 
     it "未导出状态返回 not_exported" do
-      get "/api/chapters/#{chapter.id}/epub_status"
+      get "/api/chapters/#{chapter.id}/epub_status", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:data][:epub_export_status]).to eq("not_exported")
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/chapters/#{chapter.id}/epub_status"
+
+      expect(response).to have_http_status(400)
+    end
+
+    it "无效 uuid 时返回未授权错误" do
+      get "/api/chapters/#{chapter.id}/epub_status", params: { uuid: "invalid-uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
     end
   end
 
@@ -102,7 +115,7 @@ RSpec.describe "API Chapters", type: :request do
       page = book.ebook_pages.create!(page_number: 1, page_width: 800, page_height: 600, rich_content: {})
       page.update!(chapter_id: chapter.id)
 
-      get "/api/chapters/#{chapter.id}/pages"
+      get "/api/chapters/#{chapter.id}/pages", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:data][:chapter_id]).to eq(chapter.id)
@@ -110,10 +123,23 @@ RSpec.describe "API Chapters", type: :request do
     end
 
     it "没有页面时返回空数组" do
-      get "/api/chapters/#{chapter.id}/pages"
+      get "/api/chapters/#{chapter.id}/pages", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:data][:pages]).to eq([])
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/chapters/#{chapter.id}/pages"
+
+      expect(response).to have_http_status(400)
+    end
+
+    it "无效 uuid 时返回未授权错误" do
+      get "/api/chapters/#{chapter.id}/pages", params: { uuid: "invalid-uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
     end
   end
 
@@ -125,12 +151,18 @@ RSpec.describe "API Chapters", type: :request do
       page1.update!(chapter_id: chapter.id)
       page2.update!(chapter_id: chapter.id)
 
-      get "/api/chapters/#{chapter.id}/pages/1"
+      get "/api/chapters/#{chapter.id}/pages/1", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       data = json_response[:response][:data]
       expect(data[:chapter_id]).to eq(chapter.id)
       expect(data[:page_number]).to eq(1)
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/chapters/#{chapter.id}/pages/1"
+
+      expect(response).to have_http_status(400)
     end
   end
 
@@ -140,7 +172,7 @@ RSpec.describe "API Chapters", type: :request do
       page = book.ebook_pages.create!(page_number: 1, page_width: 800, page_height: 600, rich_content: {}, xhtml_content: "<html><body>Test</body></html>")
       page.update!(chapter_id: chapter.id)
 
-      get "/api/chapters/#{chapter.id}/pages/1/html"
+      get "/api/chapters/#{chapter.id}/pages/1/html", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(response.body).to include("Test")
@@ -150,9 +182,15 @@ RSpec.describe "API Chapters", type: :request do
       page = book.ebook_pages.create!(page_number: 1, page_width: 800, page_height: 600, rich_content: {})
       page.update!(chapter_id: chapter.id)
 
-      get "/api/chapters/#{chapter.id}/pages/1/html"
+      get "/api/chapters/#{chapter.id}/pages/1/html", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(404)
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/chapters/#{chapter.id}/pages/1/html"
+
+      expect(response).to have_http_status(400)
     end
   end
 
@@ -161,15 +199,21 @@ RSpec.describe "API Chapters", type: :request do
     it "重定向到样式表 URL" do
       chapter.update!(styles_oss_url: "https://example.com/book.css")
 
-      get "/api/chapters/#{chapter.id}/styles"
+      get "/api/chapters/#{chapter.id}/styles", params: { uuid: user.uuid }
 
       expect(response).to be_redirect
     end
 
     it "样式表未导出时返回 404" do
-      get "/api/chapters/#{chapter.id}/styles"
+      get "/api/chapters/#{chapter.id}/styles", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(404)
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/chapters/#{chapter.id}/styles"
+
+      expect(response).to have_http_status(400)
     end
   end
 

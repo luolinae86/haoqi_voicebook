@@ -38,8 +38,11 @@ module Api
         desc "查询章节 EPUB 导出状态"
         params do
           requires :id, type: Integer, desc: "章节ID"
+          requires :uuid, type: String, desc: "用户uuid"
         end
         get ":id/epub_status" do
+          auth_user
+
           chapter = Chapter.find(params[:id])
 
           present response: success_response(
@@ -57,8 +60,11 @@ module Api
         params do
           requires :id, type: Integer, desc: "章节ID"
           requires :page_number, type: Integer, desc: "页码"
+          requires :uuid, type: String, desc: "用户uuid"
         end
         get ":id/pages/:page_number/html" do
+          auth_user
+
           chapter = Chapter.find(params[:id])
           page = chapter.ebook_pages.find_by!(page_number: params[:page_number])
 
@@ -75,8 +81,11 @@ module Api
         desc "获取章节电子书样式表"
         params do
           requires :id, type: Integer, desc: "章节ID"
+          requires :uuid, type: String, desc: "用户uuid"
         end
         get ":id/styles" do
+          auth_user
+
           chapter = Chapter.find(params[:id])
           if chapter.styles_oss_url.present?
             redirect signed_oss_url(chapter.styles_oss_url)
@@ -89,10 +98,13 @@ module Api
         desc "获取章节电子书页面清单"
         params do
           requires :id, type: Integer, desc: "章节ID"
+          requires :uuid, type: String, desc: "用户uuid"
           optional :page, type: Integer, desc: "页码", default: 1
           optional :per_page, type: Integer, desc: "每页数量", default: 50
         end
         get ":id/pages" do
+          auth_user
+
           chapter = Chapter.find(params[:id])
           pages = chapter.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
@@ -109,8 +121,11 @@ module Api
         params do
           requires :id, type: Integer, desc: "章节ID"
           requires :page_number, type: Integer, desc: "页码"
+          requires :uuid, type: String, desc: "用户uuid"
         end
         get ":id/pages/:page_number" do
+          auth_user
+
           chapter = Chapter.find(params[:id])
           page = chapter.ebook_pages.find_by!(page_number: params[:page_number])
 
