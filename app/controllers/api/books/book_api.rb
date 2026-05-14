@@ -7,26 +7,9 @@ module Api
     class BookApi < Grape::API
       helpers Api::Concerns::CommonHelpers
       helpers Api::Books::BookHelpers
+      helpers Api::Oss::OssHelpers
 
       namespace :books do
-        # ==================== 图书列表 ====================
-        desc "获取图书列表"
-        params do
-          optional :content_type, type: String, desc: "内容类型：ebook/audio/video/picture_book"
-          optional :category_id, type: Integer, desc: "分类ID"
-          optional :grade_id, type: Integer, desc: "年级ID"
-          optional :is_free, type: Boolean, desc: "是否免费"
-          optional :sort_by, type: String, desc: "排序：popular/rating/recent", default: "recent"
-          optional :page, type: Integer, desc: "页码", default: 1
-          optional :per_page, type: Integer, desc: "每页数量", default: 10
-        end
-        get do
-          books = Book.published_books
-          books = filter_books(books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
-          paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
-          present response: success_response(books: serialize_collection(paged, Entities::Book), pagination: pagination_info(paged))
-        end
-
         # ==================== 合集资源 ====================
         desc "获取合集下的所有资源（需 uuid 鉴权）"
         params do
@@ -44,7 +27,7 @@ module Api
             {
               id: content.id,
               content_type: content.content_type,
-              img_url: content.display_img_url,
+              img_url: signed_oss_url(content.display_img_url),
               sn: content.sn,
               book_id: content.book_id,
               compilation_id: content.compilation_id

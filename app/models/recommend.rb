@@ -33,6 +33,6 @@ class Recommend < ApplicationRecord
   scope :by_grade, ->(grade_id) { where(grade_id: grade_id) }
 
   def status_text
-    published? ? '已发布' : '未发布'
+    status ? '已发布' : '未发布'
   end
 end

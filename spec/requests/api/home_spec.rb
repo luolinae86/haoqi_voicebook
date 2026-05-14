@@ -14,6 +14,78 @@ RSpec.describe "API Home", type: :request do
     end
   end
 
+  # ==================== 获取推荐列表（仅 recommends 层级） ====================
+  describe "GET /api/home/recommends" do
+    let!(:category) { Category.create!(name: "文学") }
+    let!(:book) do
+      Book.create!(
+        name: "小王子",
+        cover_image_url: "https://example.com/book-cover.jpg",
+        category: category
+      )
+    end
+
+    before do
+      user.update_column(:grade_id, grade.id)
+    end
+
+    it "返回推荐列表（仅 recommends 层级）" do
+      Recommend.create!(grade: grade, name: "文学", status: true, sn: 1)
+      Recommend.create!(grade: grade, name: "科学", status: true, sn: 2)
+
+      get "/api/home/recommends", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      recommends = json_response[:response][:data][:recommends]
+      expect(recommends.size).to eq(2)
+      expect(recommends.first.keys).to match_array([:id, :name, :sn, :status_text])
+    end
+
+    it "返回的推荐不包含 content_groups" do
+      recommend = Recommend.create!(grade: grade, name: "文学", status: true, sn: 1)
+      ContentGroup.create!(
+        recommend: recommend,
+        name: "推荐图书",
+        group_type: "one_row_three_columns",
+        sn: 0
+      )
+
+      get "/api/home/recommends", params: { uuid: user.uuid }
+
+      recommends = json_response[:response][:data][:recommends]
+      recommends.each do |r|
+        expect(r).not_to have_key(:content_groups)
+      end
+    end
+
+    it "不返回草稿状态的推荐" do
+      Recommend.create!(grade: grade, name: "已发布", status: true, sn: 1)
+      Recommend.create!(grade: grade, name: "草稿", status: false, sn: 2)
+
+      get "/api/home/recommends", params: { uuid: user.uuid }
+
+      recommends = json_response[:response][:data][:recommends]
+      expect(recommends.map { |r| r[:name] }).to eq(["已发布"])
+    end
+
+    it "用户未设置年级时返回空数组" do
+      user.update_column(:grade_id, nil)
+
+      get "/api/home/recommends", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:data][:recommends]).to eq([])
+    end
+
+    it "未登录时返回未授权错误" do
+      get "/api/home/recommends", params: { uuid: "invalid-uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to be > 0
+    end
+  end
+
   # ==================== 获取首页推荐 ====================
   describe "GET /api/home" do
     context "当用户已设置年级时" do

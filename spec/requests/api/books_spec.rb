@@ -6,35 +6,6 @@ RSpec.describe "API Books", type: :request do
   let(:user) { create(:app_user) }
   let!(:book) { create(:book) }
 
-  # ==================== 图书列表 ====================
-  describe "GET /api/books" do
-    it "返回图书列表" do
-      get "/api/books"
-
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:code]).to eq(0)
-      expect(json_response[:response][:data][:books]).to be_an(Array)
-    end
-
-    it "支持分页" do
-      get "/api/books", params: { page: 1, per_page: 2 }
-
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:data][:books].size).to be <= 2
-    end
-
-    it "只返回已发布的图书" do
-      draft_book = create(:book, status: "draft")
-      offline_book = create(:book, status: "offline")
-
-      get "/api/books"
-
-      book_ids = json_response[:response][:data][:books].map { |b| b[:id] }
-      expect(book_ids).not_to include(draft_book.id)
-      expect(book_ids).not_to include(offline_book.id)
-    end
-  end
-
   # ==================== 合集资源 ====================
   describe "GET /api/books/compilation" do
     it "返回合集下的所有资源" do
@@ -54,6 +25,20 @@ RSpec.describe "API Books", type: :request do
       expect(book_ids).to include(book1.id)
       expect(book_ids).not_to include(book2.id)
       expect(data[:contents]).to be_an(Array)
+    end
+
+    it "返回的 img_url 是签名后的 OSS 地址" do
+      compilation = create(:compilation)
+      book = create(:book)
+      compilation.books << book
+
+      get "/api/books/compilation", params: { compilation_id: compilation.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      data[:contents].each do |content|
+        expect(content[:img_url]).to match(/\?Expires=/)
+      end
     end
 
     it "合集不存在时返回 404" do
@@ -145,6 +130,17 @@ RSpec.describe "API Books", type: :request do
 
       chapters = json_response[:response][:data][:chapters]
       expect(chapters.map { |c| c[:sn] }).to eq([1, 2, 3])
+    end
+
+    it "返回的 cover_image_url 是签名后的 OSS 地址" do
+      create(:chapter, book: book, sn: 1, cover_image_url: "http://test.oss-cn-beijing.aliyuncs.com/cover.jpg")
+
+      get "/api/books/#{book.id}/chapters", params: { uuid: user.uuid }
+
+      chapters = json_response[:response][:data][:chapters]
+      chapters.each do |chapter|
+        expect(chapter[:cover_image_url]).to match(/\?Expires=/)
+      end
     end
 
     it "没有章节时返回空数组" do
