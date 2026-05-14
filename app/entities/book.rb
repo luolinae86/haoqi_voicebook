@@ -5,7 +5,7 @@ module Entities
     expose :id
     expose :name
     expose :cover_image_url do |instance, _|
-      sign_oss_url(instance.cover_image_url)
+      self.class.sign_oss_url(instance.cover_image_url)
     end
     expose :themes
     expose :category_id
@@ -23,10 +23,10 @@ module Entities
     expose :status
     expose :page_count
     expose :epub_oss_url do |instance, _|
-      sign_oss_url(instance.epub_oss_url)
+      self.class.sign_oss_url(instance.epub_oss_url)
     end
     expose :styles_oss_url do |instance, _|
-      sign_oss_url(instance.styles_oss_url)
+      self.class.sign_oss_url(instance.styles_oss_url)
     end
     expose :created_at
     expose :updated_at
