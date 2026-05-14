@@ -2,6 +2,9 @@
 
 require "pathname"
 require "securerandom"
+require "openssl"
+require "cgi"
+require "base64"
 
 class AliyunOssService
   class UploadError < StandardError; end
@@ -66,11 +69,24 @@ class AliyunOssService
   end
 
   # 生成签名 URL（临时授权访问私有 bucket）
+  # aliyun-sdk 0.8 的 object_url 方法有 bug（签名时错误地加了 date header），
+  # 因此这里手动实现正确的签名逻辑
   # @param object_key [String] OSS 对象路径
   # @param expires [Integer] 过期时间（秒），默认 3600
   # @return [String] 签名 URL
   def generate_signed_url(object_key, expires: 3600)
-    @bucket.object_url(object_key, true, expires)
+    expires_at = Time.now.to_i + expires
+
+    # StringToSign 格式: HTTP-Method\nContent-MD5\nContent-Type\nExpires\nCanonicalizedResource
+    canonicalized_resource = "/#{OSS_BUCKET_NAME}/#{object_key}"
+    string_to_sign = "GET\n\n\n#{expires_at}\n#{canonicalized_resource}"
+
+    signature = Base64.strict_encode64(
+      OpenSSL::HMAC.digest("sha1", OSS_ACCESS_KEY_SECRET, string_to_sign)
+    )
+
+    query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
+    "https://#{OSS_BUCKET_NAME}.#{OSS_ENDPOINT}/#{object_key}?#{query}"
   rescue StandardError => e
     raise UploadError, "OSS 签名失败: #{e.message}"
   end

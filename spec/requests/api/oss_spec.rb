@@ -87,11 +87,17 @@ RSpec.describe "API Oss", type: :request do
       expect(result).to be_nil
     end
 
-    it "解析失败的 URL 原样返回" do
+    it "普通字符串也生成签名 URL（URI.parse 不抛异常）" do
+      oss_mock = instance_double(AliyunOssService)
+      allow(AliyunOssService).to receive(:new).and_return(oss_mock)
+      allow(oss_mock).to receive(:generate_signed_url)
+        .with("not-a-valid-url", expires: 3600)
+        .and_return("https://signed.url?OSSAccessKeyId=xxx")
+
       helper = helper_class.new
       result = helper.signed_oss_url("not-a-valid-url")
 
-      expect(result).to eq("not-a-valid-url")
+      expect(result).to eq("https://signed.url?OSSAccessKeyId=xxx")
     end
   end
 end
