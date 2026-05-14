@@ -69,9 +69,10 @@ module Api
           page = chapter.ebook_pages.find_by!(page_number: params[:page_number])
 
           if page.xhtml_content.present?
+            xhtml = sign_xhtml_urls(page.xhtml_content, chapter)
             env["api.format"] = :txt
             content_type "application/xhtml+xml; charset=utf-8"
-            page.xhtml_content
+            xhtml
           else
             error!({ code: 1, msg: "该页面尚未导出 XHTML" }, 404)
           end

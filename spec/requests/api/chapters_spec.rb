@@ -159,6 +159,20 @@ RSpec.describe "API Chapters", type: :request do
       expect(data[:page_number]).to eq(1)
     end
 
+    it "返回的图片 URL 已签名" do
+      page = book.ebook_pages.create!(page_number: 1, page_width: 800, page_height: 600, rich_content: { "text" => "test", "lines" => [], "images" => [{ "id" => "image-1-1", "image_url" => "https://bucket.oss-cn-beijing.aliyuncs.com/test.png" }], "directory" => nil }, plain_text: "test content")
+      page.update!(chapter_id: chapter.id)
+
+      allow(AliyunOssService).to receive(:new).and_return(oss_service)
+      allow(oss_service).to receive(:generate_signed_url).and_return("https://bucket.oss-cn-beijing.aliyuncs.com/test.png?Expires=1234567890&Signature=xxx")
+
+      get "/api/chapters/#{chapter.id}/pages/1", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      images = json_response[:response][:data][:images]
+      expect(images.first[:image_url]).to include("Signature=")
+    end
+
     it "未提供 uuid 时返回参数错误" do
       get "/api/chapters/#{chapter.id}/pages/1"
 
@@ -176,6 +190,21 @@ RSpec.describe "API Chapters", type: :request do
 
       expect(response).to have_http_status(200)
       expect(response.body).to include("Test")
+    end
+
+    it "XHTML 中的 OSS URL 已签名" do
+      chapter.update!(styles_oss_url: "https://bucket.oss-cn-beijing.aliyuncs.com/styles/book.css")
+      page = book.ebook_pages.create!(page_number: 1, page_width: 800, page_height: 600, rich_content: {}, xhtml_content: "<html><head><link href=\"https://bucket.oss-cn-beijing.aliyuncs.com/styles/book.css\" /></head><body>Test</body></html>")
+      page.update!(chapter_id: chapter.id)
+
+      allow(AliyunOssService).to receive(:new).and_return(oss_service)
+      allow(oss_service).to receive(:generate_signed_url).and_return("https://bucket.oss-cn-beijing.aliyuncs.com/styles/book.css?Expires=1234567890&Signature=xxx")
+
+      get "/api/chapters/#{chapter.id}/pages/1/html", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(response.body).to include("Signature=")
+      expect(response.body).not_to include("https://bucket.oss-cn-beijing.aliyuncs.com/styles/book.css\"")
     end
 
     it "XHTML 未导出时返回 404" do
