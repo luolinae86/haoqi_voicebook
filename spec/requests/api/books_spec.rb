@@ -23,26 +23,35 @@ RSpec.describe "API Books", type: :request do
       expect(json_response[:response][:data][:books].size).to be <= 2
     end
 
-    it "按合集筛选" do
+    it "按合集筛选返回合集下的所有资源" do
       compilation = create(:compilation)
       book1 = create(:book)
       book2 = create(:book)
       compilation.books << book1
 
-      get "/api/books", params: { compilation_id: compilation.id }
+      get "/api/books", params: { compilation_id: compilation.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
-      data = json_response[:response][:data][:books]
-      book_ids = data.map { |b| b[:id] }
+      data = json_response[:response][:data]
+      expect(data[:compilation][:id]).to eq(compilation.id)
+      expect(data[:compilation][:name]).to eq(compilation.name)
+      book_ids = data[:books].map { |b| b[:id] }
       expect(book_ids).to include(book1.id)
       expect(book_ids).not_to include(book2.id)
     end
 
     it "合集不存在时返回 404" do
-      get "/api/books", params: { compilation_id: 999999 }
+      get "/api/books", params: { compilation_id: 999999, uuid: user.uuid }
 
       expect(response).to have_http_status(404)
+    end
+
+    it "按合集筛选时未提供 uuid 返回未授权" do
+      get "/api/books", params: { compilation_id: 1 }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
     end
 
     it "只返回已发布的图书" do

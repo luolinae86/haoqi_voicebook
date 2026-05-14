@@ -22,18 +22,38 @@ module Api
           optional :per_page, type: Integer, desc: "每页数量", default: 10
         end
         get do
-          books = Book.published_books
-
+          # 按合集筛选时需要 uuid 鉴权
           if params[:compilation_id].present?
+            params[:uuid] ||= params[:uuid]
+            auth_user
             compilation = Compilation.find(params[:compilation_id])
-            books = books.joins("INNER JOIN compilation_books ON compilation_books.book_id = books.id")
-                         .where(compilation_books: { compilation_id: compilation.id })
+            # 返回合集下的所有资源：books + contents
+            books = compilation.books.published_books.order(created_at: :desc)
+            contents = compilation.contents.includes(:book, :author).sorted
+
+            serialized_books = serialize_collection(books, Entities::Book)
+            serialized_contents = contents.map do |content|
+              {
+                id: content.id,
+                content_type: content.content_type,
+                img_url: content.display_img_url,
+                sn: content.sn,
+                book_id: content.book_id,
+                compilation_id: content.compilation_id
+              }
+            end
+
+            present response: success_response(
+              compilation: { id: compilation.id, name: compilation.name },
+              books: serialized_books,
+              contents: serialized_contents
+            )
+          else
+            books = Book.published_books
+            books = filter_books(books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
+            paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
+            present response: success_response(books: serialize_collection(paged, Entities::Book), pagination: pagination_info(paged))
           end
-
-          books = filter_books(books, params.slice(:content_type, :category_id, :grade_id, :is_free, :sort_by))
-
-          paged = books.page(params[:page] || 1).per(params[:per_page] || 10)
-          present response: success_response(books: serialize_collection(paged, Entities::Book), pagination: pagination_info(paged))
         end
 
         # ==================== 图书详情 ====================
