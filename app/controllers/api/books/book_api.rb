@@ -10,10 +10,10 @@ module Api
 
       namespace :books do
         # ==================== 合集资源 ====================
-        desc "获取合集下的所有资源（需 uuid 鉴权）"
+        desc '获取合集下的所有资源（需 uuid 鉴权）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :compilation_id, type: Integer, desc: "合集ID"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :compilation_id, type: Integer, desc: '合集ID'
         end
         get :compilation do
           auth_user
@@ -41,12 +41,12 @@ module Api
         end
 
         # ==================== 图书详情 ====================
-        desc "获取图书详情"
+        desc '获取图书详情'
         params do
-          requires :id, type: Integer, desc: "图书ID"
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :id, type: Integer, desc: '图书ID'
+          requires :uuid, type: String, desc: '用户uuid'
         end
-        get ":id" do
+        get ':id' do
           auth_user
 
           book = Book.find(params[:id])
@@ -55,70 +55,38 @@ module Api
         end
 
         # ==================== 导入电子书（PDF/EPUB） ====================
-        desc "导入电子书文件到图书（需 uuid 鉴权）"
+        desc '导入电子书文件到图书（需 uuid 鉴权）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :id, type: Integer, desc: "图书ID"
-          requires :file_url, type: String, desc: "OSS 文件 URL"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :id, type: Integer, desc: '图书ID'
+          requires :file_url, type: String, desc: 'OSS 文件 URL'
         end
-        post ":id/import" do
+        post ':id/import' do
           auth_user
 
           book = Book.find_by(id: params[:id])
-          error!({ code: 1, msg: "图书不存在" }, 404) unless book
+          error_pop_resp('图书不存在') if book.blank?
 
-          file_url = params[:file_url]
-          uri = URI.parse(file_url)
-          file_ext = File.extname(uri.path).downcase.delete(".")
-          object_key = uri.path.sub(/\A\//, "")
-          file_name = File.basename(uri.path)
-
-          # 校验文件类型
-          unless %w[pdf epub].include?(file_ext)
-            error!({ code: 1, msg: "仅支持 PDF 和 EPUB 文件" }, 400)
-          end
-
-          # 校验 object_key 合法性
-          if object_key.blank?
-            error!({ code: 1, msg: "无效的 OSS 文件 URL" }, 400)
-          end
-
-          # 保存文件信息到 book
-          book.update!(
-            content_file_url: file_url,
-            content_file_type: file_ext,
-            content_file_name: file_name
-          )
-
-          # 提交异步任务
-          if file_ext == "pdf"
-            BookPdfImportWorker.perform_async({
-                                                "book_id" => book.id,
-                                                "pdf_oss_key" => object_key
-                                              })
-          else
-            BookEpubImportWorker.perform_async({
-                                                 "book_id" => book.id,
-                                                 "epub_oss_key" => object_key
-                                               })
-          end
+          Ebook::ImportService.new(book: book, file_url: params[:file_url]).call
 
           present response: success_response(
             book_id: book.id,
             content_file_type: book.content_file_type,
-            msg: "导入任务已提交，请轮询图书详情接口查看进度"
+            msg: '导入任务已提交，请轮询图书详情接口查看进度'
           )
+        rescue Ebook::ImportService::Error => e
+          error_pop_resp(e.message)
         end
 
         # ==================== 页面清单 ====================
-        desc "获取图书页面清单"
+        desc '获取图书页面清单'
         params do
-          requires :id, type: Integer, desc: "图书ID"
-          requires :uuid, type: String, desc: "用户uuid"
-          optional :page, type: Integer, desc: "页码", default: 1
-          optional :per_page, type: Integer, desc: "每页数量", default: 50
+          requires :id, type: Integer, desc: '图书ID'
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :page, type: Integer, desc: '页码', default: 1
+          optional :per_page, type: Integer, desc: '每页数量', default: 50
         end
-        get ":id/pages" do
+        get ':id/pages' do
           auth_user
 
           book = Book.find(params[:id])
@@ -133,13 +101,13 @@ module Api
         end
 
         # ==================== 单页内容 ====================
-        desc "获取图书单页内容"
+        desc '获取图书单页内容'
         params do
-          requires :id, type: Integer, desc: "图书ID"
-          requires :page_number, type: Integer, desc: "页码"
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :id, type: Integer, desc: '图书ID'
+          requires :page_number, type: Integer, desc: '页码'
+          requires :uuid, type: String, desc: '用户uuid'
         end
-        get ":id/pages/:page_number" do
+        get ':id/pages/:page_number' do
           auth_user
 
           book = Book.find(params[:id])
@@ -149,13 +117,13 @@ module Api
         end
 
         # ==================== 页面 XHTML 内容 ====================
-        desc "获取图书单页 XHTML 内容"
+        desc '获取图书单页 XHTML 内容'
         params do
-          requires :id, type: Integer, desc: "图书ID"
-          requires :page_number, type: Integer, desc: "页码"
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :id, type: Integer, desc: '图书ID'
+          requires :page_number, type: Integer, desc: '页码'
+          requires :uuid, type: String, desc: '用户uuid'
         end
-        get ":id/pages/:page_number/html" do
+        get ':id/pages/:page_number/html' do
           auth_user
 
           book = Book.find(params[:id])
@@ -163,28 +131,28 @@ module Api
 
           if page.xhtml_content.present?
             xhtml = sign_xhtml_urls(page.xhtml_content, book)
-            env["api.format"] = :txt
-            content_type "application/xhtml+xml; charset=utf-8"
+            env['api.format'] = :txt
+            content_type 'application/xhtml+xml; charset=utf-8'
             xhtml
           else
-            error!({ code: 1, msg: "该页面尚未导出 XHTML" }, 404)
+            error!({ code: 1, msg: '该页面尚未导出 XHTML' }, 404)
           end
         end
 
         # ==================== 样式表 ====================
-        desc "获取图书样式表"
+        desc '获取图书样式表'
         params do
-          requires :id, type: Integer, desc: "图书ID"
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :id, type: Integer, desc: '图书ID'
+          requires :uuid, type: String, desc: '用户uuid'
         end
-        get ":id/styles" do
+        get ':id/styles' do
           auth_user
 
           book = Book.find(params[:id])
           if book.styles_oss_url.present?
             redirect signed_oss_url(book.styles_oss_url)
           else
-            error!({ code: 1, msg: "样式表尚未导出" }, 404)
+            error!({ code: 1, msg: '样式表尚未导出' }, 404)
           end
         end
       end

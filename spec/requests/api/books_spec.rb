@@ -125,9 +125,9 @@ RSpec.describe "API Books", type: :request do
         file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.txt"
       }
 
-      expect(response).to have_http_status(400)
+      expect(response).to have_http_status(200)
       body = JSON.parse(response.body, symbolize_names: true)
-      expect(body[:code]).to be > 0
+      expect(body[:response][:code]).to be > 0
     end
 
     it "未提供 uuid 时返回参数错误" do
