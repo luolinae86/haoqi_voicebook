@@ -24,6 +24,7 @@ module Api
     # ==================== 挂载子模块 ====================
     mount Api::AppUsers::Mount
     mount Api::Books::Mount
+    mount Api::Compilations::Mount
     mount Api::Grades::Mount
     mount Api::Home::Mount
     mount Api::Memberships::Mount

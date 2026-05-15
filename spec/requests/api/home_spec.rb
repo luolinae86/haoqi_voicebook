@@ -132,24 +132,22 @@ RSpec.describe "API Home", type: :request do
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
-          recommends = json_response[:response][:data][:recommends]
-          expect(recommends).to be_an(Array)
-          expect(recommends.size).to eq(1)
-          expect(recommends.first[:content_groups]).to be_an(Array)
+          content_groups = json_response[:response][:data][:content_groups]
+          expect(content_groups).to be_an(Array)
+          expect(content_groups.size).to eq(1)
         end
 
         it "推荐内容包含 content_groups" do
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          recommends = json_response[:response][:data][:recommends]
-          content_groups = recommends.first[:content_groups]
+          content_groups = json_response[:response][:data][:content_groups]
           expect(content_groups.size).to eq(1)
         end
 
         it "内容分组包含正确类型和名称" do
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          content_groups = json_response[:response][:data][:recommends].first[:content_groups].first
+          content_groups = json_response[:response][:data][:content_groups].first
           expect(content_groups[:group_type]).to eq("one_row_three_columns")
           expect(content_groups[:group_type_name]).to eq("一排3列")
         end
@@ -157,7 +155,7 @@ RSpec.describe "API Home", type: :request do
         it "合集内容包含 compilation 信息" do
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
+          contents = json_response[:response][:data][:content_groups].first[:contents]
           compilation_content = contents.find { |c| c[:content_type] == "compilation" }
           expect(compilation_content[:compilation][:name]).to eq("经典文学合集")
           expect(compilation_content[:compilation][:total_count]).to eq(10)
@@ -168,7 +166,7 @@ RSpec.describe "API Home", type: :request do
         it "单本内容包含 book 信息" do
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
+          contents = json_response[:response][:data][:content_groups].first[:contents]
           book_content = contents.find { |c| c[:content_type] == "book" }
           expect(book_content[:book][:name]).to eq("小王子")
           expect(book_content[:book][:cover_url]).to include("book-cover.jpg")
@@ -186,7 +184,7 @@ RSpec.describe "API Home", type: :request do
 
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          content_groups = json_response[:response][:data][:recommends].first[:content_groups]
+          content_groups = json_response[:response][:data][:content_groups]
           author_group_data = content_groups.find { |g| g[:group_type] == "author_display" }
           author_content = author_group_data[:contents].first
           expect(author_content[:author][:name]).to eq("安徒生")
@@ -200,7 +198,7 @@ RSpec.describe "API Home", type: :request do
 
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
+          contents = json_response[:response][:data][:content_groups].first[:contents]
           sns = contents.map { |c| c[:sn] }
           expect(sns).to eq(sns.sort)
         end
@@ -224,7 +222,7 @@ RSpec.describe "API Home", type: :request do
 
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          content_groups = json_response[:response][:data][:recommends].first[:content_groups]
+          content_groups = json_response[:response][:data][:content_groups]
           sns = content_groups.map { |cg| cg[:sn] || 0 }
           expect(sns).to eq(sns.sort)
         end
@@ -240,7 +238,7 @@ RSpec.describe "API Home", type: :request do
 
           get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
-          content_groups = json_response[:response][:data][:recommends].first[:content_groups]
+          content_groups = json_response[:response][:data][:content_groups]
           expect(content_groups.size).to eq(2)
         end
       end
@@ -251,7 +249,7 @@ RSpec.describe "API Home", type: :request do
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
-          expect(json_response[:response][:data][:recommends]).to eq([])
+          expect(json_response[:response][:data][:content_groups]).to eq([])
         end
 
         it "推荐属于其他年级时返回空数组" do
@@ -262,7 +260,7 @@ RSpec.describe "API Home", type: :request do
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
-          expect(json_response[:response][:data][:recommends]).to eq([])
+          expect(json_response[:response][:data][:content_groups]).to eq([])
         end
 
         it "推荐为草稿状态时返回空数组" do
@@ -272,7 +270,7 @@ RSpec.describe "API Home", type: :request do
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
-          expect(json_response[:response][:data][:recommends]).to eq([])
+          expect(json_response[:response][:data][:content_groups]).to eq([])
         end
       end
 
@@ -300,7 +298,7 @@ RSpec.describe "API Home", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:response][:data][:recommends]).to eq([])
+        expect(json_response[:response][:data][:content_groups]).to eq([])
       end
     end
 
