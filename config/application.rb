@@ -39,6 +39,22 @@ module Voicebook
     # 默认分页数量
     config.x.default_per_page = 10
 
+    # 构建 Redis URL（供 Sidekiq 和 cache_store 共用）
+    def self.build_redis_url
+      return "redis://localhost:6379/0" if Rails.env.development? || Rails.env.test?
+
+      host = ENV.fetch("REDIS_URL", nil)
+      password = ENV.fetch("REDIS_PASSWORD", nil)
+      return "redis://localhost:6379/0" unless host
+
+      host = host.sub(%r{^https?://}, "").sub(%r{/$}, "")
+      port_match = host.match(/:(\d+)$/)
+      port = port_match ? port_match[1] : "6379"
+      host_part = port_match ? host.sub(/:\d+$/, "") : host
+
+      "redis://#{password ? ":#{password}@" : ""}#{host_part}:#{port}/0"
+    end
+
     # CORS 跨域配置
     config.middleware.insert_before 0, Rack::Cors do
       allow do

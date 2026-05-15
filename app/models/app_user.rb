@@ -64,6 +64,9 @@ class AppUser < ApplicationRecord
   validates :qq_openid, uniqueness: true, allow_blank: true
   validates :nickname, length: { maximum: 50 }, allow_blank: true
 
+  # 更新后清除缓存（包括 console 中的 update，跨 Redis 容器生效）
+  after_commit :expire_cache, on: :update
+
   # 作用域
   scope :vip_users, -> { where(is_vip: true).where("vip_expires_at > ?", Time.current) }
 
@@ -85,6 +88,10 @@ class AppUser < ApplicationRecord
   end
 
   private
+
+  def expire_cache
+    Rails.cache.delete("app_user_#{uuid}")
+  end
 
   def generate_device_id
     self.device_id = SecureRandom.uuid.delete("-") if new_record? && device_id.blank?
