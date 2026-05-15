@@ -36,23 +36,13 @@ module Ebook
 
       directories = []
       @book.ebook_pages.ordered.find_each do |page|
-        content = sanitized_content_for_export(
-          normalized_content(page),
-          page_number: page.page_number,
-          page_width: page.page_width,
-          page_height: page.page_height
-        )
-        page_payload = {
-          page_number: page.page_number,
-          page_width: page.page_width,
-          page_height: page.page_height,
-          word_count: page.word_count,
-          image_count: page.image_count,
-          text: content[:text].presence || page.plain_text,
-          lines: content[:lines] || [],
-          images: content[:images] || [],
-          directory: content[:directory]
-        }
+        if page.image_url.present?
+          # PDF 图片页
+          page_payload = build_image_page(page)
+        else
+          # 富文本页（兼容旧数据）
+          page_payload = build_rich_page(page)
+        end
 
         page_file = pages_dir.join(format("page-%04d.json", page.page_number))
         File.write(page_file, JSON.pretty_generate(page_payload))
@@ -60,12 +50,12 @@ module Ebook
           page_number: page.page_number,
           file: page_file.basename.to_s,
           word_count: page.word_count,
-          image_count: page.image_count,
-          directory: content[:directory]
+          image_count: page_payload[:images].size,
+          directory: page_payload[:directory]
         }
-        directories << content[:directory].merge(end_page_number: page.page_number) if content[:directory].present?
+        directories << page_payload[:directory].merge(end_page_number: page.page_number) if page_payload[:directory].present?
 
-        copy_images(content[:images], assets_dir, page.page_number)
+        copy_images(page_payload[:images], assets_dir, page.page_number)
       end
 
       manifest[:directories] = collapse_directories(directories)
@@ -74,6 +64,48 @@ module Ebook
     end
 
     private
+
+    def build_image_page(page)
+      {
+        page_number: page.page_number,
+        word_count: page.word_count,
+        image_count: 1,
+        text: "",
+        lines: [],
+        images: [{
+          id: "image-#{page.page_number}-1",
+          type: "image",
+          role: "hero_image",
+          image_url: page.image_url,
+          mime_type: infer_mime_type(page.image_url)
+        }],
+        directory: nil
+      }
+    end
+
+    def build_rich_page(page)
+      content = normalized_content(page)
+      content = sanitized_content_for_export(
+        content,
+        page_number: page.page_number
+      )
+      {
+        page_number: page.page_number,
+        word_count: page.word_count,
+        image_count: content[:images].size,
+        text: content[:text].presence || page.plain_text.to_s,
+        lines: content[:lines] || [],
+        images: content[:images] || [],
+        directory: content[:directory]
+      }
+    end
+
+    def infer_mime_type(url)
+      return "image/png" if url.to_s.end_with?(".png")
+      return "image/jpeg" if url.to_s.end_with?(".jpg", ".jpeg")
+      return "image/webp" if url.to_s.end_with?(".webp")
+      "image/png"
+    end
 
     def copy_images(images, assets_dir, page_number)
       Array(images).each do |image|
@@ -92,6 +124,8 @@ module Ebook
     end
 
     def normalized_content(page)
+      return { text: "", lines: [], images: [], directory: nil }.with_indifferent_access if page.rich_content.blank?
+
       content = page.rich_content
       return content.with_indifferent_access if content.is_a?(Hash)
 
@@ -101,24 +135,22 @@ module Ebook
                                  .join("\n")
 
       {
-        text: text_value.presence || page.plain_text,
+        text: text_value.presence || page.plain_text.to_s,
         lines: [],
         images: image_blocks,
         directory: nil
       }.with_indifferent_access
     end
 
-    def sanitized_content_for_export(content, page_number:, page_width:, page_height:)
+    def sanitized_content_for_export(content, page_number:)
       raw_page = {
         "page_number" => page_number,
-        "page_width" => page_width,
-        "page_height" => page_height,
         "text" => content[:text].to_s,
         "lines" => deep_stringify(content[:lines] || []),
         "images" => deep_stringify(content[:images] || []),
         "directory" => deep_stringify(content[:directory])
       }
-      lines = page_sanitizer.send(:visible_lines, raw_page, page_width.to_f)
+      lines = page_sanitizer.send(:visible_lines, raw_page, nil)
       lines.each do |line|
         next unless line["marker"].present?
 

@@ -159,17 +159,13 @@ RSpec.describe EpubImportWorker do
       first_page = book.ebook_pages.first
       expect(first_page.xhtml_content).to include("https://epub-files.oss-cn-beijing.aliyuncs.com/")
       expect(first_page.xhtml_content).to include(book.styles_oss_url)
-
-      # Check page dimensions from viewport
-      expect(first_page.page_width).to be > 0
-      expect(first_page.page_height).to be > 0
     end
 
     it "clears existing pages before rebuilding" do
       real_epub = Pathname.new("/tmp/test.epub")
       skip "Test EPUB not found" unless real_epub.exist?
 
-      create(:ebook_page, book: book, page_number: 999, page_width: 100, page_height: 100, plain_text: "old page")
+      create(:ebook_page, book: book, page_number: 999, xhtml_content: "old page")
       expect(book.ebook_pages.count).to eq(1)
 
       allow(AliyunOssService).to receive(:new).and_return(oss_service)

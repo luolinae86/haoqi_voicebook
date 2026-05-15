@@ -24,7 +24,6 @@ module Api
     # ==================== 挂载子模块 ====================
     mount Api::AppUsers::Mount
     mount Api::Books::Mount
-    mount Api::Chapters::Mount
     mount Api::Grades::Mount
     mount Api::Home::Mount
     mount Api::Memberships::Mount
@@ -43,8 +42,7 @@ module Api
       tags: [
         { name: "home", description: "首页推荐" },
         { name: "app_users", description: "用户认证与管理" },
-        { name: "books", description: "图书管理与电子书阅读" },
-        { name: "chapters", description: "章节与 EPUB" },
+        { name: "books", description: "图书、电子书阅读与页面" },
         { name: "memberships", description: "会员订阅管理" },
         { name: "oss", description: "OSS 临时授权" },
         { name: "parental", description: "家长管控" }

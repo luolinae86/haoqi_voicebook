@@ -49,31 +49,35 @@ module Ebook
         FileUtils.rm_rf(@storage_root)
 
         reader.pages.each do |page|
-          receiver = PdfPageReceiver.new
-          page.walk(receiver)
-          content, current_directory, page_geometry = build_content(
-            page,
-            receiver,
-            directory_map: toc_mapping[:page_map],
-            current_directory: current_directory,
-            renderer: renderer,
-            force_image_pages: force_image_pages
-          )
-          plain_text = sanitize_text(content[:text])
-          word_count = count_words(plain_text)
+          if force_image_pages
+            import_as_image_page(page, renderer)
+          else
+            receiver = PdfPageReceiver.new
+            page.walk(receiver)
+            content, current_directory, page_geometry = build_content(
+              page,
+              receiver,
+              directory_map: toc_mapping[:page_map],
+              current_directory: current_directory,
+              renderer: renderer,
+              force_image_pages: false
+            )
+            plain_text = sanitize_text(content[:text])
+            word_count = count_words(plain_text)
 
-          @book.ebook_pages.create!(
-            page_number: page.number,
-            page_width: page_geometry[:width],
-            page_height: page_geometry[:height],
-            plain_text: plain_text,
-            rich_content: sanitize_content(content),
-            word_count: word_count,
-            block_count: content[:lines].size + content[:images].size,
-            image_count: content[:images].size
-          )
+            @book.ebook_pages.create!(
+              page_number: page.number,
+              page_width: page_geometry[:width],
+              page_height: page_geometry[:height],
+              plain_text: plain_text,
+              rich_content: sanitize_content(content),
+              word_count: word_count,
+              block_count: content[:lines].size + content[:images].size,
+              image_count: content[:images].size
+            )
 
-          total_word_count += word_count
+            total_word_count += word_count
+          end
         end
 
         @book.update!(
@@ -98,6 +102,47 @@ module Ebook
     end
 
     private
+
+    # 导入单页为图片（PDF 强制图片模式）
+    def import_as_image_page(page, renderer)
+      return unless renderer
+
+      full_page = forced_page_image_candidate(page, renderer, enabled: true)
+      return unless full_page
+
+      exporter = ImageExporter.new(
+        objects: page.objects,
+        public_root: @public_root,
+        storage_root: @storage_root,
+        oss_service: @image_exporter_oss_service,
+        oss_prefix: @image_exporter_oss_prefix
+      )
+
+      image_info = begin
+        exporter.export_rendered(
+          rendered: renderer.render_crop(
+            page_number: page.number,
+            page_width: page.width,
+            page_height: page.height,
+            bbox: full_page[:render_box],
+            right_bleed: 0.0
+          ),
+          page_number: page.number,
+          image_number: 1
+        )
+      rescue StandardError => e
+        Rails.logger.warn("[PdfImporter] Failed to render page #{page.number}: #{e.message}")
+        nil
+      end
+
+      return unless image_info
+
+      @book.ebook_pages.create!(
+        page_number: page.number,
+        image_url: image_info[:image_url],
+        word_count: 0
+      )
+    end
 
     def build_content(page, receiver, directory_map:, current_directory:, renderer:, force_image_pages: false)
       text_content = build_text_content(page, receiver.runs)

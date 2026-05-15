@@ -5,8 +5,8 @@ module Entities
     expose :id
     expose :page_number
     expose :word_count
-    expose :image_count
-    expose :page_width
-    expose :page_height
+    expose :image_url do |instance, _|
+      Book.sign_oss_url(instance.image_url)
+    end
   end
 end

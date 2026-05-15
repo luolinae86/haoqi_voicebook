@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_15_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -125,6 +125,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
     t.text "epub_export_error", comment: "EPUB 导出失败原因"
     t.string "styles_oss_url", comment: "book.css 的 OSS URL"
     t.string "nav_oss_url", comment: "nav.xhtml 的 OSS URL"
+    t.string "content_file_url", comment: "电子书内容文件URL"
+    t.string "content_file_type", comment: "内容文件类型 (epub/pdf)"
+    t.string "content_file_name", comment: "内容文件名"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["name"], name: "index_books_on_name"
@@ -173,27 +176,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_category_subs_on_category_id"
-  end
-
-  create_table "chapters", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
-    t.bigint "book_id", null: false, comment: "所属绘本"
-    t.string "name", null: false, comment: "章节名称"
-    t.string "cover_image_url", comment: "章节封面图片URL"
-    t.string "content_file_url", comment: "章节内容文件URL"
-    t.string "content_file_name", comment: "章节内容文件名"
-    t.string "content_file_type", comment: "内容文件类型 (epub/pdf/txt)"
-    t.boolean "is_free", default: false, comment: "是否免费"
-    t.boolean "is_published", default: false, comment: "是否上线"
-    t.integer "sn", default: 0, comment: "排序"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "epub_oss_key", comment: "EPUB 文件 OSS 路径"
-    t.string "epub_oss_url", comment: "EPUB 文件公网 URL"
-    t.integer "epub_export_status", default: 0, comment: "EPUB 导出状态：0-未导出 1-导出中 2-已完成 3-失败"
-    t.text "epub_export_error", comment: "EPUB 导出失败原因"
-    t.string "styles_oss_url", comment: "book.css 的 OSS URL"
-    t.string "nav_oss_url", comment: "nav.xhtml 的 OSS URL"
-    t.index ["book_id"], name: "index_chapters_on_book_id"
   end
 
   create_table "compilation_books", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -285,21 +267,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
 
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
     t.bigint "book_id", null: false, comment: "图书ID"
-    t.bigint "chapter_id"
     t.integer "page_number", null: false, comment: "页码"
-    t.decimal "page_width", precision: 8, scale: 2, null: false, comment: "页面宽度(pt)"
-    t.decimal "page_height", precision: 8, scale: 2, null: false, comment: "页面高度(pt)"
-    t.text "plain_text", comment: "页面纯文本"
-    t.json "rich_content", null: false, comment: "页面富文本块"
     t.integer "word_count", default: 0, null: false, comment: "字数"
-    t.integer "block_count", default: 0, null: false, comment: "块数量"
-    t.integer "image_count", default: 0, null: false, comment: "图片数量"
     t.text "xhtml_content", comment: "页面 XHTML 内容"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "image_url", comment: "页面图片URL（PDF导入）"
     t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_ebook_pages_on_book_id"
-    t.index ["chapter_id"], name: "index_ebook_pages_on_chapter_id"
   end
 
   create_table "grades", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -359,6 +334,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
     t.boolean "status", default: true, comment: "状态: true发布/false草稿"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "color", limit: 16, default: "", comment: "颜色"
     t.index ["grade_id", "sn"], name: "index_recommends_on_grade_id_and_sn"
     t.index ["grade_id"], name: "index_recommends_on_grade_id"
   end
@@ -387,7 +363,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
   add_foreign_key "category_sub_books", "books"
   add_foreign_key "category_sub_books", "category_subs"
   add_foreign_key "category_subs", "categories"
-  add_foreign_key "chapters", "books"
   add_foreign_key "compilation_books", "books"
   add_foreign_key "compilation_books", "compilations"
   add_foreign_key "compilation_categories", "categories"
@@ -398,6 +373,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_031303) do
   add_foreign_key "contents", "content_groups"
   add_foreign_key "devices", "app_users"
   add_foreign_key "ebook_pages", "books"
-  add_foreign_key "ebook_pages", "chapters"
   add_foreign_key "recommends", "grades"
 end

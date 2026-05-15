@@ -61,7 +61,6 @@ RSpec.describe Book, type: :model do
     it { is_expected.to have_and_belong_to_many(:grades) }
     it { is_expected.to have_and_belong_to_many(:compilations) }
     it { is_expected.to have_and_belong_to_many(:category_subs) }
-    it { is_expected.to have_many(:chapters) }
     it { is_expected.to have_many(:contents) }
     it { is_expected.to have_many(:bookshelves).dependent(:destroy) }
     it { is_expected.to have_many(:bookmarks).dependent(:destroy) }

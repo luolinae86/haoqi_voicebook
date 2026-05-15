@@ -108,15 +108,13 @@ class EpubImportWorker
         xhtml = File.read(page_file)
         xhtml = update_references(xhtml, image_urls, styles_oss_url)
 
-        # 从 viewport meta 提取宽高
-        page_width, page_height = extract_viewport_size(xhtml)
+        # 从 viewport meta 提取宽高（保留用于 XHTML 内处理）
+        extract_viewport_size(xhtml)
 
         book.ebook_pages.create!(
           page_number: page_entry[:page_number],
           xhtml_content: xhtml,
-          rich_content: {},
-          page_width: page_width || 857,
-          page_height: page_height || 1168
+          rich_content: {}
         )
       end
       Rails.logger.info("[EpubImport] #{book.ebook_pages.count} pages saved to DB")

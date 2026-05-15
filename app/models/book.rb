@@ -7,6 +7,9 @@
 #  id                                                                   :bigint           not null, primary key
 #  compilations                                                         :bigint
 #  content_type(类型：0-电子书 1-有声 2-视频 3-绘本)                    :integer          default("ebook"), not null
+#  content_file_url(电子书内容文件URL)                                  :string(255)
+#  content_file_type(内容文件类型 (epub/pdf))                           :string(255)
+#  content_file_name(内容文件名)                                        :string(255)
 #  cover_image_url(绘本封面URL)                                         :string(255)
 #  ebook_checksum(源 PDF 校验值)                                        :string(255)
 #  epub_export_error(EPUB 导出失败原因)                                 :text(65535)
@@ -57,7 +60,6 @@ class Book < ApplicationRecord
   has_and_belongs_to_many :grades, join_table: :book_grades
   has_and_belongs_to_many :compilations, join_table: :compilation_books
   has_and_belongs_to_many :category_subs, join_table: :category_sub_books
-  has_many :chapters
   has_many :contents
 
   # voicebook-specific associations
@@ -84,6 +86,31 @@ class Book < ApplicationRecord
   scope :highest_rated, -> { order(rating: :desc) }
   scope :recently_added, -> { order(created_at: :desc) }
 
+  # OSS URL 签名辅助方法
+  def self.sign_oss_url(url)
+    return nil if url.blank?
+    return url unless url.include?("aliyuncs.com")
+
+    uri = URI.parse(url)
+    host_parts = uri.host.to_s.split(".", 2)
+    bucket_name = host_parts.first
+    endpoint = host_parts.last
+    object_key = uri.path.sub(/\A\//, "")
+
+    expires_at = Time.now.to_i + 3600
+    canonicalized_resource = "/#{bucket_name}/#{object_key}"
+    string_to_sign = "GET\n\n\n#{expires_at}\n#{canonicalized_resource}"
+
+    signature = Base64.strict_encode64(
+      OpenSSL::HMAC.digest("sha1", OSS_ACCESS_KEY_SECRET, string_to_sign)
+    )
+
+    query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
+    "https://#{bucket_name}.#{endpoint}/#{object_key}?#{query}"
+  rescue URI::InvalidURIError, StandardError
+    url
+  end
+
   def themes_array
     themes || []
   end
@@ -95,6 +122,6 @@ class Book < ApplicationRecord
   end
 
   def self.ransackable_associations(auth_object = nil)
-    ["category", "chapters", "compilations", "grades", "supplier", "author", "ebook_pages"]
+    ["category", "compilations", "grades", "supplier", "author", "ebook_pages"]
   end
 end
