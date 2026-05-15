@@ -60,35 +60,41 @@ module Api
           requires :uuid, type: String, desc: "用户uuid"
           requires :id, type: Integer, desc: "图书ID"
           requires :file_url, type: String, desc: "OSS 文件 URL"
-          optional :force_image_pages, type: Boolean, desc: "是否强制图片模式（PDF）"
         end
         post ":id/import" do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error!({ code: 1, msg: "图书不存在" }, 404) unless book
+
           file_url = params[:file_url]
-          file_ext = File.extname(URI.parse(file_url).path).downcase.delete(".")
+          uri = URI.parse(file_url)
+          file_ext = File.extname(uri.path).downcase.delete(".")
+          object_key = uri.path.sub(/\A\//, "")
+          file_name = File.basename(uri.path)
 
           # 校验文件类型
           unless %w[pdf epub].include?(file_ext)
             error!({ code: 1, msg: "仅支持 PDF 和 EPUB 文件" }, 400)
           end
 
+          # 校验 object_key 合法性
+          if object_key.blank?
+            error!({ code: 1, msg: "无效的 OSS 文件 URL" }, 400)
+          end
+
           # 保存文件信息到 book
           book.update!(
             content_file_url: file_url,
             content_file_type: file_ext,
-            content_file_name: File.basename(URI.parse(file_url).path)
+            content_file_name: file_name
           )
 
-          # 提取 OSS object_key
-          object_key = URI.parse(file_url).path.sub(/\A\//, "")
-
+          # 提交异步任务
           if file_ext == "pdf"
             BookPdfImportWorker.perform_async({
                                                 "book_id" => book.id,
-                                                "pdf_oss_key" => object_key,
-                                                "force_image_pages" => params[:force_image_pages] == true
+                                                "pdf_oss_key" => object_key
                                               })
           else
             BookEpubImportWorker.perform_async({

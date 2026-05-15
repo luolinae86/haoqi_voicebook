@@ -17,7 +17,6 @@ class BookPdfImportWorker
     args = args.symbolize_keys
     book_id = args[:book_id]
     pdf_oss_key = args[:pdf_oss_key]
-    force_image_pages = args[:force_image_pages] != false  # PDF 默认强制图片模式
 
     book = Book.find(book_id)
     book.update!(import_status: :processing, import_error_message: nil)
@@ -49,7 +48,7 @@ class BookPdfImportWorker
         public_root: public_root,
         storage_root: storage_root,
         page_renderer: build_page_renderer(pdf_path),
-        force_image_pages: true,  # PDF 始终按图片模式导入
+        force_image_pages: true, # PDF 始终按图片模式导入
         image_exporter_oss_service: oss_service,
         image_exporter_oss_prefix: images_prefix
       )
