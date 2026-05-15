@@ -67,6 +67,7 @@ class Book < ApplicationRecord
   has_many :bookmarks, dependent: :destroy
   has_many :blacklisted_books, dependent: :destroy
   has_many :ebook_pages, dependent: :destroy
+  has_many :book_chapters, dependent: :destroy
 
   # 验证
   validates :name, presence: true, length: { maximum: 100 }
@@ -122,6 +123,6 @@ class Book < ApplicationRecord
   end
 
   def self.ransackable_associations(auth_object = nil)
-    ["category", "compilations", "grades", "supplier", "author", "ebook_pages"]
+    ["category", "compilations", "grades", "supplier", "author", "ebook_pages", "book_chapters"]
   end
 end

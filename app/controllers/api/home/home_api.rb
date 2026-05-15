@@ -7,9 +7,9 @@ module Api
       helpers Api::Home::HomeHelpers
 
       namespace :home do
-        desc "获取首页推荐列表（仅 recommends 层级）"
+        desc '获取首页推荐列表（仅 recommends 层级）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :uuid, type: String, desc: '用户uuid'
         end
         get :recommends do
           auth_user
@@ -23,9 +23,9 @@ module Api
           present response: success_response(recommends: serialize_collection(recommends, Entities::Recommend))
         end
 
-        desc "获取首页推荐内容（根据用户年级）"
+        desc '获取首页推荐内容（根据用户年级）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :uuid, type: String, desc: '用户uuid'
         end
         get do
           auth_user

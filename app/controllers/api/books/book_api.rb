@@ -54,6 +54,23 @@ module Api
           present response: success_response(book: Entities::Book.represent(book).as_json)
         end
 
+        # ==================== 章节目录 ====================
+        desc '获取图书章节目录（需 uuid 鉴权）'
+        params do
+          requires :id, type: Integer, desc: '图书ID'
+          requires :uuid, type: String, desc: '用户uuid'
+        end
+        get ':id/chapters' do
+          auth_user
+
+          book = Book.find(params[:id])
+
+          present response: success_response(
+            book_id: book.id,
+            chapters: serialize_collection(book.book_chapters.ordered, Entities::BookChapter)
+          )
+        end
+
         # ==================== 导入电子书（PDF/EPUB） ====================
         desc '导入电子书文件到图书（需 uuid 鉴权）'
         params do

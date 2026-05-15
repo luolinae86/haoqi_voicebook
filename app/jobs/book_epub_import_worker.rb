@@ -66,15 +66,28 @@ class BookEpubImportWorker
       # 5. 提取 TOC（从 nav.xhtml 或 toc.ncx）
       toc_entries = extract_toc(opf, extract_dir, opf_dir)
 
-      # 6. 导入每页 XHTML
+      # 6. 导入每页 XHTML 和章节
       page_number = 1
       total_word_count = 0
       sanitized_title = sanitize_dir_name(book.name)
+      chapter_number = 0
 
       Book.transaction do
         book.ebook_pages.delete_all
+        book.book_chapters.delete_all
 
         spine_refs.each do |href|
+          # 检查此 href 是否对应 TOC 中的某个章节
+          matching_toc = toc_entries.find { |t| t[:href] == href }
+          if matching_toc
+            chapter_number += 1
+            book.book_chapters.create!(
+              chapter_number: chapter_number,
+              chapter_name: matching_toc[:title],
+              start_page_number: page_number
+            )
+          end
+
           xhtml_path = extract_dir.join(opf_dir, href)
           next unless xhtml_path.exist?
 

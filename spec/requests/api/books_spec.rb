@@ -92,6 +92,29 @@ RSpec.describe "API Books", type: :request do
     end
   end
 
+  # ==================== 章节目录 ====================
+  describe "GET /api/books/:id/chapters" do
+    it "返回章节目录" do
+      create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1)
+      create(:book_chapter, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 10)
+
+      get "/api/books/#{book.id}/chapters", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      chapters = json_response[:response][:data][:chapters]
+      expect(chapters.size).to eq(2)
+      expect(chapters.first[:chapter_name]).to eq('第一章')
+      expect(chapters.first).to have_key(:is_free)
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/books/#{book.id}/chapters"
+
+      expect(response).to have_http_status(400)
+    end
+  end
+
   # ==================== 导入电子书 ====================
   describe "POST /api/books/:id/import" do
     it "提交 PDF 导入任务" do
