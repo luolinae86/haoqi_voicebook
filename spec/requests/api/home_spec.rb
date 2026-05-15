@@ -128,18 +128,18 @@ RSpec.describe "API Home", type: :request do
         end
 
         it "返回指定推荐的详细内容" do
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
           recommends = json_response[:response][:data][:recommends]
           expect(recommends).to be_an(Array)
           expect(recommends.size).to eq(1)
-          expect(recommends.first[:name]).to eq("文学")
+          expect(recommends.first[:content_groups]).to be_an(Array)
         end
 
         it "推荐内容包含 content_groups" do
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           recommends = json_response[:response][:data][:recommends]
           content_groups = recommends.first[:content_groups]
@@ -147,7 +147,7 @@ RSpec.describe "API Home", type: :request do
         end
 
         it "内容分组包含正确类型和名称" do
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           content_groups = json_response[:response][:data][:recommends].first[:content_groups].first
           expect(content_groups[:group_type]).to eq("one_row_three_columns")
@@ -155,7 +155,7 @@ RSpec.describe "API Home", type: :request do
         end
 
         it "合集内容包含 compilation 信息" do
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
           compilation_content = contents.find { |c| c[:content_type] == "compilation" }
@@ -166,7 +166,7 @@ RSpec.describe "API Home", type: :request do
         end
 
         it "单本内容包含 book 信息" do
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
           book_content = contents.find { |c| c[:content_type] == "book" }
@@ -184,7 +184,7 @@ RSpec.describe "API Home", type: :request do
           )
           Content.create!(content_group: author_group, content_type: "author_display", author: author, sn: 0)
 
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           content_groups = json_response[:response][:data][:recommends].first[:content_groups]
           author_group_data = content_groups.find { |g| g[:group_type] == "author_display" }
@@ -198,7 +198,7 @@ RSpec.describe "API Home", type: :request do
           Content.create!(content_group: content_group, content_type: "compilation", compilation: compilation, sn: 10)
           Content.create!(content_group: content_group, content_type: "compilation", compilation: compilation, sn: 5)
 
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           contents = json_response[:response][:data][:recommends].first[:content_groups].first[:contents]
           sns = contents.map { |c| c[:sn] }
@@ -222,7 +222,7 @@ RSpec.describe "API Home", type: :request do
           )
           Content.create!(content_group: first_group, content_type: "book", book: book, sn: 0)
 
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           content_groups = json_response[:response][:data][:recommends].first[:content_groups]
           sns = content_groups.map { |cg| cg[:sn] || 0 }
@@ -238,7 +238,7 @@ RSpec.describe "API Home", type: :request do
           )
           Content.create!(content_group: second_group, content_type: "book", book: book, sn: 0)
 
-          get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+          get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
           content_groups = json_response[:response][:data][:recommends].first[:content_groups]
           expect(content_groups.size).to eq(2)
@@ -247,7 +247,7 @@ RSpec.describe "API Home", type: :request do
 
       context "推荐不存在或不匹配" do
         it "推荐 ID 不存在时返回空数组" do
-          get "/api/home", params: { uuid: user.uuid, recommend_id: 999_999 }
+          get "/api/home/recommends/999999", params: { uuid: user.uuid }
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
@@ -258,7 +258,7 @@ RSpec.describe "API Home", type: :request do
           other_grade = create(:grade, name: "三年级")
           other_recommend = Recommend.create!(grade: other_grade, name: "其他年级", status: true)
 
-          get "/api/home", params: { uuid: user.uuid, recommend_id: other_recommend.id }
+          get "/api/home/recommends/#{other_recommend.id}", params: { uuid: user.uuid }
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
@@ -268,7 +268,7 @@ RSpec.describe "API Home", type: :request do
         it "推荐为草稿状态时返回空数组" do
           draft_recommend = Recommend.create!(grade: grade, name: "草稿推荐", status: false)
 
-          get "/api/home", params: { uuid: user.uuid, recommend_id: draft_recommend.id }
+          get "/api/home/recommends/#{draft_recommend.id}", params: { uuid: user.uuid }
 
           expect(response).to have_http_status(:success)
           expect(json_response[:response][:code]).to eq(0)
@@ -277,10 +277,10 @@ RSpec.describe "API Home", type: :request do
       end
 
       context "参数校验" do
-        it "缺少 recommend_id 时返回参数错误" do
-          get "/api/home", params: { uuid: user.uuid }
+        it "recommend_id 不是整数时返回 404" do
+          get "/api/home/recommends/abc", params: { uuid: user.uuid }
 
-          expect(response).to have_http_status(400)
+          expect(response).to have_http_status(404)
         end
       end
     end
@@ -296,7 +296,7 @@ RSpec.describe "API Home", type: :request do
         )
         Content.create!(content_group: content_group, content_type: "book", book: book, sn: 0)
 
-        get "/api/home", params: { uuid: user.uuid, recommend_id: recommend.id }
+        get "/api/home/recommends/#{recommend.id}", params: { uuid: user.uuid }
 
         expect(response).to have_http_status(:success)
         expect(json_response[:response][:code]).to eq(0)
@@ -306,7 +306,7 @@ RSpec.describe "API Home", type: :request do
 
     context "未登录时" do
       it "返回未授权错误" do
-        get "/api/home", params: { uuid: "invalid-uuid", recommend_id: 1 }
+        get "/api/home/recommends/1", params: { uuid: "invalid-uuid" }
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to be > 0

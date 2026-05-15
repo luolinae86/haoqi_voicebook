@@ -8,8 +8,6 @@ module Api
 
       def home_recommend_detail(recommend)
         {
-          id: recommend.id,
-          name: recommend.name,
           content_groups: recommend.content_groups.includes(:contents).map { |cg| serialize_content_group(cg) }
         }
       end

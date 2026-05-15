@@ -23,12 +23,12 @@ module Api
           present response: success_response(recommends: serialize_collection(recommends, Entities::Recommend))
         end
 
-        desc '获取首页推荐内容（根据用户年级）'
+        desc '获取指定推荐的详细内容（含 content_groups 和 contents）'
         params do
-          requires :uuid, type: String, desc: '用户uuid'
           requires :recommend_id, type: Integer, desc: '推荐ID'
+          requires :uuid, type: String, desc: '用户uuid'
         end
-        get do
+        get 'recommends/:recommend_id' do
           auth_user
 
           recommend = Recommend.find_by(id: params[:recommend_id], grade_id: current_user.grade_id, status: true)
