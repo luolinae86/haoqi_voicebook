@@ -124,4 +124,28 @@ RSpec.describe AppUser, type: :model do
       expect(user.reload.reading_words).to eq(100)
     end
   end
+
+  describe "#expire_cache" do
+    it "更新用户属性后清除缓存" do
+      user = create(:app_user, nickname: "old")
+      cache_key = "app_user_#{user.uuid}"
+      expect(Rails.cache).to receive(:delete).with(cache_key)
+
+      user.update!(nickname: "new")
+    end
+
+    it "创建用户时不清除缓存（仅 update 触发）" do
+      allow(Rails.cache).to receive(:delete)
+      expect(Rails.cache).not_to receive(:delete)
+      create(:app_user)
+    end
+
+    it "删除用户时不清除缓存（仅 update 触发）" do
+      user = create(:app_user)
+      allow(Rails.cache).to receive(:delete)
+      expect(Rails.cache).not_to receive(:delete)
+
+      user.destroy
+    end
+  end
 end
