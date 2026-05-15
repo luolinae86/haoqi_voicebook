@@ -17,6 +17,7 @@ gem "pdf-reader", "~> 2.15"
 gem "puma", ">= 5.0"
 gem "rack-cors"
 gem "rails", "~> 8.0.2"
+gem "redis", ">= 4.0"
 gem "rubyzip", "~> 2.3"
 gem "sidekiq", "~> 7.3"
 gem "tzinfo-data", platforms: %i[windows jruby]
