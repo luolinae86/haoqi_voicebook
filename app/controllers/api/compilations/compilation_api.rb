@@ -12,7 +12,7 @@ module Api
           requires :id, type: Integer, desc: '合集ID'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':id' do
+        get 'by_id' do
           auth_user
 
           compilation = Compilation.find_by(id: params[:id])

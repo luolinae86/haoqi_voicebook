@@ -28,7 +28,7 @@ module Api
           requires :recommend_id, type: Integer, desc: '推荐ID'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get 'recommends/:recommend_id' do
+        get 'recommends/by_recommend_id' do
           auth_user
 
           recommend = Recommend.find_by(id: params[:recommend_id], grade_id: current_user.grade_id, status: true)

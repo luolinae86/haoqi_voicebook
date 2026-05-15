@@ -46,7 +46,7 @@ module Api
           requires :id, type: Integer, desc: '图书ID'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':id' do
+        get 'by_id' do
           auth_user
 
           book = Book.find(params[:id])
@@ -60,7 +60,7 @@ module Api
           requires :id, type: Integer, desc: '图书ID'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':id/chapters' do
+        get 'chapters' do
           auth_user
 
           book = Book.find(params[:id])
@@ -78,7 +78,7 @@ module Api
           requires :id, type: Integer, desc: '图书ID'
           requires :file_url, type: String, desc: 'OSS 文件 URL'
         end
-        post ':id/import' do
+        post 'import' do
           auth_user
 
           book = Book.find_by(id: params[:id])
@@ -103,7 +103,7 @@ module Api
           optional :page, type: Integer, desc: '页码', default: 1
           optional :per_page, type: Integer, desc: '每页数量', default: 50
         end
-        get ':id/pages' do
+        get 'pages' do
           auth_user
 
           book = Book.find(params[:id])
@@ -124,7 +124,7 @@ module Api
           requires :page_number, type: Integer, desc: '页码'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':id/pages/:page_number' do
+        get 'page' do
           auth_user
 
           book = Book.find(params[:id])
@@ -140,7 +140,7 @@ module Api
           requires :page_number, type: Integer, desc: '页码'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':id/pages/:page_number/html' do
+        get 'page_html' do
           auth_user
 
           book = Book.find(params[:id])
@@ -162,7 +162,7 @@ module Api
           requires :id, type: Integer, desc: '图书ID'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':id/styles' do
+        get 'styles' do
           auth_user
 
           book = Book.find(params[:id])

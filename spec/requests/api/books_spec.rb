@@ -62,9 +62,9 @@ RSpec.describe "API Books", type: :request do
   end
 
   # ==================== 图书详情 ====================
-  describe "GET /api/books/:id" do
+  describe "GET /api/books/by_id" do
     it "返回图书详情" do
-      get "/api/books/#{book.id}", params: { uuid: user.uuid }
+      get "/api/books/by_id", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
@@ -73,32 +73,32 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/#{book.id}"
+      get "/api/books/by_id", params: { id: book.id }
 
       expect(response).to have_http_status(400)
     end
 
     it "无效 uuid 时返回未授权错误" do
-      get "/api/books/#{book.id}", params: { uuid: "invalid-uuid" }
+      get "/api/books/by_id", params: { id: book.id, uuid: "invalid-uuid" }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).not_to eq(0)
     end
 
     it "图书不存在时返回 404" do
-      get "/api/books/999999", params: { uuid: user.uuid }
+      get "/api/books/by_id", params: { id: 999999, uuid: user.uuid }
 
       expect(response).to have_http_status(404)
     end
   end
 
   # ==================== 章节目录 ====================
-  describe "GET /api/books/:id/chapters" do
+  describe "GET /api/books/chapters" do
     it "返回章节目录" do
       create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1)
       create(:book_chapter, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 10)
 
-      get "/api/books/#{book.id}/chapters", params: { uuid: user.uuid }
+      get "/api/books/chapters", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
@@ -109,17 +109,18 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/#{book.id}/chapters"
+      get "/api/books/chapters", params: { id: book.id }
 
       expect(response).to have_http_status(400)
     end
   end
 
   # ==================== 导入电子书 ====================
-  describe "POST /api/books/:id/import" do
+  describe "POST /api/books/import" do
     it "提交 PDF 导入任务" do
-      post "/api/books/#{book.id}/import", params: {
+      post "/api/books/import", params: {
         uuid: user.uuid,
+        id: book.id,
         file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf"
       }
 
@@ -131,8 +132,9 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "提交 EPUB 导入任务" do
-      post "/api/books/#{book.id}/import", params: {
+      post "/api/books/import", params: {
         uuid: user.uuid,
+        id: book.id,
         file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.epub"
       }
 
@@ -143,8 +145,9 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "不支持的文件类型返回错误" do
-      post "/api/books/#{book.id}/import", params: {
+      post "/api/books/import", params: {
         uuid: user.uuid,
+        id: book.id,
         file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.txt"
       }
 
@@ -154,7 +157,8 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "未提供 uuid 时返回参数错误" do
-      post "/api/books/#{book.id}/import", params: {
+      post "/api/books/import", params: {
+        id: book.id,
         file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf"
       }
 
@@ -163,12 +167,12 @@ RSpec.describe "API Books", type: :request do
   end
 
   # ==================== 页面清单 ====================
-  describe "GET /api/books/:id/pages" do
+  describe "GET /api/books/pages" do
     it "返回图书页面清单" do
       page1 = create(:ebook_page, :pdf_image, book: book, page_number: 1)
       page2 = create(:ebook_page, :pdf_image, book: book, page_number: 2)
 
-      get "/api/books/#{book.id}/pages", params: { uuid: user.uuid }
+      get "/api/books/pages", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
@@ -178,25 +182,25 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "没有页面时返回空数组" do
-      get "/api/books/#{book.id}/pages", params: { uuid: user.uuid }
+      get "/api/books/pages", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:data][:pages]).to eq([])
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/#{book.id}/pages"
+      get "/api/books/pages", params: { id: book.id }
 
       expect(response).to have_http_status(400)
     end
   end
 
   # ==================== 单页内容 ====================
-  describe "GET /api/books/:id/pages/:page_number" do
+  describe "GET /api/books/page" do
     it "返回 PDF 图片页内容" do
       page = create(:ebook_page, :pdf_image, book: book, page_number: 1)
 
-      get "/api/books/#{book.id}/pages/1", params: { uuid: user.uuid }
+      get "/api/books/page", params: { id: book.id, page_number: 1, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       data = json_response[:response][:data]
@@ -206,25 +210,25 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/#{book.id}/pages/1"
+      get "/api/books/page", params: { id: book.id, page_number: 1 }
 
       expect(response).to have_http_status(400)
     end
 
     it "页面不存在时返回 404" do
-      get "/api/books/#{book.id}/pages/999", params: { uuid: user.uuid }
+      get "/api/books/page", params: { id: book.id, page_number: 999, uuid: user.uuid }
 
       expect(response).to have_http_status(404)
     end
   end
 
   # ==================== 页面 XHTML 内容 ====================
-  describe "GET /api/books/:id/pages/:page_number/html" do
+  describe "GET /api/books/page_html" do
     it "返回 EPUB 页 XHTML 内容" do
       page = create(:ebook_page, :epub, book: book, page_number: 1,
                     xhtml_content: "<html><body><p>Test Content</p></body></html>")
 
-      get "/api/books/#{book.id}/pages/1/html", params: { uuid: user.uuid }
+      get "/api/books/page_html", params: { id: book.id, page_number: 1, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(response.body).to include("Test Content")
@@ -233,36 +237,36 @@ RSpec.describe "API Books", type: :request do
     it "XHTML 未导出时返回 404" do
       page = create(:ebook_page, :pdf_image, book: book, page_number: 1)
 
-      get "/api/books/#{book.id}/pages/1/html", params: { uuid: user.uuid }
+      get "/api/books/page_html", params: { id: book.id, page_number: 1, uuid: user.uuid }
 
       expect(response).to have_http_status(404)
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/#{book.id}/pages/1/html"
+      get "/api/books/page_html", params: { id: book.id, page_number: 1 }
 
       expect(response).to have_http_status(400)
     end
   end
 
   # ==================== 样式表 ====================
-  describe "GET /api/books/:id/styles" do
+  describe "GET /api/books/styles" do
     it "重定向到样式表 URL" do
       book.update!(styles_oss_url: "https://bucket.oss-cn-beijing.aliyuncs.com/styles/book.css")
 
-      get "/api/books/#{book.id}/styles", params: { uuid: user.uuid }
+      get "/api/books/styles", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to be_redirect
     end
 
     it "样式表未导出时返回 404" do
-      get "/api/books/#{book.id}/styles", params: { uuid: user.uuid }
+      get "/api/books/styles", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to have_http_status(404)
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/#{book.id}/styles"
+      get "/api/books/styles", params: { id: book.id }
 
       expect(response).to have_http_status(400)
     end
