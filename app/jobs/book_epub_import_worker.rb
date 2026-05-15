@@ -45,7 +45,7 @@ class BookEpubImportWorker
       raise "Invalid EPUB: missing container.xml" unless container_path.exist?
 
       container = Nokogiri::XML(File.read(container_path))
-      opf_path_rel = container.at_xpath("//rootfile")["full-path"]
+      opf_path_rel = container.at_xpath("//c:rootfile", "c" => "urn:oasis:names:tc:opendocument:xmlns:container")["full-path"]
       opf_dir = File.dirname(opf_path_rel)
       opf_path = extract_dir.join(opf_path_rel)
 
@@ -53,12 +53,12 @@ class BookEpubImportWorker
 
       # 4. 提取 spine（阅读顺序）
       spine_items = {}
-      opf.xpath("//opf:manifestitem", "opf" => "http://www.idpf.org/2007/opf").each do |item|
+      opf.xpath("//opf:item", "opf" => "http://www.idpf.org/2007/opf").each do |item|
         spine_items[item["id"]] = item["href"]
       end
 
       spine_refs = []
-      opf.xpath("//opf:spine/opf:itemref", "opf" => "http://www.idpf.org/2007/opf").each do |itemref|
+      opf.xpath("//opf:itemref", "opf" => "http://www.idpf.org/2007/opf").each do |itemref|
         idref = itemref["idref"]
         spine_refs << spine_items[idref] if spine_items[idref]
       end
@@ -139,9 +139,9 @@ class BookEpubImportWorker
     toc_entries = []
 
     # 尝试从 nav.xhtml 提取 TOC
-    nav_id = opf.xpath("//opf:manifestitem[@properties='nav']", "opf" => "http://www.idpf.org/2007/opf").first
-    if nav_id
-      nav_path = extract_dir.join(opf_dir, nav_id["href"])
+    nav_item = opf.xpath("//opf:item[@properties='nav']", "opf" => "http://www.idpf.org/2007/opf").first
+    if nav_item
+      nav_path = extract_dir.join(opf_dir, nav_item["href"])
       if nav_path.exist?
         nav = Nokogiri::XML(File.read(nav_path))
         nav.xpath("//nav:nav//nav:a", "nav" => "http://www.w3.org/1999/xhtml").each do |link|
@@ -154,7 +154,7 @@ class BookEpubImportWorker
     end
 
     # 回退到 toc.ncx
-    ncx_item = opf.xpath("//opf:manifestitem[contains(@media-type, 'x-dtbncx')]", "opf" => "http://www.idpf.org/2007/opf").first
+    ncx_item = opf.xpath("//opf:item[contains(@media-type, 'x-dtbncx')]", "opf" => "http://www.idpf.org/2007/opf").first
     if ncx_item
       ncx_path = extract_dir.join(opf_dir, ncx_item["href"])
       if ncx_path.exist?

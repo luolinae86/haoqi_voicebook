@@ -26,15 +26,13 @@ module Api
         desc '获取首页推荐内容（根据用户年级）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
+          requires :recommend_id, type: Integer, desc: '推荐ID'
         end
         get do
           auth_user
 
-          recommends = if current_user.grade_id.present?
-                         home_recommends_for_grade(current_user.grade_id)
-                       else
-                         []
-                       end
+          recommend = Recommend.find_by(id: params[:recommend_id], grade_id: current_user.grade_id, status: true)
+          recommends = recommend ? [home_recommend_detail(recommend)] : []
 
           present response: success_response(recommends: recommends)
         end

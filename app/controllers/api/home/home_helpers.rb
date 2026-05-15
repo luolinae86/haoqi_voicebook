@@ -6,6 +6,14 @@ module Api
       extend Grape::API::Helpers
       include Api::Oss::OssHelpers
 
+      def home_recommend_detail(recommend)
+        {
+          id: recommend.id,
+          name: recommend.name,
+          content_groups: recommend.content_groups.includes(:contents).map { |cg| serialize_content_group(cg) }
+        }
+      end
+
       def home_recommends_for_grade(grade_id)
         Recommend.by_grade(grade_id).published.includes(content_groups: :contents).map do |recommend|
           {
