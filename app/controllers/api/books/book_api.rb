@@ -83,7 +83,7 @@ module Api
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') if book.blank?
 
-          file_url = params[:file_url] || book.content_file_url
+          file_url = book.file_url
           error_pop_resp('文件URL不存在') if file_url.blank?
 
           Ebook::ImportService.new(book: book, file_url: file_url).call
