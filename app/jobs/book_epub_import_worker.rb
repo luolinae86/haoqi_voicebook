@@ -70,7 +70,10 @@ class BookEpubImportWorker
       # 5. 提取 TOC（从 nav.xhtml 或 toc.ncx）
       toc_entries = extract_toc(opf, extract_dir, opf_dir)
 
-      # 6. 导入每页 XHTML 和章节
+      # 6. 提取并上传 CSS 样式表到 OSS
+      styles_urls = upload_css_files(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
+
+      # 7. 导入每页 XHTML 和章节
       page_number = 1
       total_word_count = 0
       sanitized_title = sanitize_dir_name(book.name)
@@ -114,6 +117,7 @@ class BookEpubImportWorker
           content_type: :ebook,
           word_count: total_word_count,
           page_count: page_number - 1,
+          styles_oss_url: styles_urls.first,
           imported_at: Time.current,
           import_status: :ready,
           import_error_message: nil
@@ -181,5 +185,27 @@ class BookEpubImportWorker
     text.length
   rescue StandardError
     0
+  end
+
+  def upload_css_files(opf, extract_dir, opf_dir, oss_service, sanitized_title:)
+    css_urls = []
+    opf.xpath("//opf:item[@media-type='text/css']", "opf" => "http://www.idpf.org/2007/opf").each do |item|
+      css_href = item["href"]
+      css_path = extract_dir.join(opf_dir, css_href)
+      next unless css_path.exist?
+
+      object_key = "#{sanitized_title}/styles/#{File.basename(css_href)}"
+      css_url = oss_service.upload_file(
+        local_path: css_path,
+        object_key: object_key,
+        content_type: "text/css"
+      )
+      css_urls << css_url
+      Rails.logger.info("[BookEpubImport] CSS uploaded: #{css_url}")
+    end
+    css_urls
+  rescue StandardError => e
+    Rails.logger.warn("[BookEpubImport] CSS upload failed: #{e.message}")
+    []
   end
 end
