@@ -38,7 +38,9 @@ class BookEpubImportWorker
       FileUtils.mkdir_p(extract_dir)
       Zip::File.open(epub_path.to_s) do |zip|
         zip.each do |entry|
-          entry.extract(File.join(extract_dir, entry.name))
+          dest = File.join(extract_dir, entry.name)
+          FileUtils.mkdir_p(File.dirname(dest))
+          entry.extract(dest)
         end
       end
 
