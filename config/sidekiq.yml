@@ -1,6 +1,7 @@
 :concurrency: 2
 :queues:
   - default
+  - import
   - export
   - mailers
 :timeout: 25
