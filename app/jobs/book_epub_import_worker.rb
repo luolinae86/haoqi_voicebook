@@ -78,6 +78,7 @@ class BookEpubImportWorker
       total_word_count = 0
       sanitized_title = sanitize_dir_name(book.name)
       chapter_number = 0
+      non_toc_pages = 0
 
       Book.transaction do
         book.ebook_pages.delete_all
@@ -86,13 +87,18 @@ class BookEpubImportWorker
         spine_refs.each do |href|
           # 查找所有指向此 href 的 TOC 条目（一个 spine 文件可能对应多个章节，如父子章节指向同一文件）
           matching_tocs = toc_entries.select { |t| t[:href] == href }
-          matching_tocs.each do |matching_toc|
-            chapter_number += 1
-            book.book_chapters.create!(
-              chapter_number: chapter_number,
-              chapter_name: matching_toc[:title],
-              start_page_number: page_number
-            )
+          has_toc = matching_tocs.any?
+
+          # 只在 spine 文件有 TOC 对应时才分配 page_number（封面等不在 TOC 中的页面 page_number=0）
+          if has_toc
+            matching_tocs.each do |matching_toc|
+              chapter_number += 1
+              book.book_chapters.create!(
+                chapter_number: chapter_number,
+                chapter_name: matching_toc[:title],
+                start_page_number: page_number
+              )
+            end
           end
 
           xhtml_path = extract_dir.join(opf_dir, href)
@@ -101,22 +107,21 @@ class BookEpubImportWorker
           xhtml_content = File.read(xhtml_path)
           word_count = extract_word_count(xhtml_content)
 
-          # 上传图片到 OSS（如果有内嵌图片）
-          # 简化处理：保存 XHTML 内容，图片保留内联或相对路径
           book.ebook_pages.create!(
-            page_number: page_number,
+            page_number: has_toc ? page_number : 0,
             xhtml_content: xhtml_content,
             word_count: word_count
           )
 
           total_word_count += word_count
-          page_number += 1
+          page_number += 1 if has_toc
+          non_toc_pages += 1 unless has_toc
         end
 
         book.update!(
           content_type: :ebook,
           word_count: total_word_count,
-          page_count: page_number - 1,
+          page_count: page_number - 1 + non_toc_pages,
           styles_oss_url: styles_urls.first,
           imported_at: Time.current,
           import_status: :ready,
