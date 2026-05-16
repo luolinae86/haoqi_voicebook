@@ -20,6 +20,8 @@ class BookEpubImportWorker
     epub_oss_key = args[:epub_oss_key]
 
     book = Book.find(book_id)
+    return if book.import_status == 'ready'
+
     book.update!(import_status: :processing, import_error_message: nil)
 
     Dir.mktmpdir("book-epub-import-#{book_id}") do |tmp_dir|

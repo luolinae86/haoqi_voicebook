@@ -23,6 +23,8 @@ require "rspec/rails"
 require "shoulda/matchers"
 require "database_cleaner/active_record"
 require "webmock/rspec"
+require "sidekiq/testing"
+Sidekiq::Testing.fake!
 
 # 自动加载 spec/support 目录下的所有文件
 Rails.root.glob("spec/support/**/*.rb").sort_by(&:to_s).each { |f| require f }

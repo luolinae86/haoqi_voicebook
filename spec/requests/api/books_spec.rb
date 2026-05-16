@@ -146,11 +146,12 @@ RSpec.describe "API Books", type: :request do
       expect(body[:response][:data][:content_file_type]).to eq("epub")
     end
 
-    it "支持通过 file_url 参数覆盖图书的默认文件URL" do
+    it "使用图书的 content_file_url 进行导入" do
+      book.update!(content_file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf")
+
       post "/api/books/import", params: {
         uuid: user.uuid,
-        id: book.id,
-        file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf"
+        id: book.id
       }
 
       expect(response).to have_http_status(201)

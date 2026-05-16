@@ -19,6 +19,8 @@ class BookPdfImportWorker
     pdf_oss_key = args[:pdf_oss_key]
 
     book = Book.find(book_id)
+    return if book.import_status == 'ready'
+
     book.update!(import_status: :processing, import_error_message: nil)
 
     Dir.mktmpdir("book-pdf-import-#{book_id}") do |tmp_dir|

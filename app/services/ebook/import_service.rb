@@ -14,6 +14,8 @@ module Ebook
     def call
       validate_url!
       validate_type!
+      raise Error, '该书正在导入中，请稍后再试' if @book.import_status == 'processing'
+
       update_book!
       enqueue_worker!
     end
