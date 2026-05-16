@@ -84,9 +84,9 @@ class BookEpubImportWorker
         book.book_chapters.delete_all
 
         spine_refs.each do |href|
-          # 检查此 href 是否对应 TOC 中的某个章节
-          matching_toc = toc_entries.find { |t| t[:href] == href }
-          if matching_toc
+          # 查找所有指向此 href 的 TOC 条目（一个 spine 文件可能对应多个章节，如父子章节指向同一文件）
+          matching_tocs = toc_entries.select { |t| t[:href] == href }
+          matching_tocs.each do |matching_toc|
             chapter_number += 1
             book.book_chapters.create!(
               chapter_number: chapter_number,
@@ -167,16 +167,24 @@ class BookEpubImportWorker
       ncx_path = extract_dir.join(opf_dir, ncx_item["href"])
       if ncx_path.exist?
         ncx = Nokogiri::XML(File.read(ncx_path))
-        ncx.xpath("//ncx:navPoint", "ncx" => "http://www.daisy.org/z3986/2005/ncx/").each do |nav_point|
-          title = nav_point.at_xpath("ncx:navLabel/ncx:text", "ncx" => "http://www.daisy.org/z3986/2005/ncx/")&.text
-          src = nav_point.at_xpath("ncx:content", "ncx" => "http://www.daisy.org/z3986/2005/ncx/")&.[]("src")
-          href = src.to_s.split("#").first if src
-          toc_entries << { title: title.to_s.strip, href: href } if title.present?
-        end
+        extract_ncx_navpoints(ncx.xpath("//ncx:navMap", "ncx" => "http://www.daisy.org/z3986/2005/ncx/").first, toc_entries)
       end
     end
 
     toc_entries
+  end
+
+  def extract_ncx_navpoints(parent_node, toc_entries)
+    return unless parent_node
+    ns = { "ncx" => "http://www.daisy.org/z3986/2005/ncx/" }
+    parent_node.xpath("./ncx:navPoint", ns).each do |nav_point|
+      title = nav_point.at_xpath("ncx:navLabel/ncx:text", ns)&.text
+      src = nav_point.at_xpath("ncx:content", ns)&.[]("src")
+      href = src.to_s.split("#").first if src
+      toc_entries << { title: title.to_s.strip, href: href } if title.present?
+      # 递归提取子 navPoint
+      extract_ncx_navpoints(nav_point, toc_entries)
+    end
   end
 
   def extract_word_count(xhtml)
