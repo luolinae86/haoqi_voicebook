@@ -118,10 +118,11 @@ RSpec.describe "API Books", type: :request do
   # ==================== 导入电子书 ====================
   describe "POST /api/books/import" do
     it "提交 PDF 导入任务" do
+      book.update!(content_file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf")
+
       post "/api/books/import", params: {
         uuid: user.uuid,
-        id: book.id,
-        file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf"
+        id: book.id
       }
 
       expect(response).to have_http_status(201)
@@ -132,10 +133,11 @@ RSpec.describe "API Books", type: :request do
     end
 
     it "提交 EPUB 导入任务" do
+      book.update!(content_file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.epub")
+
       post "/api/books/import", params: {
         uuid: user.uuid,
-        id: book.id,
-        file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.epub"
+        id: book.id
       }
 
       expect(response).to have_http_status(201)
@@ -144,11 +146,25 @@ RSpec.describe "API Books", type: :request do
       expect(body[:response][:data][:content_file_type]).to eq("epub")
     end
 
-    it "不支持的文件类型返回错误" do
+    it "支持通过 file_url 参数覆盖图书的默认文件URL" do
       post "/api/books/import", params: {
         uuid: user.uuid,
         id: book.id,
-        file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.txt"
+        file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf"
+      }
+
+      expect(response).to have_http_status(201)
+      body = JSON.parse(response.body, symbolize_names: true)
+      expect(body[:response][:code]).to eq(0)
+      expect(body[:response][:data][:book_id]).to eq(book.id)
+    end
+
+    it "图书没有 file_url 时返回错误" do
+      book.update!(content_file_url: nil)
+
+      post "/api/books/import", params: {
+        uuid: user.uuid,
+        id: book.id
       }
 
       expect(response).to have_http_status(200)
@@ -158,8 +174,7 @@ RSpec.describe "API Books", type: :request do
 
     it "未提供 uuid 时返回参数错误" do
       post "/api/books/import", params: {
-        id: book.id,
-        file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf"
+        id: book.id
       }
 
       expect(response).to have_http_status(400)

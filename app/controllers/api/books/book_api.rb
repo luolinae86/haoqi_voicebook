@@ -76,7 +76,6 @@ module Api
         params do
           requires :uuid, type: String, desc: '用户uuid'
           requires :id, type: Integer, desc: '图书ID'
-          requires :file_url, type: String, desc: 'OSS 文件 URL'
         end
         post 'import' do
           auth_user
@@ -84,7 +83,10 @@ module Api
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') if book.blank?
 
-          Ebook::ImportService.new(book: book, file_url: params[:file_url]).call
+          file_url = params[:file_url] || book.content_file_url
+          error_pop_resp('文件URL不存在') if file_url.blank?
+
+          Ebook::ImportService.new(book: book, file_url: file_url).call
 
           present response: success_response(
             book_id: book.id,
