@@ -73,7 +73,10 @@ class BookEpubImportWorker
       # 6. 提取并上传 CSS 样式表到 OSS
       styles_urls = upload_css_files(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
 
-      # 7. 导入每页 XHTML 和章节
+      # 7. 提取并上传所有图片到 OSS，建立相对路径到 OSS URL 的映射
+      image_url_map = upload_images(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
+
+      # 8. 导入每页 XHTML 和章节
       page_number = 1
       total_word_count = 0
       sanitized_title = sanitize_dir_name(book.name)
@@ -105,6 +108,8 @@ class BookEpubImportWorker
           next unless xhtml_path.exist?
 
           xhtml_content = File.read(xhtml_path)
+          # 替换 XHTML 中的相对图片路径为 OSS URL
+          xhtml_content = replace_image_paths(xhtml_content, image_url_map, href)
           word_count = extract_word_count(xhtml_content)
 
           book.ebook_pages.create!(
@@ -220,5 +225,61 @@ class BookEpubImportWorker
   rescue StandardError => e
     Rails.logger.warn("[BookEpubImport] CSS upload failed: #{e.message}")
     []
+  end
+
+  IMAGE_MEDIA_TYPES = %w[image/jpeg image/png image/gif image/svg+xml image/webp].freeze
+
+  def upload_images(opf, extract_dir, opf_dir, oss_service, sanitized_title:)
+    url_map = {}
+    opf.xpath("//opf:item", "opf" => "http://www.idpf.org/2007/opf").each do |item|
+      next unless IMAGE_MEDIA_TYPES.include?(item["media-type"])
+
+      href = item["href"]
+      img_path = extract_dir.join(opf_dir, href)
+      next unless img_path.exist?
+
+      object_key = "#{sanitized_title}/images/#{File.basename(href)}"
+      oss_url = oss_service.upload_file(
+        local_path: img_path,
+        object_key: object_key,
+        content_type: item["media-type"]
+      )
+      # 用相对于 OPF 目录的路径作为 key，方便后续查找
+      url_map[href] = oss_url
+      Rails.logger.info("[BookEpubImport] Image uploaded: #{oss_url}")
+    end
+    url_map
+  rescue StandardError => e
+    Rails.logger.warn("[BookEpubImport] Image upload failed: #{e.message}")
+    {}
+  end
+
+  def replace_image_paths(xhtml_content, image_url_map, xhtml_href)
+    doc = Nokogiri::HTML(xhtml_content)
+
+    # XHTML 文件所在目录（相对于 OPF 目录）
+    xhtml_dir = File.dirname(xhtml_href)
+
+    doc.xpath("//img").each do |img|
+      # 检查 src 属性（data-src 等暂不处理）
+      src = img["src"]
+      next if src.nil? || src.empty?
+      # 跳过已经是绝对路径或 data URI 的情况
+      next if src.start_with?("http://", "https://", "data:")
+
+      # 将 XHTML 相对路径解析为相对于 OPF 目录的路径
+      resolved_path = Pathname.new(xhtml_dir).join(src).cleanpath.to_s
+      # 去掉可能的前导 ./
+      resolved_path.delete_prefix!("./")
+
+      oss_url = image_url_map[resolved_path]
+      if oss_url
+        img["src"] = oss_url
+      else
+        Rails.logger.warn("[BookEpubImport] Image not found in map: #{resolved_path} (original: #{src})")
+      end
+    end
+
+    doc.to_html
   end
 end
