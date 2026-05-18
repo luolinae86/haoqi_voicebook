@@ -10,7 +10,7 @@ RSpec.describe "API Books", type: :request do
   describe "GET /api/books/compilation" do
     it "返回合集下的所有资源" do
       compilation = create(:compilation)
-      book1 = create(:book)
+      book1 = create(:book, content_description: "合集中的第一本书简介")
       book2 = create(:book)
       compilation.books << book1
 
@@ -25,6 +25,9 @@ RSpec.describe "API Books", type: :request do
       expect(book_ids).to include(book1.id)
       expect(book_ids).not_to include(book2.id)
       expect(data[:contents]).to be_an(Array)
+      # 验证合集中的书籍返回 content_description
+      book1_data = data[:books].find { |b| b[:id] == book1.id }
+      expect(book1_data[:content_description]).to eq("合集中的第一本书简介")
     end
 
     it "返回的 img_url 是签名后的 OSS 地址" do
@@ -70,6 +73,15 @@ RSpec.describe "API Books", type: :request do
       expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:response][:data][:book][:id]).to eq(book.id)
       expect(json_response[:response][:data][:book][:name]).to eq(book.name)
+    end
+
+    it "返回图书简介 content_description" do
+      book.update!(content_description: "这是一本精彩的书籍简介")
+
+      get "/api/books/by_id", params: { id: book.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:data][:book][:content_description]).to eq("这是一本精彩的书籍简介")
     end
 
     it "未提供 uuid 时返回参数错误" do

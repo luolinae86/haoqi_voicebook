@@ -17,6 +17,7 @@ module Entities
     end
     # voicebook fields
     expose :content_type
+    expose :content_description
     expose :is_free
     expose :is_vip
     expose :grade_id

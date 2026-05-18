@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_16_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_18_073644) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -139,6 +139,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_16_000000) do
     t.string "content_file_url", comment: "电子书内容文件URL"
     t.string "content_file_type", comment: "内容文件类型 (epub/pdf)"
     t.string "content_file_name", comment: "内容文件名"
+    t.text "content_description"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["name"], name: "index_books_on_name"
@@ -279,6 +280,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_16_000000) do
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
     t.bigint "book_id", null: false, comment: "图书ID"
     t.integer "page_number", null: false, comment: "页码"
+    t.decimal "page_width", precision: 8, scale: 2, null: false, comment: "页面宽度(pt)"
+    t.decimal "page_height", precision: 8, scale: 2, null: false, comment: "页面高度(pt)"
     t.integer "word_count", default: 0, null: false, comment: "字数"
     t.text "xhtml_content", comment: "页面 XHTML 内容"
     t.datetime "created_at", null: false
@@ -345,7 +348,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_16_000000) do
     t.boolean "status", default: true, comment: "状态: true发布/false草稿"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "color", limit: 16, default: "", comment: "颜色"
     t.index ["grade_id", "sn"], name: "index_recommends_on_grade_id_and_sn"
     t.index ["grade_id"], name: "index_recommends_on_grade_id"
   end

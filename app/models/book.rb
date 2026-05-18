@@ -6,6 +6,7 @@
 #
 #  id                                                                   :bigint           not null, primary key
 #  compilations                                                         :bigint
+#  content_description(书籍简介)                                          :text
 #  content_type(类型：0-电子书 1-有声 2-视频 3-绘本)                    :integer          default("ebook"), not null
 #  content_file_url(电子书内容文件URL)                                  :string(255)
 #  content_file_type(内容文件类型 (epub/pdf))                           :string(255)
