@@ -15,14 +15,26 @@ module Api
       def signed_oss_url(url, expires: 3600)
         return nil if url.blank?
 
-        uri = URI.parse(url)
-        # 检查是否为有效的 OSS URL（有 host 且包含 bucket.subdomain 结构）
-        host_parts = uri.host.to_s.split(".", 2)
-        return url if host_parts.size < 2 || host_parts.first.empty? || host_parts.last.empty?
+        # 尝试标准 URI 解析，若包含非 ASCII 字符则用正则提取
+        begin
+          uri = URI.parse(url)
+          host_parts = uri.host.to_s.split(".", 2)
+          return url if host_parts.size < 2 || host_parts.first.empty? || host_parts.last.empty?
+          object_key = uri.path.sub(/\A\//, "")
+        rescue URI::InvalidURIError
+          # 非 ASCII URL（如含中文），用正则提取
+          if url =~ %r{\Ahttps?://([^/]+)(/.*)?\z}
+            host_parts = $1.split(".", 2)
+            return url if host_parts.size < 2 || host_parts.first.empty? || host_parts.last.empty?
+            object_key = ($2 || "/").sub(/\A\//, "")
+          else
+            return url
+          end
+        end
 
         bucket_name = host_parts.first
         endpoint = host_parts.last
-        object_key = uri.path.sub(/\A\//, "")
+        object_key = CGI.unescape(object_key)
 
         # 手动生成签名（使用 URL 中的实际 bucket，而非配置常量）
         expires_at = Time.now.to_i + expires
@@ -34,8 +46,8 @@ module Api
         )
 
         query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
-        "https://#{bucket_name}.#{endpoint}/#{object_key}?#{query}"
-      rescue URI::InvalidURIError, StandardError
+        "https://#{bucket_name}.#{endpoint}/#{CGI.escape(object_key)}?#{query}"
+      rescue StandardError
         # 若解析失败，原样返回
         url
       end
