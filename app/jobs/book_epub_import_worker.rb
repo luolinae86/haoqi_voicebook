@@ -76,6 +76,17 @@ class BookEpubImportWorker
       # 7. 提取并上传所有图片到 OSS，建立相对路径到 OSS URL 的映射
       image_url_map = upload_images(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
 
+      # 去重 spine_refs（同一 href 可能在 spine 中被多次引用）
+      # 保留每个 href 的第一次出现，同时收集所有 TOC 匹配
+      unique_spine = []
+      seen_hrefs = Set.new
+      spine_refs.each do |href|
+        unless seen_hrefs.include?(href)
+          seen_hrefs.add(href)
+          unique_spine << href
+        end
+      end
+
       # 8. 导入每页 XHTML 和章节
       page_number = 1
       total_word_count = 0
@@ -87,7 +98,7 @@ class BookEpubImportWorker
         book.ebook_pages.delete_all
         book.book_chapters.delete_all
 
-        spine_refs.each do |href|
+        unique_spine.each do |href|
           # 查找所有指向此 href 的 TOC 条目（一个 spine 文件可能对应多个章节，如父子章节指向同一文件）
           matching_tocs = toc_entries.select { |t| t[:href] == href }
           has_toc = matching_tocs.any?
