@@ -140,8 +140,12 @@ class BookEpubImportWorker
     Rails.logger.info("[BookEpubImport] Complete for book ##{book_id}")
   rescue StandardError => e
     book = Book.find_by(id: book_id)
-    book&.update!(import_status: :failed, import_error_message: e.message)
-    Rails.logger.error("[BookEpubImport] Failed for book ##{book_id}: #{e.class}: #{e.message}")
+    error_msg = e.message
+    if e.is_a?(ActiveRecord::RecordInvalid) && e.record
+      error_msg = e.record.errors.full_messages.join("; ")
+    end
+    book&.update!(import_status: :failed, import_error_message: error_msg)
+    Rails.logger.error("[BookEpubImport] Failed for book ##{book_id}: #{e.class}: #{error_msg}")
     Rails.logger.error(e.backtrace.first(20).join("\n"))
     raise
   end
