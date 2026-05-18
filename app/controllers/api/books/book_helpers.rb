@@ -35,9 +35,9 @@ module Api
         if page.image_url.present?
           response[:image_url] = signed_oss_url(page.image_url)
         end
-        # EPUB 页面：返回 XHTML 标记和字数
+        # EPUB 页面：返回 XHTML 标记和字数（URL 已转为签名链接）
         if page.xhtml_content.present?
-          response[:xhtml_preview] = extract_body_preview(page.xhtml_content)
+          response[:xhtml_preview] = sign_xhtml_urls(extract_body_preview(page.xhtml_content), book)
           response[:word_count] = page.word_count
         end
         response[:navigation] = {
