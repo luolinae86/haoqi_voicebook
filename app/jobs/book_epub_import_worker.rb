@@ -180,8 +180,11 @@ class BookEpubImportWorker
   def extract_toc(opf, extract_dir, opf_dir)
     toc_entries = []
 
-    # 尝试从 nav.xhtml 提取 TOC
+    # 尝试从 nav.xhtml 提取 TOC（优先查找 properties='nav' 的标准 EPUB3 导航）
     nav_item = opf.xpath("//opf:item[@properties='nav']", "opf" => "http://www.idpf.org/2007/opf").first
+    # 如果没找到，回退到包含 nav 名称的 XHTML 文件
+    nav_item = opf.xpath("//opf:item[contains(@href, 'nav') and contains(@media-type, 'xhtml')]", "opf" => "http://www.idpf.org/2007/opf").first if nav_item.nil?
+
     if nav_item
       nav_path = extract_dir.join(opf_dir, nav_item["href"])
       if nav_path.exist?
@@ -191,7 +194,7 @@ class BookEpubImportWorker
           href = resolve_relative_path(link["href"], nav_dir)
           toc_entries << { title: link.text.strip, href: href }
         end
-        return toc_entries
+        return toc_entries if toc_entries.any?
       end
     end
 
