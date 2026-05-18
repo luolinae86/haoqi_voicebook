@@ -18,7 +18,7 @@ module Api
         get :compilation do
           auth_user
           compilation = Compilation.find(params[:compilation_id])
-          books = compilation.books.order(created_at: :desc)
+          books = compilation.books.includes(:author).order(created_at: :desc)
           contents = compilation.contents.includes(:book, :author).sorted
 
           serialized_books = serialize_collection(books, Entities::Book)

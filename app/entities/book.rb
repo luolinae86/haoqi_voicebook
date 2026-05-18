@@ -12,6 +12,9 @@ module Entities
     expose :supplier_id
     expose :book_level_id
     expose :author_id
+    expose :author_name do |instance, _|
+      instance.author ? "#{instance.author.name}【著】" : nil
+    end
     # voicebook fields
     expose :content_type
     expose :is_free
