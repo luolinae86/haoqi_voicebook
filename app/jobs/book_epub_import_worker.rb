@@ -92,7 +92,6 @@ class BookEpubImportWorker
       total_word_count = 0
       sanitized_title = sanitize_dir_name(book.name)
       chapter_number = 0
-      non_toc_pages = 0
 
       Book.transaction do
         book.ebook_pages.delete_all
@@ -118,26 +117,28 @@ class BookEpubImportWorker
           xhtml_path = extract_dir.join(opf_dir, href)
           next unless xhtml_path.exist?
 
+          # 跳过非 TOC 页面（封面等），这些页面不需要创建 EbookPage 记录
+          next unless has_toc
+
           xhtml_content = File.read(xhtml_path)
           # 替换 XHTML 中的相对图片路径为 OSS URL
           xhtml_content = replace_image_paths(xhtml_content, image_url_map, href)
           word_count = extract_word_count(xhtml_content)
 
           book.ebook_pages.create!(
-            page_number: has_toc ? page_number : 0,
+            page_number: page_number,
             xhtml_content: xhtml_content,
             word_count: word_count
           )
 
           total_word_count += word_count
-          page_number += 1 if has_toc
-          non_toc_pages += 1 unless has_toc
+          page_number += 1
         end
 
         book.update!(
           content_type: :ebook,
           word_count: total_word_count,
-          page_count: page_number - 1 + non_toc_pages,
+          page_count: page_number - 1,
           styles_oss_url: styles_urls.first,
           imported_at: Time.current,
           import_status: :ready,
