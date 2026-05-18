@@ -169,6 +169,14 @@ class BookEpubImportWorker
     sanitized.strip
   end
 
+  # 将相对路径解析为相对于 OPF 目录的路径
+  def resolve_relative_path(href, base_dir)
+    return href unless href
+    href = href.split("#").first if href.include?("#")
+    return href if href.start_with?("http://", "https://", "data:")
+    Pathname.new(base_dir.to_s).join(href).cleanpath.to_s.delete_prefix("./")
+  end
+
   def extract_toc(opf, extract_dir, opf_dir)
     toc_entries = []
 
@@ -177,10 +185,10 @@ class BookEpubImportWorker
     if nav_item
       nav_path = extract_dir.join(opf_dir, nav_item["href"])
       if nav_path.exist?
+        nav_dir = File.dirname(nav_item["href"])
         nav = Nokogiri::XML(File.read(nav_path))
         nav.xpath("//nav:nav//nav:a", "nav" => "http://www.w3.org/1999/xhtml").each do |link|
-          href = link["href"]
-          href = href.split("#").first if href.include?("#")  # 去掉锚点
+          href = resolve_relative_path(link["href"], nav_dir)
           toc_entries << { title: link.text.strip, href: href }
         end
         return toc_entries
@@ -192,24 +200,29 @@ class BookEpubImportWorker
     if ncx_item
       ncx_path = extract_dir.join(opf_dir, ncx_item["href"])
       if ncx_path.exist?
+        ncx_dir = File.dirname(ncx_item["href"])
         ncx = Nokogiri::XML(File.read(ncx_path))
-        extract_ncx_navpoints(ncx.xpath("//ncx:navMap", "ncx" => "http://www.daisy.org/z3986/2005/ncx/").first, toc_entries)
+        extract_ncx_navpoints(ncx.xpath("//ncx:navMap", "ncx" => "http://www.daisy.org/z3986/2005/ncx/").first, toc_entries, ncx_dir)
       end
     end
 
     toc_entries
   end
 
-  def extract_ncx_navpoints(parent_node, toc_entries)
+  def extract_ncx_navpoints(parent_node, toc_entries, base_dir = nil)
     return unless parent_node
     ns = { "ncx" => "http://www.daisy.org/z3986/2005/ncx/" }
     parent_node.xpath("./ncx:navPoint", ns).each do |nav_point|
       title = nav_point.at_xpath("ncx:navLabel/ncx:text", ns)&.text
       src = nav_point.at_xpath("ncx:content", ns)&.[]("src")
-      href = src.to_s.split("#").first if src
+      href = if base_dir && src
+               resolve_relative_path(src.to_s.split("#").first, base_dir)
+             else
+               src.to_s.split("#").first
+             end
       toc_entries << { title: title.to_s.strip, href: href } if title.present?
       # 递归提取子 navPoint
-      extract_ncx_navpoints(nav_point, toc_entries)
+      extract_ncx_navpoints(nav_point, toc_entries, base_dir)
     end
   end
 
