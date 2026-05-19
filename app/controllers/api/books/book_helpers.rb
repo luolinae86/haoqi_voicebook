@@ -50,23 +50,19 @@ module Api
         response
       end
 
-      # 替换 XHTML 中的 OSS URL 为签名 URL，并内联 CSS 样式
+      # 替换 XHTML 中的 OSS URL 为签名 URL，并替换 CSS <link> 为签名链接
       def sign_xhtml_urls(xhtml, book)
-        # 内联 CSS：将 <link href="..."> 替换为 <style> 标签
+        # 将 CSS <link> 替换为签名后的 OSS URL
         if book.styles_oss_url.present?
           css_urls = book.styles_oss_url.is_a?(Array) ? book.styles_oss_url : [book.styles_oss_url]
           css_urls.each do |css_url|
             begin
-              # 使用 signed_oss_url 生成可访问的签名 URL
               signed_url = signed_oss_url(css_url)
-              # 下载 CSS 内容
-              css_uri = URI.parse(signed_url)
-              css_text = Net::HTTP.get(css_uri).force_encoding("UTF-8")
-              # 将 <link href="..."> 替换为 <style> 内联
-              xhtml = xhtml.gsub(%r{<link[^>]*href=["'][^"']*#{Regexp.escape(File.basename(css_url))}[^"']*["'][^>]*/?>}i,
-                                 "<style>#{css_text}</style>")
+              # 将 <link href="...style.css..."> 替换为 <link href="签名URL">
+              xhtml = xhtml.gsub(%r{(<link[^>]*href=["'])\s*[^"']*\b#{Regexp.escape(File.basename(css_url))}\b[^"']*["']},
+                                 "\\1#{signed_url}\"")
             rescue StandardError => e
-              Rails.logger.warn("[BookHelpers] Failed to inline CSS #{css_url}: #{e.class}: #{e.message}")
+              Rails.logger.warn("[BookHelpers] Failed to replace CSS link #{css_url}: #{e.class}: #{e.message}")
             end
           end
         end
