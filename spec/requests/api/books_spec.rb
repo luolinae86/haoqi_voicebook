@@ -260,7 +260,10 @@ RSpec.describe "API Books", type: :request do
       get "/api/books/page_html", params: { id: book.id, page_number: 1, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
-      expect(response.body).to include("Test Content")
+      data = json_response[:response][:data]
+      expect(data[:book_id]).to eq(book.id)
+      expect(data[:page_number]).to eq(1)
+      expect(data[:xhtml_content]).to include("Test Content")
     end
 
     it "XHTML 未导出时返回 404" do

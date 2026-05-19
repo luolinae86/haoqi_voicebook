@@ -150,9 +150,11 @@ module Api
 
           if page.xhtml_content.present?
             xhtml = sign_xhtml_urls(page.xhtml_content, book)
-            env['api.format'] = :txt
-            content_type 'application/xhtml+xml; charset=utf-8'
-            xhtml
+            present response: success_response(
+              book_id: book.id,
+              page_number: page.page_number,
+              xhtml_content: xhtml
+            )
           else
             error!({ response: { code: 1, msg: '该页面尚未导出 XHTML', data: nil } }, 200)
           end
