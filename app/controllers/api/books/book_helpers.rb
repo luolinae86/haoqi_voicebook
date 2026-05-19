@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "uri"
+
 # Book 模块辅助方法
 module Api
   module Books
@@ -47,8 +49,28 @@ module Api
         response
       end
 
-      # 替换 XHTML 中的 OSS URL 为签名 URL
+      # 替换 XHTML 中的 OSS URL 为签名 URL，并内联 CSS 样式
       def sign_xhtml_urls(xhtml, book)
+        # 内联 CSS：将 <link href="css/style.css"> 替换为 <style> 标签
+        if book.styles_oss_url.present?
+          css_urls = book.styles_oss_url.is_a?(Array) ? book.styles_oss_url : [book.styles_oss_url]
+          css_urls.each do |css_url|
+            begin
+              css_content = signed_oss_url(css_url)
+              if css_content
+                # 从签名的 OSS URL 下载 CSS 内容
+                css_text = URI.open(css_content) { |f| f.read }.force_encoding("UTF-8")
+                # 将 <link href="..."> 替换为 <style> 内联
+                xhtml = xhtml.gsub(%r{<link[^>]*href=["']?[^"'>]*#{Regexp.escape(File.basename(css_url))}[^"'>]*["']?[^>]*/?>}i,
+                                   "<style>#{css_text}</style>")
+              end
+            rescue StandardError => e
+              Rails.logger.warn("[BookHelpers] Failed to inline CSS #{css_url}: #{e.message}")
+            end
+          end
+        end
+
+        # 其余 OSS URL 替换为签名 URL
         known_urls = [book.styles_oss_url, book.nav_oss_url, book.epub_oss_url].compact.reject(&:blank?)
         known_urls.each do |url|
           signed = signed_oss_url(url)
