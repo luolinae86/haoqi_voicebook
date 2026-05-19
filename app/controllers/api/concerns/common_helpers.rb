@@ -95,14 +95,14 @@ module Api
         access_key_id = headers["X-Access-Key-Id"] || params[:access_key_id]
         sign = headers["X-Sign"] || params[:sign]
 
-        error!(err_response(code: 1001, message: "缺少认证参数"), 401) if access_key_id.blank? || sign.blank?
+        error!({ response: err_response(1001, "缺少认证参数") }, 401) if access_key_id.blank? || sign.blank?
 
         api_auth = ApiAuth.find_by(access_key_id: access_key_id)
-        error!(err_response(code: 1001, message: "无效的 access_key_id"), 401) unless api_auth
+        error!({ response: err_response(1001, "无效的 access_key_id") }, 401) unless api_auth
 
         # 验证签名：对请求参数按字母排序后拼接 secret 进行 SHA1 签名
         expected_sign = generate_sign(api_auth.access_key_secret)
-        error!(err_response(code: 1001, message: "签名验证失败"), 401) unless sign == expected_sign
+        error!({ response: err_response(1001, "签名验证失败") }, 401) unless sign == expected_sign
 
         api_auth
       end
