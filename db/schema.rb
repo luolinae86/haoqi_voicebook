@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_19_024806) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_19_030000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -91,6 +91,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_024806) do
     t.integer "sn", default: 0, null: false, comment: "序号"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "book_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "图书统计表", force: :cascade do |t|
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "total_readers", default: 0, null: false, comment: "总阅读人数(去重)"
+    t.integer "total_reads", default: 0, null: false, comment: "总阅读次数"
+    t.integer "total_duration_seconds", default: 0, null: false, comment: "总阅读时长(秒)"
+    t.integer "total_words_read", default: 0, null: false, comment: "总阅读字数"
+    t.integer "completed_count", default: 0, null: false, comment: "完读人数"
+    t.float "completion_rate", default: 0.0, null: false, comment: "完读率"
+    t.integer "weekly_readers", default: 0, null: false, comment: "近7天阅读人数"
+    t.integer "weekly_reads", default: 0, null: false, comment: "近7天阅读次数"
+    t.integer "monthly_readers", default: 0, null: false, comment: "近30天阅读人数"
+    t.integer "monthly_reads", default: 0, null: false, comment: "近30天阅读次数"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_book_stats_on_book_id", unique: true
+    t.index ["monthly_readers"], name: "index_book_stats_on_monthly_readers"
+    t.index ["weekly_readers"], name: "index_book_stats_on_weekly_readers"
   end
 
   create_table "bookmarks", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -298,6 +317,35 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_024806) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "leaderboard_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "排行榜项表", force: :cascade do |t|
+    t.bigint "leaderboard_id", null: false, comment: "排行榜ID"
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "rank", null: false, comment: "排名"
+    t.decimal "score", precision: 10, scale: 2, default: "0.0", comment: "得分"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["leaderboard_id", "book_id"], name: "index_leaderboard_items_on_leaderboard_id_and_book_id", unique: true
+    t.index ["leaderboard_id", "rank"], name: "index_leaderboard_items_on_leaderboard_id_and_rank"
+    t.index ["leaderboard_id"], name: "index_leaderboard_items_on_leaderboard_id"
+  end
+
+  create_table "leaderboards", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "排行榜表", force: :cascade do |t|
+    t.string "name", null: false, comment: "榜单名称"
+    t.string "slug", null: false, comment: "唯一标识"
+    t.integer "ranking_type", default: 0, null: false, comment: "0-自动 1-手动"
+    t.string "auto_rule", comment: "自动规则"
+    t.string "category_filter", comment: "按分类过滤"
+    t.integer "limit_count", default: 50, comment: "最多展示数量"
+    t.boolean "is_active", default: true, null: false, comment: "是否启用"
+    t.integer "sort_order", default: 0, null: false, comment: "展示排序"
+    t.datetime "last_calculated_at", comment: "自动榜单最后计算时间"
+    t.text "description", comment: "榜单描述"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ranking_type", "is_active"], name: "index_leaderboards_on_ranking_type_and_is_active"
+    t.index ["slug"], name: "index_leaderboards_on_slug", unique: true
+  end
+
   create_table "memberships", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "会员表", force: :cascade do |t|
     t.integer "app_user_id", null: false, comment: "用户ID"
     t.integer "plan_type", default: 0, null: false, comment: "套餐：0-月度 1-季度 2-年度"
@@ -340,6 +388,38 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_024806) do
     t.index ["app_user_id"], name: "index_parental_controls_on_app_user_id", unique: true
   end
 
+  create_table "reading_progress", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "阅读进度表", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "last_page_number", default: 1, null: false, comment: "最新阅读到的页码"
+    t.integer "total_words_read", default: 0, null: false, comment: "本书累计阅读字数"
+    t.integer "total_duration_seconds", default: 0, null: false, comment: "本书累计阅读时长(秒)"
+    t.integer "session_count", default: 0, null: false, comment: "阅读次数"
+    t.boolean "completed", default: false, null: false, comment: "是否已读完"
+    t.datetime "completed_at", comment: "完读时间"
+    t.datetime "last_read_at", null: false, comment: "最近阅读时间"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_user_id", "book_id"], name: "index_reading_progress_on_app_user_id_and_book_id", unique: true
+    t.index ["book_id"], name: "index_reading_progress_on_book_id"
+  end
+
+  create_table "reading_sessions", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "阅读记录表", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "page_number", default: 1, null: false, comment: "阅读到的页码"
+    t.integer "word_count", default: 0, null: false, comment: "本次阅读字数"
+    t.integer "duration_seconds", default: 0, null: false, comment: "本次阅读时长(秒)"
+    t.datetime "started_at", null: false, comment: "开始阅读时间"
+    t.datetime "ended_at", comment: "结束阅读时间"
+    t.string "read_date", null: false, comment: "阅读日期 YYYY-MM-DD"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_user_id", "book_id"], name: "index_reading_sessions_on_app_user_id_and_book_id"
+    t.index ["app_user_id", "read_date"], name: "index_reading_sessions_on_app_user_id_and_read_date"
+    t.index ["book_id"], name: "index_reading_sessions_on_book_id"
+  end
+
   create_table "recommends", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "grade_id", null: false, comment: "关联年级"
     t.string "name", null: false, comment: "推荐内容名称"
@@ -367,6 +447,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_024806) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_suppliers_on_name"
+  end
+
+  create_table "user_reading_daily_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "用户阅读日统计表", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.string "stat_date", null: false, comment: "统计日期 YYYY-MM-DD"
+    t.integer "session_count", default: 0, null: false, comment: "当日阅读次数"
+    t.integer "total_duration_seconds", default: 0, null: false, comment: "当日总阅读时长(秒)"
+    t.integer "total_words_read", default: 0, null: false, comment: "当日总阅读字数"
+    t.integer "books_read_count", default: 0, null: false, comment: "当日阅读书籍数"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_user_id", "stat_date"], name: "index_user_reading_daily_stats_on_app_user_id_and_stat_date", unique: true
   end
 
   add_foreign_key "book_chapters", "books"

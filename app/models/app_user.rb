@@ -55,6 +55,9 @@ class AppUser < ApplicationRecord
   has_many :orders, dependent: :destroy                  # 订单记录
   has_many :bookmarks, dependent: :destroy               # 书签
   has_one :parental_control, dependent: :destroy         # 家长管控
+  has_many :reading_sessions, dependent: :destroy        # 阅读记录
+  has_many :reading_progresses, dependent: :destroy      # 阅读进度
+  has_many :user_reading_daily_stats, class_name: 'UserReadingDailyStats', dependent: :destroy # 日统计
 
   # 验证规则
   validates :phone, uniqueness: true,
@@ -85,6 +88,40 @@ class AppUser < ApplicationRecord
     increment!(:reading_words, words) if words > 0
     increment!(:reading_minutes, minutes) if minutes > 0
     increment!(:books_read, books) if books > 0
+  end
+
+  # 计算连续阅读天数
+  def consecutive_reading_days
+    return 0 if user_reading_daily_stats.empty?
+
+    today = Date.today
+    dates = user_reading_daily_stats.where('stat_date <= ?', today.to_s)
+                                     .pluck(:stat_date).map(&:to_date).sort.reverse
+
+    return 0 if dates.empty?
+
+    days = 1
+    (1...dates.size).each do |i|
+      if dates[i - 1] - dates[i] == 1
+        days += 1
+      else
+        break
+      end
+    end
+
+    # 如果最近一天不是今天或昨天，说明断了
+    days = 0 if dates.first < today - 1
+    days
+  end
+
+  # 获取阅读统计摘要
+  def reading_stats_summary
+    {
+      total_reading_minutes: reading_minutes,
+      total_books_read: books_read,
+      total_words_read: reading_words,
+      consecutive_days: consecutive_reading_days
+    }
   end
 
   private

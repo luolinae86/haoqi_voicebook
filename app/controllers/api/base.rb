@@ -30,6 +30,8 @@ module Api
     mount Api::Memberships::Mount
     mount Api::Oss::Mount
     mount Api::Parental::Mount
+    mount Api::Readings::Mount
+    mount Api::Leaderboards::Mount
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(
@@ -46,7 +48,9 @@ module Api
         { name: "books", description: "图书、电子书阅读与页面" },
         { name: "memberships", description: "会员订阅管理" },
         { name: "oss", description: "OSS 临时授权" },
-        { name: "parental", description: "家长管控" }
+        { name: "parental", description: "家长管控" },
+        { name: "reading", description: "阅读统计与进度" },
+        { name: "leaderboards", description: "排行榜" }
       ],
       hide_documentation_path: false
     )
