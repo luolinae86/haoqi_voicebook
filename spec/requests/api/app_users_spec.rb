@@ -39,7 +39,8 @@ RSpec.describe "API AppUsers", type: :request do
   # ==================== 头像签名 ====================
   describe "avatar URL 签名" do
     it "返回带签名的 OSS avatar URL" do
-      user.update!(avatar: "https://zheli.oss-cn-beijing.aliyuncs.com/test/avatar.png")
+      head_img = create(:head_img, img_url: "https://zheli.oss-cn-beijing.aliyuncs.com/test/avatar.png")
+      user.update!(head_img_id: head_img.id)
 
       put "/api/app_users/update_profile",
           params: { uuid: user.uuid, nickname: "测试" },
@@ -51,7 +52,8 @@ RSpec.describe "API AppUsers", type: :request do
     end
 
     it "中文路径的 avatar URL 也能正常签名" do
-      user.update!(avatar: "https://zheli.oss-cn-beijing.aliyuncs.com/小老虎历险记/avatar.png")
+      head_img = create(:head_img, img_url: "https://zheli.oss-cn-beijing.aliyuncs.com/小老虎历险记/avatar.png")
+      user.update!(head_img_id: head_img.id)
 
       put "/api/app_users/update_profile",
           params: { uuid: user.uuid, nickname: "测试" },
@@ -64,7 +66,7 @@ RSpec.describe "API AppUsers", type: :request do
     end
 
     it "avatar 为 nil 时返回 nil" do
-      user.update!(avatar: nil)
+      user.update!(head_img_id: nil)
 
       put "/api/app_users/update_profile",
           params: { uuid: user.uuid, nickname: "测试" },
@@ -197,7 +199,7 @@ RSpec.describe "API AppUsers", type: :request do
         expect(json_response[:response][:msg]).to include("头像不存在")
       end
 
-      it "返回用户信息时包含头像信息" do
+      it "返回用户信息时包含头像URL" do
         head_img = create(:head_img, is_vip: false)
         user.update!(head_img_id: head_img.id)
 
@@ -206,13 +208,12 @@ RSpec.describe "API AppUsers", type: :request do
             as: :json
 
         expect(response).to have_http_status(200)
-        head_img_data = json_response[:response][:data][:user][:head_img]
-        expect(head_img_data[:id]).to eq(head_img.id)
-        expect(head_img_data[:img_url]).to include("Expires=")
-        expect(head_img_data[:is_vip]).to eq(false)
+        avatar_url = json_response[:response][:data][:user][:avatar]
+        expect(avatar_url).to include("Expires=")
+        expect(avatar_url).to include("Signature=")
       end
 
-      it "用户没有头像时 head_img 返回 nil" do
+      it "用户没有头像时 avatar 返回 nil" do
         user.update!(head_img_id: nil)
 
         put "/api/app_users/update_profile",
@@ -220,7 +221,7 @@ RSpec.describe "API AppUsers", type: :request do
             as: :json
 
         expect(response).to have_http_status(200)
-        expect(json_response[:response][:data][:user][:head_img]).to be_nil
+        expect(json_response[:response][:data][:user][:avatar]).to be_nil
       end
 
       it "可以同时更新昵称、年纪和头像" do
@@ -235,7 +236,7 @@ RSpec.describe "API AppUsers", type: :request do
         data = json_response[:response][:data][:user]
         expect(data[:nickname]).to eq("新昵称")
         expect(data[:grade_id]).to eq(5)
-        expect(data[:head_img][:id]).to eq(head_img.id)
+        expect(data[:avatar]).to include("Expires=")
       end
     end
 
