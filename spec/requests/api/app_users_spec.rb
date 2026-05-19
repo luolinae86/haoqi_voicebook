@@ -149,6 +149,96 @@ RSpec.describe "API AppUsers", type: :request do
       end
     end
 
+    context "更新头像" do
+      it "非VIP用户可以更新普通头像" do
+        head_img = create(:head_img, is_vip: false)
+
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, head_img_id: head_img.id },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(user.reload.head_img_id).to eq(head_img.id)
+      end
+
+      it "非VIP用户不能更新VIP头像" do
+        vip_img = create(:head_img, is_vip: true)
+
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, head_img_id: vip_img.id },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
+        expect(json_response[:response][:msg]).to include("VIP")
+      end
+
+      it "VIP用户可以更新VIP头像" do
+        vip_img = create(:head_img, is_vip: true)
+        user.update!(is_vip: true)
+
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, head_img_id: vip_img.id },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(user.reload.head_img_id).to eq(vip_img.id)
+      end
+
+      it "不存在的头像ID返回错误" do
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, head_img_id: 99999 },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
+        expect(json_response[:response][:msg]).to include("头像不存在")
+      end
+
+      it "返回用户信息时包含头像信息" do
+        head_img = create(:head_img, is_vip: false)
+        user.update!(head_img_id: head_img.id)
+
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, head_img_id: head_img.id },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        head_img_data = json_response[:response][:data][:user][:head_img]
+        expect(head_img_data[:id]).to eq(head_img.id)
+        expect(head_img_data[:img_url]).to include("Expires=")
+        expect(head_img_data[:is_vip]).to eq(false)
+      end
+
+      it "用户没有头像时 head_img 返回 nil" do
+        user.update!(head_img_id: nil)
+
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, nickname: "测试" },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:data][:user][:head_img]).to be_nil
+      end
+
+      it "可以同时更新昵称、年纪和头像" do
+        head_img = create(:head_img, is_vip: false)
+
+        put "/api/app_users/update_profile",
+            params: { uuid: user.uuid, nickname: "新昵称", grade_id: 5, head_img_id: head_img.id },
+            as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(0)
+        data = json_response[:response][:data][:user]
+        expect(data[:nickname]).to eq("新昵称")
+        expect(data[:grade_id]).to eq(5)
+        expect(data[:head_img][:id]).to eq(head_img.id)
+      end
+    end
+
     context "未授权" do
       it "无效uuid返回错误" do
         put "/api/app_users/update_profile",

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_19_030000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_19_085000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -38,6 +38,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_030000) do
     t.string "wechat_openid", comment: "微信openid"
     t.string "qq_openid", comment: "QQ openid"
     t.string "uuid", null: false
+    t.bigint "head_img_id", comment: "用户头像ID"
     t.index ["device_id"], name: "index_app_users_on_device_id", unique: true
     t.index ["grade_id"], name: "index_app_users_on_grade_id"
     t.index ["is_vip"], name: "index_app_users_on_is_vip"
@@ -313,6 +314,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_030000) do
     t.string "group_name", limit: 8
     t.string "name", limit: 16
     t.string "description", limit: 32
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "head_imgs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "img_url", comment: "头像URL"
+    t.boolean "is_vip", default: false, comment: "是否VIP用户可用"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

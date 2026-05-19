@@ -58,6 +58,7 @@ class AppUser < ApplicationRecord
   has_many :reading_sessions, dependent: :destroy        # 阅读记录
   has_many :reading_progresses, dependent: :destroy      # 阅读进度
   has_many :user_reading_daily_stats, class_name: 'UserReadingDailyStats', dependent: :destroy # 日统计
+  belongs_to :head_img, optional: true
 
   # 验证规则
   validates :phone, uniqueness: true,

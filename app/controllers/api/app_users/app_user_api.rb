@@ -130,20 +130,31 @@ module Api
         end
 
         # ==================== 更新用户资料 ====================
-        desc '更新用户资料（昵称、年纪等）'
+        desc '更新用户资料（昵称、年纪、头像）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
           optional :nickname, type: String, desc: '昵称（最长50字）'
           optional :grade_id, type: Integer, desc: '年纪（grade_id）'
+          optional :head_img_id, type: Integer, desc: '头像ID（从头像列表中选择）'
         end
         put :update_profile do
           auth_user
 
-          error_pop_resp('没有需要更新的字段') if params[:nickname].blank? && params[:grade_id].nil?
+          error_pop_resp('没有需要更新的字段') if params[:nickname].blank? && params[:grade_id].nil? && params[:head_img_id].nil?
 
           attrs = {}
           attrs[:nickname] = params[:nickname] if params[:nickname].present?
           attrs[:grade_id] = params[:grade_id] unless params[:grade_id].nil?
+
+          if params[:head_img_id].present?
+            head_img = HeadImg.find_by(id: params[:head_img_id])
+            # 非VIP用户不能选择VIP头像
+            if head_img && head_img.is_vip? && !current_user.is_vip?
+              error_pop_resp('VIP头像需要VIP会员才能使用')
+            end
+            error_pop_resp('头像不存在') unless head_img
+            attrs[:head_img_id] = head_img.id
+          end
 
           current_user.update!(attrs)
           present response: success_response(user: Entities::AppUser.represent(current_user).as_json)

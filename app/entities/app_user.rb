@@ -23,5 +23,8 @@ module Entities
     expose :has_password do |instance, _|
       instance.password_digest.present?
     end
+    expose :head_img do |instance, _|
+      instance.head_img ? Entities::HeadImg.represent(instance.head_img).as_json : nil
+    end
   end
 end
