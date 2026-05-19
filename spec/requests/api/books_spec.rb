@@ -107,8 +107,8 @@ RSpec.describe "API Books", type: :request do
   # ==================== 章节目录 ====================
   describe "GET /api/books/chapters" do
     it "返回章节目录" do
-      create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1)
-      create(:book_chapter, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 10)
+      create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1, word_count: 1200)
+      create(:book_chapter, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 10, word_count: 2500)
 
       get "/api/books/chapters", params: { id: book.id, uuid: user.uuid }
 
@@ -118,6 +118,7 @@ RSpec.describe "API Books", type: :request do
       expect(chapters.size).to eq(2)
       expect(chapters.first[:chapter_name]).to eq('第一章')
       expect(chapters.first).to have_key(:is_free)
+      expect(chapters.first[:word_count]).to eq(1200)
     end
 
     it "未提供 uuid 时返回参数错误" do

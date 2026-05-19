@@ -37,4 +37,20 @@ RSpec.describe BookChapter, type: :model do
       expect(BookChapter.ordered.map(&:chapter_number)).to eq([1, 2])
     end
   end
+
+  describe 'word_count' do
+    it 'defaults to 0' do
+      book = create(:book)
+      chapter = create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1)
+
+      expect(chapter.word_count).to eq(0)
+    end
+
+    it 'can be set and read' do
+      book = create(:book)
+      chapter = create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1, word_count: 1500)
+
+      expect(chapter.word_count).to eq(1500)
+    end
+  end
 end

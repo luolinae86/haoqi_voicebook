@@ -6,6 +6,7 @@ module Entities
     expose :chapter_number
     expose :chapter_name
     expose :start_page_number
+    expose :word_count
     expose :is_free
   end
 end

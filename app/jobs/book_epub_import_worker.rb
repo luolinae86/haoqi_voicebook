@@ -104,12 +104,16 @@ class BookEpubImportWorker
 
           # 只在 spine 文件有 TOC 对应时才分配 page_number（封面等不在 TOC 中的页面 page_number=0）
           if has_toc
+            # 先计算当前页的字数，供所有指向此页的章节共用
+            page_word_count = nil
+
             matching_tocs.each do |matching_toc|
               chapter_number += 1
               book.book_chapters.create!(
                 chapter_number: chapter_number,
                 chapter_name: matching_toc[:title],
-                start_page_number: page_number
+                start_page_number: page_number,
+                word_count: 0 # 后续更新
               )
             end
           end
@@ -130,6 +134,9 @@ class BookEpubImportWorker
             xhtml_content: xhtml_content,
             word_count: word_count
           )
+
+          # 更新该页面对应章节的字数
+          book.book_chapters.where(start_page_number: page_number).update_all(word_count: word_count)
 
           total_word_count += word_count
           page_number += 1

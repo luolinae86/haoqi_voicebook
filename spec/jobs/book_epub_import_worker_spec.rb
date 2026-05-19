@@ -163,6 +163,20 @@ RSpec.describe BookEpubImportWorker do
       expect(chapters[2].start_page_number).to eq(3)
     end
 
+    it "creates chapters with correct word_count for each chapter" do
+      perform_import
+
+      chapters = book.book_chapters.ordered
+      # 每个章节的 XHTML 内容都包含 "这是第N章的内容，测试字数统计"
+      # word_count 应该是 XHTML body 中去除空白后的文字长度
+      chapters.each do |chapter|
+        expect(chapter.word_count).to be > 0
+      end
+      # 三章内容相同，字数应一致
+      expect(chapters[0].word_count).to eq(chapters[1].word_count)
+      expect(chapters[1].word_count).to eq(chapters[2].word_count)
+    end
+
     it "clears existing chapters before rebuilding" do
       create(:book_chapter, book: book, chapter_number: 99, chapter_name: "旧章节", start_page_number: 99)
       expect(book.book_chapters.count).to eq(1)

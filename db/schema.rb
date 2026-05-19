@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_18_073644) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_19_024806) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -72,6 +72,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_18_073644) do
     t.boolean "is_free", default: false, null: false, comment: "是否免费"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "word_count", default: 0, null: false, comment: "章节字数"
     t.index ["book_id"], name: "index_book_chapters_on_book_id"
   end
 
@@ -280,8 +281,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_18_073644) do
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
     t.bigint "book_id", null: false, comment: "图书ID"
     t.integer "page_number", null: false, comment: "页码"
-    t.decimal "page_width", precision: 8, scale: 2, null: false, comment: "页面宽度(pt)"
-    t.decimal "page_height", precision: 8, scale: 2, null: false, comment: "页面高度(pt)"
     t.integer "word_count", default: 0, null: false, comment: "字数"
     t.text "xhtml_content", comment: "页面 XHTML 内容"
     t.datetime "created_at", null: false
