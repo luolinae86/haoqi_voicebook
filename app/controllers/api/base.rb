@@ -32,6 +32,7 @@ module Api
     mount Api::Parental::Mount
     mount Api::Readings::Mount
     mount Api::Leaderboards::Mount
+    mount Api::HeadImgs::Mount
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(
