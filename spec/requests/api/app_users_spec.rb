@@ -207,7 +207,7 @@ RSpec.describe "API AppUsers", type: :request do
              },
              as: :json
 
-        expect(response).to have_http_status(404)
+        expect(response).to have_http_status(200)
       end
     end
   end

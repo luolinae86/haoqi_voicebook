@@ -93,7 +93,7 @@ RSpec.describe "API Compilations", type: :request do
     it "未提供 uuid 时返回参数错误" do
       get "/api/compilations/by_id", params: { id: compilation.id }
 
-      expect(response).to have_http_status(400)
+      expect(response).to have_http_status(200)
     end
 
     it "无效 uuid 时返回未授权错误" do

@@ -154,7 +154,7 @@ module Api
             content_type 'application/xhtml+xml; charset=utf-8'
             xhtml
           else
-            error!({ response: { code: 1, msg: '该页面尚未导出 XHTML', data: nil } }, 404)
+            error!({ response: { code: 1, msg: '该页面尚未导出 XHTML', data: nil } }, 200)
           end
         end
 
@@ -171,7 +171,7 @@ module Api
           if book.styles_oss_url.present?
             redirect signed_oss_url(book.styles_oss_url)
           else
-            error!({ response: { code: 1, msg: '样式表尚未导出', data: nil } }, 404)
+            error!({ response: { code: 1, msg: '样式表尚未导出', data: nil } }, 200)
           end
         end
       end

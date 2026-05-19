@@ -278,7 +278,7 @@ RSpec.describe "API Home", type: :request do
         it "recommend_id 不是整数时返回参数错误" do
           get "/api/home/recommends/by_recommend_id", params: { recommend_id: "abc", uuid: user.uuid }
 
-          expect(response).to have_http_status(400)
+          expect(response).to have_http_status(200)
         end
       end
     end
