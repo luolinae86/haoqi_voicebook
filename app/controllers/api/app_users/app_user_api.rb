@@ -11,16 +11,16 @@ module Api
 
       namespace :app_users do
         # ==================== 按 device_id 创建用户 ====================
-        desc "按设备ID创建匿名用户（新用户注册，未绑定手机号前）"
+        desc '按设备ID创建匿名用户（新用户注册，未绑定手机号前）'
         params do
-          requires :device_id, type: String, desc: "设备ID"
+          requires :device_id, type: String, desc: '设备ID'
         end
         post :create_by_device do
           device = Device.find_by(device_id: params[:device_id])
           if device
             user = device.app_user
           else
-            user = AppUser.create!(grade_id: Grade.find_by(name: "三年级")&.id)
+            user = AppUser.create!(grade_id: Grade.find_by(name: '三年级')&.id)
             Device.bind!(params[:device_id], user)
           end
 
@@ -28,10 +28,10 @@ module Api
         end
 
         # ==================== 发送验证码 ====================
-        desc "发送短信验证码"
+        desc '发送短信验证码'
         params do
-          requires :uuid, type: String, desc: "用户uuid（登录时可选）"
-          requires :phone, type: String, desc: "手机号"
+          requires :uuid, type: String, desc: '用户uuid（登录时可选）'
+          requires :phone, type: String, desc: '手机号'
         end
         post :send_code do
           auth_user if params[:uuid].present?
@@ -45,15 +45,15 @@ module Api
         end
 
         # ==================== 验证码登录 ====================
-        desc "手机号+验证码登录/注册（支持多设备共享同一账户）"
+        desc '手机号+验证码登录/注册（支持多设备共享同一账户）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :phone, type: String, desc: "手机号"
-          requires :code, type: String, desc: "验证码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :phone, type: String, desc: '手机号'
+          requires :code, type: String, desc: '验证码'
         end
         post :login_by_code do
           user = AppUser.find_by(uuid: params[:uuid])
-          error_pop_resp("用户未注册，请先调用 create_by_device") unless user
+          error_pop_resp('用户未注册，请先调用 create_by_device') unless user
 
           find_and_consume_verification(params[:phone], params[:code])
 
@@ -69,31 +69,31 @@ module Api
         end
 
         # ==================== 密码登录 ====================
-        desc "手机号+密码登录（支持多设备共享同一账户）"
+        desc '手机号+密码登录（支持多设备共享同一账户）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :phone, type: String, desc: "手机号"
-          requires :password, type: String, desc: "密码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :phone, type: String, desc: '手机号'
+          requires :password, type: String, desc: '密码'
         end
         post :login_by_password do
           user = AppUser.find_by(uuid: params[:uuid])
-          error_pop_resp("用户未注册，请先调用 create_by_device") unless user
+          error_pop_resp('用户未注册，请先调用 create_by_device') unless user
 
           user = AppUser.find_by(phone: params[:phone])
-          error_pop_resp("手机号或密码错误") if user.nil? || !user.authenticate(params[:password])
+          error_pop_resp('手机号或密码错误') if user.nil? || !user.authenticate(params[:password])
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
         # ==================== 微信登录 ====================
-        desc "微信授权登录（支持多设备共享同一账户）"
+        desc '微信授权登录（支持多设备共享同一账户）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :code, type: String, desc: "微信授权码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :code, type: String, desc: '微信授权码'
         end
         post :login_by_wechat do
           user = AppUser.find_by(uuid: params[:uuid])
-          error_pop_resp("用户未注册，请先调用 create_by_device") unless user
+          error_pop_resp('用户未注册，请先调用 create_by_device') unless user
 
           openid = WechatAuthService.new.get_openid(params[:code])
 
@@ -108,14 +108,14 @@ module Api
         end
 
         # ==================== QQ登录 ====================
-        desc "QQ授权登录（支持多设备共享同一账户）"
+        desc 'QQ授权登录（支持多设备共享同一账户）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :code, type: String, desc: "QQ授权码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :code, type: String, desc: 'QQ授权码'
         end
         post :login_by_qq do
           user = AppUser.find_by(uuid: params[:uuid])
-          error_pop_resp("用户未注册，请先调用 create_by_device") unless user
+          error_pop_resp('用户未注册，请先调用 create_by_device') unless user
 
           openid = QqAuthService.new.get_openid_by_code(params[:code])
 
@@ -130,16 +130,16 @@ module Api
         end
 
         # ==================== 更新用户资料 ====================
-        desc "更新用户资料（昵称、年纪等）"
+        desc '更新用户资料（昵称、年纪等）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          optional :nickname, type: String, desc: "昵称（最长50字）"
-          optional :grade_id, type: Integer, desc: "年纪（grade_id）"
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :nickname, type: String, desc: '昵称（最长50字）'
+          optional :grade_id, type: Integer, desc: '年纪（grade_id）'
         end
         put :update_profile do
           auth_user
 
-          error_pop_resp("没有需要更新的字段") if params[:nickname].blank? && params[:grade_id].nil?
+          error_pop_resp('没有需要更新的字段') if params[:nickname].blank? && params[:grade_id].nil?
 
           attrs = {}
           attrs[:nickname] = params[:nickname] if params[:nickname].present?
@@ -150,20 +150,24 @@ module Api
         end
 
         # ==================== 设置/重置密码 ====================
-        desc "设置或重置密码"
+        desc '设置或重置密码（首次设置无需验证码，修改密码需手机号+验证码）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :phone, type: String, desc: "手机号"
-          requires :code, type: String, desc: "验证码"
-          requires :password, type: String, desc: "新密码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :password, type: String, desc: '新密码'
+          optional :phone, type: String, desc: '手机号（修改已有密码时必须）'
+          optional :code, type: String, desc: '验证码（修改已有密码时必须）'
         end
         post :reset_password do
           user = AppUser.find_by(uuid: params[:uuid])
-          error_pop_resp("用户未注册，请先调用 create_by_device") unless user
+          error_pop_resp('用户未注册，请先调用 create_by_device') if user.blank?
 
-          find_and_consume_verification(params[:phone], params[:code])
+          if user.password_digest.present?
+            # 首次设置密码，无需手机号和验证码,  已有密码，修改时必须验证手机号和验证码
+            error_pop_resp('修改密码需要提供手机号和验证码') if params[:phone].blank? || params[:code].blank?
+            find_and_consume_verification(params[:phone], params[:code])
+            user = AppUser.find_by!(phone: params[:phone])
+          end
 
-          user = AppUser.find_by!(phone: params[:phone])
           user.update!(password: params[:password])
 
           present response: success_response

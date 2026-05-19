@@ -121,4 +121,94 @@ RSpec.describe "API AppUsers", type: :request do
       end
     end
   end
+
+  # ==================== 设置/重置密码 ====================
+  describe "POST /api/app_users/reset_password" do
+    context "首次设置密码（用户没有密码）" do
+      it "只需要 uuid 和 password，不需要手机号和验证码" do
+        user = AppUser.create! # 不设置密码
+        post "/api/app_users/reset_password",
+             params: { uuid: user.uuid, password: "NewPass123" },
+             as: :json
+
+        expect(response).to have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(user.reload.password_digest).to be_present
+      end
+
+      it "用户未注册时返回错误" do
+        post "/api/app_users/reset_password",
+             params: { uuid: "nonexistent-uuid", password: "NewPass123" },
+             as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
+      end
+    end
+
+    context "修改已有密码" do
+      it "必须提供手机号和验证码" do
+        user = create(:app_user)
+
+        post "/api/app_users/reset_password",
+             params: { uuid: user.uuid, password: "NewPass123" },
+             as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
+        expect(json_response[:response][:msg]).to include("手机号")
+      end
+
+      it "提供正确的手机号和验证码后可以修改密码" do
+        user = create(:app_user, phone: "13800138000")
+        create(:sms_verification, phone: "13800138000", code: "1234")
+
+        post "/api/app_users/reset_password",
+             params: {
+               uuid: user.uuid,
+               password: "NewPass123",
+               phone: "13800138000",
+               code: "1234"
+             },
+             as: :json
+
+        expect(response).to have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(user.reload.authenticate("NewPass123")).to eq(user)
+      end
+
+      it "验证码错误时返回错误" do
+        user = create(:app_user, phone: "13800138000")
+        create(:sms_verification, phone: "13800138000", code: "1234")
+
+        post "/api/app_users/reset_password",
+             params: {
+               uuid: user.uuid,
+               password: "NewPass123",
+               phone: "13800138000",
+               code: "9999"
+             },
+             as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
+      end
+
+      it "手机号不匹配时返回错误" do
+        user = create(:app_user, phone: "13800138000")
+        create(:sms_verification, phone: "13900139000", code: "1234")
+
+        post "/api/app_users/reset_password",
+             params: {
+               uuid: user.uuid,
+               password: "NewPass123",
+               phone: "13900139000",
+               code: "1234"
+             },
+             as: :json
+
+        expect(response).to have_http_status(404)
+      end
+    end
+  end
 end

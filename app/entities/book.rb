@@ -16,7 +16,7 @@ module Entities
       instance.author ? "#{instance.author.name}【著】" : nil
     end
     # voicebook fields
-    expose :content_type
+    expose :file_type
     expose :content_description
     expose :is_free
     expose :is_vip
