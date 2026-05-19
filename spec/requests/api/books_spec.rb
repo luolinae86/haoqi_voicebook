@@ -208,6 +208,11 @@ RSpec.describe "API Books", type: :request do
       expect(json_response[:response][:data][:book_id]).to eq(book.id)
       expect(json_response[:response][:data][:pages]).to be_an(Array)
       expect(json_response[:response][:data][:pages].size).to eq(2)
+      # 验证 image_url 返回的是签名后的 OSS 地址
+      pages = json_response[:response][:data][:pages]
+      pages.each do |page|
+        expect(page[:image_url]).to match(/\?Expires=/)
+      end
     end
 
     it "没有页面时返回空数组" do

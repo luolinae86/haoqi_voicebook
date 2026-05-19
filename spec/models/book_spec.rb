@@ -94,4 +94,35 @@ RSpec.describe Book, type: :model do
       expect(book.themes_array).to eq([])
     end
   end
+
+  # .sign_oss_url 方法测试
+  describe ".sign_oss_url" do
+    it "返回空值当 url 为空" do
+      expect(Book.sign_oss_url(nil)).to be_nil
+      expect(Book.sign_oss_url("")).to be_nil
+      expect(Book.sign_oss_url("   ")).to be_nil
+    end
+
+    it "非 OSS 地址原样返回" do
+      url = "https://example.com/image.png"
+      expect(Book.sign_oss_url(url)).to eq(url)
+    end
+
+    it "生成带签名参数的 OSS URL" do
+      url = "https://bucket.oss-cn-beijing.aliyuncs.com/test/page.png"
+      signed = Book.sign_oss_url(url)
+      expect(signed).to include("Expires=")
+      expect(signed).to include("OSSAccessKeyId=")
+      expect(signed).to include("Signature=")
+    end
+
+    it "中文路径也能正常生成签名 URL" do
+      url = "https://zheli.oss-cn-beijing.aliyuncs.com/小老虎历险记/images/pages/1/image_1.png"
+      signed = Book.sign_oss_url(url)
+      expect(signed).to include("Expires=")
+      expect(signed).to include("Signature=")
+      # URL 路径应被编码
+      expect(signed).to include("%E5%B0%8F")
+    end
+  end
 end

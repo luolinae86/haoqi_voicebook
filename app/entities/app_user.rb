@@ -5,7 +5,9 @@ module Entities
     expose :id
     expose :phone
     expose :nickname
-    expose :avatar
+    expose :avatar do |instance, _|
+      Book.sign_oss_url(instance.avatar)
+    end
     expose :device_id do |instance, _|
       instance.devices.order(:created_at).last&.device_id || instance.device_id
     end

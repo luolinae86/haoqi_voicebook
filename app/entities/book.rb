@@ -36,13 +36,7 @@ module Entities
     expose :updated_at
 
     def self.sign_oss_url(url)
-      return nil if url.blank?
-
-      uri = URI.parse(url)
-      object_key = uri.path.sub(/\A\//, "")
-      AliyunOssService.new.generate_signed_url(object_key, expires: 3600)
-    rescue URI::InvalidURIError, StandardError
-      url
+      ::Book.sign_oss_url(url)
     end
   end
 end

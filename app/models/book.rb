@@ -91,16 +91,31 @@ class Book < ApplicationRecord
   scope :highest_rated, -> { order(rating: :desc) }
   scope :recently_added, -> { order(created_at: :desc) }
 
-  # OSS URL 签名辅助方法
+  # OSS URL 签名辅助方法（统一使用，处理中文路径）
   def self.sign_oss_url(url)
     return nil if url.blank?
     return url unless url.include?("aliyuncs.com")
 
-    uri = URI.parse(url)
-    host_parts = uri.host.to_s.split(".", 2)
+    # 提取 object_key（使用 URL 中的实际 bucket 名称）
+    begin
+      uri = URI.parse(url)
+      host_parts = uri.host.to_s.split(".", 2)
+      return url if host_parts.size < 2
+      object_key = uri.path.sub(/\A\//, "")
+    rescue URI::InvalidURIError
+      # 非 ASCII URL（含中文），用正则提取
+      if url =~ %r{\Ahttps?://([^/]+)(/.*)?\z}
+        host_parts = $1.split(".", 2)
+        return url if host_parts.size < 2
+        object_key = ($2 || "/").sub(/\A\//, "")
+      else
+        return url
+      end
+    end
+
     bucket_name = host_parts.first
     endpoint = host_parts.last
-    object_key = uri.path.sub(/\A\//, "")
+    object_key = CGI.unescape(object_key)
 
     expires_at = Time.now.to_i + 3600
     canonicalized_resource = "/#{bucket_name}/#{object_key}"
@@ -111,8 +126,8 @@ class Book < ApplicationRecord
     )
 
     query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
-    "https://#{bucket_name}.#{endpoint}/#{object_key}?#{query}"
-  rescue URI::InvalidURIError, StandardError
+    "https://#{bucket_name}.#{endpoint}/#{CGI.escape(object_key)}?#{query}"
+  rescue StandardError
     url
   end
 
