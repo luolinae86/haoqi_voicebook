@@ -36,6 +36,45 @@ RSpec.describe "API AppUsers", type: :request do
     end
   end
 
+  # ==================== 头像签名 ====================
+  describe "avatar URL 签名" do
+    it "返回带签名的 OSS avatar URL" do
+      user.update!(avatar: "https://zheli.oss-cn-beijing.aliyuncs.com/test/avatar.png")
+
+      put "/api/app_users/update_profile",
+          params: { uuid: user.uuid, nickname: "测试" },
+          as: :json
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:data][:user][:avatar]).to include("Expires=")
+      expect(json_response[:response][:data][:user][:avatar]).to include("Signature=")
+    end
+
+    it "中文路径的 avatar URL 也能正常签名" do
+      user.update!(avatar: "https://zheli.oss-cn-beijing.aliyuncs.com/小老虎历险记/avatar.png")
+
+      put "/api/app_users/update_profile",
+          params: { uuid: user.uuid, nickname: "测试" },
+          as: :json
+
+      expect(response).to have_http_status(200)
+      avatar_url = json_response[:response][:data][:user][:avatar]
+      expect(avatar_url).to include("Expires=")
+      expect(avatar_url).to include("Signature=")
+    end
+
+    it "avatar 为 nil 时返回 nil" do
+      user.update!(avatar: nil)
+
+      put "/api/app_users/update_profile",
+          params: { uuid: user.uuid, nickname: "测试" },
+          as: :json
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:data][:user][:avatar]).to be_nil
+    end
+  end
+
   # ==================== 更新用户资料 ====================
   describe "PUT /api/app_users/update_profile" do
     context "更新昵称" do
