@@ -36,6 +36,172 @@ RSpec.describe "API AppUsers", type: :request do
     end
   end
 
+  # ==================== 发送验证码 ====================
+  describe "POST /api/app_users/send_code" do
+    before do
+      allow_any_instance_of(AliyunSmsService).to receive(:send_verification_code).and_return(true)
+    end
+
+    it "发送验证码成功" do
+      post "/api/app_users/send_code", params: { uuid: user.uuid, phone: "13800138001" }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+    end
+
+    it "手机号格式不正确返回错误" do
+      post "/api/app_users/send_code", params: { uuid: user.uuid, phone: "123" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("手机号格式不正确")
+    end
+
+    it "uuid 无效返回未授权错误" do
+      post "/api/app_users/send_code", params: { uuid: "invalid_uuid", phone: "13800138001" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:msg]).to eq("未授权访问")
+    end
+  end
+
+  # ==================== 验证码登录 ====================
+  describe "POST /api/app_users/login_by_code" do
+    let!(:sms_verification) do
+      create(:sms_verification, phone: "13800138000", code: "1234", expires_at: 5.minutes.from_now)
+    end
+
+    it "登录成功" do
+      post "/api/app_users/login_by_code", params: { uuid: user.uuid, phone: "13800138000", code: "1234" }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:data][:user]).to be_present
+    end
+
+    it "用户未注册返回错误" do
+      post "/api/app_users/login_by_code", params: { uuid: "invalid_uuid", phone: "13800138000", code: "1234" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("用户未注册，请先调用 create_by_device")
+    end
+
+    it "验证码错误返回错误" do
+      post "/api/app_users/login_by_code", params: { uuid: user.uuid, phone: "13800138000", code: "9999" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("验证码无效或已过期")
+    end
+  end
+
+  # ==================== 密码登录 ====================
+  describe "POST /api/app_users/login_by_password" do
+    it "密码正确登录成功" do
+      post "/api/app_users/login_by_password", params: { uuid: user.uuid, phone: user.phone, password: "password123" }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:data][:user][:phone]).to eq(user.phone)
+    end
+
+    it "用户未注册返回错误" do
+      post "/api/app_users/login_by_password", params: { uuid: "invalid_uuid", phone: user.phone, password: "password123" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("用户未注册，请先调用 create_by_device")
+    end
+
+    it "密码错误返回错误" do
+      post "/api/app_users/login_by_password", params: { uuid: user.uuid, phone: user.phone, password: "wrong_password" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("手机号或密码错误")
+    end
+
+    it "手机号不存在返回错误" do
+      post "/api/app_users/login_by_password", params: { uuid: user.uuid, phone: "19900001111", password: "password123" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("手机号或密码错误")
+    end
+  end
+
+  # ==================== 微信登录 ====================
+  describe "POST /api/app_users/login_by_wechat" do
+    let(:wechat_code) { "wechat_auth_code_123" }
+    let(:wechat_openid) { "oABC1234567890xyz" }
+
+    around do |example|
+      ENV["WECHAT_APP_ID"] = "wx_test_id"
+      ENV["WECHAT_APP_SECRET"] = "wx_test_secret"
+      example.run
+      ENV.delete("WECHAT_APP_ID")
+      ENV.delete("WECHAT_APP_SECRET")
+    end
+
+    before do
+      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return(wechat_openid)
+    end
+
+    it "首次微信登录绑定微信openid" do
+      post "/api/app_users/login_by_wechat", params: { uuid: user.uuid, code: wechat_code }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      user.reload
+      expect(user.wechat_openid).to eq(wechat_openid)
+    end
+
+    it "用户未注册返回错误" do
+      post "/api/app_users/login_by_wechat", params: { uuid: "invalid_uuid", code: wechat_code }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("用户未注册，请先调用 create_by_device")
+    end
+  end
+
+  # ==================== QQ登录 ====================
+  describe "POST /api/app_users/login_by_qq" do
+    let(:qq_code) { "qq_auth_code_456" }
+    let(:qq_openid) { "QQ_OPENID_ABC123" }
+
+    around do |example|
+      ENV["QQ_APP_ID"] = "qq_test_id"
+      ENV["QQ_APP_KEY"] = "qq_test_key"
+      example.run
+      ENV.delete("QQ_APP_ID")
+      ENV.delete("QQ_APP_KEY")
+    end
+
+    before do
+      allow_any_instance_of(QqAuthService).to receive(:get_openid_by_code).with(qq_code).and_return(qq_openid)
+    end
+
+    it "首次QQ登录绑定QQopenid" do
+      post "/api/app_users/login_by_qq", params: { uuid: user.uuid, code: qq_code }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      user.reload
+      expect(user.qq_openid).to eq(qq_openid)
+    end
+
+    it "用户未注册返回错误" do
+      post "/api/app_users/login_by_qq", params: { uuid: "invalid_uuid", code: qq_code }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("用户未注册，请先调用 create_by_device")
+    end
+  end
+
   # ==================== 头像签名 ====================
   describe "avatar URL 签名" do
     it "返回带签名的 OSS avatar URL" do
@@ -178,7 +344,7 @@ RSpec.describe "API AppUsers", type: :request do
 
       it "VIP用户可以更新VIP头像" do
         vip_img = create(:head_img, is_vip: true)
-        user.update!(is_vip: true)
+        user.update!(is_vip: true, vip_expires_at: 30.days.from_now)
 
         put "/api/app_users/update_profile",
             params: { uuid: user.uuid, head_img_id: vip_img.id },
@@ -339,6 +505,80 @@ RSpec.describe "API AppUsers", type: :request do
 
         expect(response).to have_http_status(200)
       end
+    end
+  end
+
+  # ==================== 多设备共享 ====================
+  describe "多设备共享同一账户" do
+    it "新设备创建新账户" do
+      expect do
+        post "/api/app_users/create_by_device", params: { device_id: "new_device_abc123" }
+      end.to change(AppUser, :count).by(1).and change(Device, :count).by(1)
+    end
+
+    it "已存在的设备返回已有账户" do
+      device = user.devices.first
+      post "/api/app_users/create_by_device", params: { device_id: device.device_id }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:data][:user][:id]).to eq(user.id)
+    end
+
+    it "设备A绑定手机号后，设备B用同一手机号登录共享账户" do
+      phone = "13800138000"
+      create(:sms_verification, phone: phone, code: "1234", expires_at: 5.minutes.from_now)
+
+      device_a = Device.create!(device_id: "device_a_multi_test", app_user: create(:app_user))
+      user_a = device_a.app_user
+      post "/api/app_users/login_by_code", params: { uuid: user_a.uuid, phone: phone, code: "1234" }
+      user_a = json_response[:response][:data][:user]
+
+      create(:sms_verification, phone: phone, code: "5678", expires_at: 5.minutes.from_now)
+      device_b = Device.create!(device_id: "device_b_multi_test", app_user: create(:app_user))
+      user_b = device_b.app_user
+      post "/api/app_users/login_by_code", params: { uuid: user_b.uuid, phone: phone, code: "5678" }
+      user_b = json_response[:response][:data][:user]
+
+      expect(user_a[:id]).to eq(user_b[:id])
+      expect(user_a[:phone]).to eq(phone)
+      expect(user_b[:phone]).to eq(phone)
+    end
+
+    it "设备B用手机号+密码登录已有账户" do
+      phone = "13700137000"
+      device_a = Device.create!(device_id: "device_a_pwd_test", app_user: create(:app_user))
+      user_a = device_a.app_user
+      create(:sms_verification, phone: phone, code: "9999", expires_at: 5.minutes.from_now)
+      post "/api/app_users/login_by_code", params: { uuid: user_a.uuid, phone: phone, code: "9999" }
+      account_id = json_response[:response][:data][:user][:id]
+
+      create(:sms_verification, phone: phone, code: "8888", expires_at: 5.minutes.from_now)
+      post "/api/app_users/reset_password", params: { uuid: user_a.uuid, phone: phone, code: "8888", password: "mypassword" }
+
+      device_b = Device.create!(device_id: "device_b_pwd_test", app_user: create(:app_user))
+      user_b = device_b.app_user
+      post "/api/app_users/login_by_password", params: { uuid: user_b.uuid, phone: phone, password: "mypassword" }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:data][:user][:id]).to eq(account_id)
+    end
+
+    it "设备A是VIP，设备B登录后也共享VIP状态" do
+      phone = "13600136000"
+      device_a = Device.create!(device_id: "device_a_vip_test", app_user: create(:app_user))
+      user_a = device_a.app_user
+      create(:sms_verification, phone: phone, code: "4444", expires_at: 5.minutes.from_now)
+      post "/api/app_users/login_by_code", params: { uuid: user_a.uuid, phone: phone, code: "4444" }
+      AppUser.find(json_response[:response][:data][:user][:id]).update!(is_vip: true, vip_expires_at: 30.days.from_now)
+
+      create(:sms_verification, phone: phone, code: "5555", expires_at: 5.minutes.from_now)
+      device_b = Device.create!(device_id: "device_b_vip_test", app_user: create(:app_user))
+      user_b = device_b.app_user
+      post "/api/app_users/login_by_code", params: { uuid: user_b.uuid, phone: phone, code: "5555" }
+
+      expect(json_response[:response][:data][:user][:is_vip]).to be true
     end
   end
 end

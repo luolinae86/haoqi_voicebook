@@ -38,7 +38,6 @@ FactoryBot.define do
   factory :app_user, class: "AppUser" do
     phone { "1#{rand(3..9)}#{Faker::Number.number(digits: 9)}" }
     nickname { Faker::Internet.username }
-    avatar { Faker::Avatar.image }
     password { "password123" }
     role { :child }
     is_vip { false }

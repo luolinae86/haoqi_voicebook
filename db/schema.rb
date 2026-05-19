@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_19_085000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_19_090000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -24,7 +24,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_085000) do
     t.string "phone", comment: "手机号"
     t.string "password_digest", comment: "加密密码"
     t.string "nickname", comment: "昵称"
-    t.string "avatar", comment: "头像URL"
     t.bigint "grade_id", comment: "年级ID"
     t.integer "role", default: 0, null: false, comment: "角色：0-孩子 1-家长 2-管理员"
     t.integer "reading_words", default: 0, null: false, comment: "阅读字数"
