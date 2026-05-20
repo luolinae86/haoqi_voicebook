@@ -22,6 +22,42 @@ RSpec.describe "API AppUsers", type: :request do
       expect(created_user.grade_id).to eq(Grade.find_by(name: "三年级")&.id)
     end
 
+    it "创建新用户时分配非VIP基础头像" do
+      normal_img = create(:head_img, is_vip: false)
+
+      post "/api/app_users/create_by_device",
+           params: { device_id: "test-device-head-img" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.last
+      expect(created_user.head_img).to eq(normal_img)
+    end
+
+    it "没有可用非VIP头像时创建用户不报错" do
+      HeadImg.destroy_all
+
+      post "/api/app_users/create_by_device",
+           params: { device_id: "test-device-no-img" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.last
+      expect(created_user.head_img_id).to be_nil
+    end
+
+    it "VIP头像不能作为默认头像" do
+      vip_img = create(:head_img, is_vip: true)
+
+      post "/api/app_users/create_by_device",
+           params: { device_id: "test-device-vip-img" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.last
+      expect(created_user.head_img_id).to be_nil
+    end
+
     it "已存在设备时返回已有用户" do
       existing_user = create(:app_user)
       device = create(:device, device_id: "existing-device", app_user: existing_user)

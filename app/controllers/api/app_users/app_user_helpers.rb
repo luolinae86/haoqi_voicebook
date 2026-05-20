@@ -10,8 +10,10 @@ module Api
 
       # 查找或注册用户
       def find_or_register_user(phone)
+        default_head_img = HeadImg.normal.ordered.first
         AppUser.find_or_create_by!(phone: phone) do |u|
           u.nickname = "用户#{phone[-4..]}"
+          u.head_img_id = default_head_img&.id
         end
       end
     end

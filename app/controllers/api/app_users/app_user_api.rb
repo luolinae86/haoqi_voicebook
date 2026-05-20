@@ -20,7 +20,11 @@ module Api
           if device
             user = device.app_user
           else
-            user = AppUser.create!(grade_id: Grade.find_by(name: '三年级')&.id)
+            default_head_img = HeadImg.normal.ordered.first
+            user = AppUser.create!(
+              grade_id: Grade.find_by(name: '三年级')&.id,
+              head_img_id: default_head_img&.id
+            )
             Device.bind!(params[:device_id], user)
           end
 
