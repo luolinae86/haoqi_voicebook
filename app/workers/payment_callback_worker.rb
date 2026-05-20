@@ -5,7 +5,7 @@
 class PaymentCallbackWorker
   include Sidekiq::Job
 
-  sidekiq_options queue: "payment", retry: 3
+  sidekiq_options queue: 'payment', retry: 3
 
   # @param args [Hash] {"order_no" => String, "payment_method" => String, "result" => Hash}
   def perform(args)

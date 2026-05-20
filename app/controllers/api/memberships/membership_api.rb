@@ -9,9 +9,9 @@ module Api
 
       namespace :memberships do
         # ==================== 获取会员套餐列表 ====================
-        desc "获取会员套餐列表（年度/季度/月度）"
+        desc '获取会员套餐列表（年度/季度/月度）'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :uuid, type: String, desc: '用户uuid'
         end
         get :plans do
           auth_user
@@ -29,11 +29,11 @@ module Api
         end
 
         # ==================== 创建会员订单 ====================
-        desc "创建会员购买订单，返回支付参数"
+        desc '创建会员购买订单，返回支付参数'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
-          requires :plan_type, type: String, desc: "套餐类型：monthly/quarterly/annual", values: %w[monthly quarterly annual]
-          requires :payment_method, type: String, desc: "支付方式：alipay/wechat", values: %w[alipay wechat]
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :plan_type, type: String, desc: '套餐类型：monthly/quarterly/annual', values: %w[monthly quarterly annual]
+          requires :payment_method, type: String, desc: '支付方式：alipay/wechat', values: %w[alipay wechat]
         end
         post :create_order do
           auth_user
@@ -44,13 +44,13 @@ module Api
             order = pending_membership.orders.pending.first
             present response: success_response(
               order: Entities::Order.represent(order).as_json,
-              msg: "已有待支付订单，请完成支付"
+              msg: '已有待支付订单，请完成支付'
             )
             next
           end
 
           plan_info = Membership.plan_info(params[:plan_type])
-          raise ArgumentError, "无效的套餐类型" unless plan_info
+          raise ArgumentError, '无效的套餐类型' unless plan_info
 
           # 创建待支付会员记录
           membership = Membership.create!(
@@ -74,13 +74,13 @@ module Api
           # 生成支付参数
           subject = "#{Membership::PLAN_LABELS[params[:plan_type].to_sym]} - #{plan_info[:price]}元"
           payment_params = case params[:payment_method]
-                           when "alipay"
+                           when 'alipay'
                              AlipayPaymentService.new.create_order(
                                order_no: order.order_no,
                                amount: plan_info[:price],
                                subject: subject
                              )
-                           when "wechat"
+                           when 'wechat'
                              WechatPaymentService.new.create_prepay(
                                order_no: order.order_no,
                                amount: plan_info[:price],
@@ -91,14 +91,14 @@ module Api
           present response: success_response(
             order: Entities::Order.represent(order).as_json,
             payment_params: payment_params,
-            msg: "订单创建成功，请完成支付"
+            msg: '订单创建成功，请完成支付'
           )
         end
 
         # ==================== 查询订阅记录 ====================
-        desc "查询当前用户的会员订阅记录"
+        desc '查询当前用户的会员订阅记录'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :uuid, type: String, desc: '用户uuid'
         end
         get :subscriptions do
           auth_user
@@ -115,7 +115,7 @@ module Api
               order_no: order.order_no,
               plan_label: membership.plan_label,
               price: order.amount,
-              paid_at: order.paid_at&.strftime("%Y-%m-%d %H:%M:%S") || "",
+              paid_at: order.paid_at&.strftime('%Y-%m-%d %H:%M:%S') || '',
               days_left: days_left,
               expired: expired
             }
@@ -125,42 +125,42 @@ module Api
         end
 
         # ==================== 支付宝异步回调 ====================
-        desc "支付宝支付异步通知回调（无需鉴权）"
+        desc '支付宝支付异步通知回调（无需鉴权）'
         post :alipay_callback do
           callback_params = params.except(:route_info)
           alipay_service = AlipayPaymentService.new
 
           if alipay_service.verify_callback?(callback_params)
-            trade_status = callback_params["trade_status"]
+            trade_status = callback_params['trade_status']
 
             if %w[TRADE_SUCCESS TRADE_FINISHED].include?(trade_status)
-              order_no = callback_params["out_trade_no"]
+              order_no = callback_params['out_trade_no']
               PaymentCallbackWorker.perform_async({
-                                                    "order_no" => order_no,
-                                                    "payment_method" => "alipay",
-                                                    "result" => callback_params.to_h
+                                                    'order_no' => order_no,
+                                                    'payment_method' => 'alipay',
+                                                    'result' => callback_params.to_h
                                                   })
             end
 
             # 返回 success 给支付宝
-            content_type "text/plain"
-            "success"
+            content_type 'text/plain'
+            'success'
           else
             Rails.logger.warn("[AlipayCallback] Signature verification failed for order: #{callback_params['out_trade_no']}")
-            content_type "text/plain"
-            "failure"
+            content_type 'text/plain'
+            'failure'
           end
         end
 
         # ==================== 微信异步回调 ====================
-        desc "微信支付异步通知回调（无需鉴权）"
+        desc '微信支付异步通知回调（无需鉴权）'
         post :wechat_callback do
-          callback_body = env["rack.input"].gets(nil)&.force_encoding("utf-8") || ""
+          callback_body = env['rack.input'].gets(nil)&.force_encoding('utf-8') || ''
           callback_headers = {
-            "Wechatpay-Timestamp" => headers["Wechatpay-Timestamp"],
-            "Wechatpay-Nonce" => headers["Wechatpay-Nonce"],
-            "Wechatpay-Signature" => headers["Wechatpay-Signature"],
-            "Wechatpay-Serial" => headers["Wechatpay-Serial"]
+            'Wechatpay-Timestamp' => headers['Wechatpay-Timestamp'],
+            'Wechatpay-Nonce' => headers['Wechatpay-Nonce'],
+            'Wechatpay-Signature' => headers['Wechatpay-Signature'],
+            'Wechatpay-Serial' => headers['Wechatpay-Serial']
           }
 
           wechat_service = WechatPaymentService.new
@@ -168,24 +168,24 @@ module Api
           if wechat_service.verify_callback?(callback_headers, callback_body)
             begin
               result = JSON.parse(callback_body)
-              order_no = result["out_trade_no"]
-              trade_state = result["trade_state"]
+              order_no = result['out_trade_no']
+              trade_state = result['trade_state']
 
-              if trade_state == "SUCCESS"
+              if trade_state == 'SUCCESS'
                 PaymentCallbackWorker.perform_async({
-                                                      "order_no" => order_no,
-                                                      "payment_method" => "wechat",
-                                                      "result" => result
+                                                      'order_no' => order_no,
+                                                      'payment_method' => 'wechat',
+                                                      'result' => result
                                                     })
               end
 
-              { code: "SUCCESS", msg: "成功" }
+              { code: 'SUCCESS', msg: '成功' }
             rescue JSON::ParserError
-              { code: "FAIL", msg: "解析失败" }
+              { code: 'FAIL', msg: '解析失败' }
             end
           else
-            Rails.logger.warn("[WechatCallback] Signature verification failed")
-            { code: "FAIL", msg: "签名验证失败" }
+            Rails.logger.warn('[WechatCallback] Signature verification failed')
+            { code: 'FAIL', msg: '签名验证失败' }
           end
         end
       end

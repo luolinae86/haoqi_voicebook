@@ -4,7 +4,7 @@
 class CalculateLeaderboardsJob
   include Sidekiq::Job
 
-  sidekiq_options queue: "default", retry: 3
+  sidekiq_options queue: 'default', retry: 3
 
   def perform
     Leaderboard.auto_ranked.active.each do |leaderboard|

@@ -31,7 +31,7 @@ class Membership < ApplicationRecord
   enum :status, { pending: 0, active: 1, expired: 2, cancelled: 3 }, default: :pending
 
   # 关联关系
-  belongs_to :app_user, class_name: "AppUser" # 所属用户
+  belongs_to :app_user, class_name: 'AppUser' # 所属用户
   has_many :orders, dependent: :nullify # 关联订单
 
   # 验证规则
@@ -46,7 +46,7 @@ class Membership < ApplicationRecord
 
   # 检查会员是否有效
   def active?
-    status == "active" && end_date >= Date.current
+    status == 'active' && end_date >= Date.current
   end
 
   # 会员套餐时长（天）
@@ -55,7 +55,7 @@ class Membership < ApplicationRecord
   end
 
   # 套餐中文名称
-  PLAN_LABELS = { monthly: "月度会员", quarterly: "季度会员", annual: "年度会员" }.freeze
+  PLAN_LABELS = { monthly: '月度会员', quarterly: '季度会员', annual: '年度会员' }.freeze
 
   def plan_label
     PLAN_LABELS[plan_type.to_sym]
@@ -75,9 +75,9 @@ class Membership < ApplicationRecord
   # 根据套餐类型计算结束日期
   def self.calculate_end_date(plan_type)
     case plan_type.to_s
-    when "monthly"   then 1.month.from_now.to_date
-    when "quarterly" then 3.months.from_now.to_date
-    when "annual"    then 1.year.from_now.to_date
+    when 'monthly'   then 1.month.from_now.to_date
+    when 'quarterly' then 3.months.from_now.to_date
+    when 'annual'    then 1.year.from_now.to_date
     end
   end
 end

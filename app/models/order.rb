@@ -32,7 +32,7 @@ class Order < ApplicationRecord
   enum :status, { pending: 0, paid: 1, failed: 2, refunded: 3 }, default: :pending
 
   # 关联关系
-  belongs_to :app_user, class_name: "AppUser" # 所属用户
+  belongs_to :app_user, class_name: 'AppUser' # 所属用户
   belongs_to :membership, optional: true # 关联会员
 
   # 作用域
@@ -80,9 +80,9 @@ class Order < ApplicationRecord
 
   def calculate_end_date(plan_type)
     case plan_type
-    when "monthly"   then 1.month.from_now.to_date
-    when "quarterly" then 3.months.from_now.to_date
-    when "annual"    then 1.year.from_now.to_date
+    when 'monthly'   then 1.month.from_now.to_date
+    when 'quarterly' then 3.months.from_now.to_date
+    when 'annual'    then 1.year.from_now.to_date
     end
   end
 

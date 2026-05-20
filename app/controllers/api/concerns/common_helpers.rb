@@ -12,7 +12,7 @@ module Api
       # 成功响应
       # @param data [Object] 响应数据
       # @param message [String] 成功消息
-      def success_response(data = nil, msg: "success", **kwargs)
+      def success_response(data = nil, msg: 'success', **kwargs)
         merged = if kwargs.empty?
                    data
                  else
@@ -44,7 +44,7 @@ module Api
       # 分页响应
       # @param collection [ActiveRecord::Relation] 数据集合
       # @param message [String] 成功消息
-      def paginated_response(collection, msg: "success")
+      def paginated_response(collection, msg: 'success')
         paged = collection.page(params[:page] || 1).per(params[:per_page] || 10)
         {
           code: 0,
@@ -91,23 +91,23 @@ module Api
 
       # 验证用户已授权（uuid 有效）
       def auth_user
-        error!({ response: err_response(ERR_CODE[:UN_AUTH], "未授权访问") }, 200) unless current_user
+        error!({ response: err_response(ERR_CODE[:UN_AUTH], '未授权访问') }, 200) unless current_user
       end
 
       # 验证 API 客户端认证（access_key_id + sign 签名）
       # @return [ApiAuth] 认证通过的 API 客户端
       def authenticate_api!
-        access_key_id = headers["X-Access-Key-Id"] || params[:access_key_id]
-        sign = headers["X-Sign"] || params[:sign]
+        access_key_id = headers['X-Access-Key-Id'] || params[:access_key_id]
+        sign = headers['X-Sign'] || params[:sign]
 
-        error!({ response: err_response(1001, "缺少认证参数") }, 401) if access_key_id.blank? || sign.blank?
+        error!({ response: err_response(1001, '缺少认证参数') }, 401) if access_key_id.blank? || sign.blank?
 
         api_auth = ApiAuth.find_by(access_key_id: access_key_id)
-        error!({ response: err_response(1001, "无效的 access_key_id") }, 401) unless api_auth
+        error!({ response: err_response(1001, '无效的 access_key_id') }, 401) unless api_auth
 
         # 验证签名：对请求参数按字母排序后拼接 secret 进行 SHA1 签名
         expected_sign = generate_sign(api_auth.access_key_secret)
-        error!({ response: err_response(1001, "签名验证失败") }, 401) unless sign == expected_sign
+        error!({ response: err_response(1001, '签名验证失败') }, 401) unless sign == expected_sign
 
         api_auth
       end
