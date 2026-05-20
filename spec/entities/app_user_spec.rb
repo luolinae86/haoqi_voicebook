@@ -34,4 +34,14 @@ RSpec.describe Entities::AppUser do
     refreshed_json = described_class.represent(user.reload).as_json
     expect(refreshed_json[:parental_enabled]).to be true
   end
+
+  it 'returns false for has_password when user has no password' do
+    expect(json[:has_password]).to be false
+  end
+
+  it 'returns true for has_password when user has a password set' do
+    user.update!(password: 'test1234')
+    refreshed_json = described_class.represent(user.reload).as_json
+    expect(refreshed_json[:has_password]).to be true
+  end
 end

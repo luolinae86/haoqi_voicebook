@@ -25,5 +25,8 @@ module Entities
     expose :parental_enabled do |instance, _|
       instance.parental_control.present?
     end
+    expose :has_password do |instance, _|
+      instance.password_digest.present?
+    end
   end
 end
