@@ -32,8 +32,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        post "/api/parental/setup", params: { password: "1234" }
+        post "/api/parental/setup", params: invalid_auth_params.merge(password: "1234")
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -61,8 +63,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        post "/api/parental/verify", params: { password: "123456" }
+        post "/api/parental/verify", params: invalid_auth_params.merge(password: "123456")
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -80,8 +84,8 @@ RSpec.describe "API Parental Control", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:data]).to be_present
-        expect(json_response[:data][:time_limit_minutes]).to eq(60)
+        expect(json_response[:response][:data]).to be_present
+        expect(json_response[:response][:data][:time_limit_minutes]).to eq(60)
       end
     end
 
@@ -94,8 +98,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        get "/api/parental/settings"
+        get "/api/parental/settings", params: invalid_auth_params
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -128,8 +134,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        put "/api/parental/time_limit", params: { time_limit_minutes: 30 }
+        put "/api/parental/time_limit", params: invalid_auth_params.merge(time_limit_minutes: 30)
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -162,8 +170,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        put "/api/parental/phone", params: { phone: "13900001111", code: "8888" }
+        put "/api/parental/phone", params: invalid_auth_params.merge(phone: "13900001111", code: "8888")
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -183,8 +193,8 @@ RSpec.describe "API Parental Control", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:data]).to be_an(Array)
-        expect(json_response[:data].size).to eq(1)
+        expect(json_response[:response][:data][:books]).to be_an(Array)
+        expect(json_response[:response][:data][:books].size).to eq(1)
       end
     end
 
@@ -194,13 +204,15 @@ RSpec.describe "API Parental Control", type: :request do
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:data]).to be_empty
+        expect(json_response[:response][:data][:books]).to be_empty
       end
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        get "/api/parental/blacklist"
+        get "/api/parental/blacklist", params: invalid_auth_params
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -233,8 +245,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        post "/api/parental/blacklist", params: { book_id: book.id }
+        post "/api/parental/blacklist", params: invalid_auth_params.merge(book_id: book.id)
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)
@@ -266,8 +280,10 @@ RSpec.describe "API Parental Control", type: :request do
     end
 
     context "未登录" do
+      let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
+
       it "返回 401 未授权" do
-        delete "/api/parental/blacklist/#{book.id}"
+        delete "/api/parental/blacklist/#{book.id}", params: invalid_auth_params
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)

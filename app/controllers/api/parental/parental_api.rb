@@ -11,15 +11,18 @@ module Api
       helpers Api::Oss::OssHelpers
 
       namespace :parental do
+        before do
+          auth_user
+        end
+
         # ==================== 设置家长密码 ====================
-        desc "首次设置家长密码（4位数字）"
+        desc '首次设置家长密码（4位数字）'
         params do
-          requires :password, type: String, regexp: /\A\d{4}\z/, desc: "4位数字密码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :password, type: String, regexp: /\A\d{4}\z/, desc: '4位数字密码'
         end
         post :setup do
-          auth_user
-
-          error_pop_resp("家长管控已设置，无法重复创建") if current_user.parental_control.present?
+          error_pop_resp('家长管控已设置，无法重复创建') if current_user.parental_control.present?
 
           ParentalControl.create!(
             app_user: current_user,
@@ -30,27 +33,27 @@ module Api
         end
 
         # ==================== 验证家长密码 ====================
-        desc "验证家长密码是否正确"
+        desc '验证家长密码是否正确'
         params do
-          requires :password, type: String, desc: "家长密码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :password, type: String, desc: '家长密码'
         end
         post :verify do
-          auth_user
-
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
-          error_pop_resp("家长密码错误") unless parental.authenticate(params[:password])
+          error_pop_resp('未设置家长管控') unless parental
+          error_pop_resp('家长密码错误') unless parental.authenticate(params[:password])
 
           present response: success_response
         end
 
         # ==================== 获取设置 ====================
-        desc "获取当前家长管控设置"
+        desc '获取当前家长管控设置'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+        end
         get :settings do
-          auth_user
-
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
+          error_pop_resp('未设置家长管控') unless parental
 
           present response: success_response(
             time_limit_minutes: parental.time_limit_minutes,
@@ -63,18 +66,17 @@ module Api
         end
 
         # ==================== 设置时间限制 ====================
-        desc "设置每日阅读时间限制"
+        desc '设置每日阅读时间限制'
         params do
-          optional :time_limit_minutes, type: Integer, desc: "时间限制（分钟），nil 表示无限制"
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :time_limit_minutes, type: Integer, desc: '时间限制（分钟），nil 表示无限制'
         end
         put :time_limit do
-          auth_user
-
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
+          error_pop_resp('未设置家长管控') unless parental
 
           value = params[:time_limit_minutes]
-          error_pop_resp("时间限制必须为 30、60 或 90 分钟") if value.present? && ParentalControl::TIME_LIMITS.exclude?(value)
+          error_pop_resp('时间限制必须为 30、60 或 90 分钟') if value.present? && ParentalControl::TIME_LIMITS.exclude?(value)
 
           parental.update!(time_limit_minutes: value.presence)
 
@@ -85,16 +87,15 @@ module Api
         end
 
         # ==================== 设置家长手机号 ====================
-        desc "预留家长手机号（需短信验证）"
+        desc '预留家长手机号（需短信验证）'
         params do
-          requires :phone, type: String, desc: "家长手机号"
-          requires :code, type: String, desc: "短信验证码"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :phone, type: String, desc: '家长手机号'
+          requires :code, type: String, desc: '短信验证码'
         end
         put :phone do
-          auth_user
-
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
+          error_pop_resp('未设置家长管控') unless parental
 
           validate_phone!(params[:phone])
           find_and_consume_verification(params[:phone], params[:code])
@@ -108,16 +109,15 @@ module Api
         end
 
         # ==================== 黑名单列表 ====================
-        desc "获取已加入黑名单的图书列表"
+        desc '获取已加入黑名单的图书列表'
         params do
-          optional :page, type: Integer, desc: "页码", default: 1
-          optional :per_page, type: Integer, desc: "每页数量", default: 20
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :page, type: Integer, desc: '页码', default: 1
+          optional :per_page, type: Integer, desc: '每页数量', default: 20
         end
         get :blacklist do
-          auth_user
-
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
+          error_pop_resp('未设置家长管控') unless parental
 
           items = parental.blacklisted_books.includes(:book)
                           .page(params[:page]).per(params[:per_page])
@@ -135,15 +135,14 @@ module Api
         end
 
         # ==================== 添加到黑名单 ====================
-        desc "将图书加入黑名单"
+        desc '将图书加入黑名单'
         params do
-          requires :book_id, type: Integer, desc: "图书ID"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :book_id, type: Integer, desc: '图书ID'
         end
         post :blacklist do
-          auth_user
-
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
+          error_pop_resp('未设置家长管控') unless parental
 
           book = Book.find(params[:book_id])
 
@@ -153,15 +152,14 @@ module Api
         end
 
         # ==================== 从黑名单移除 ====================
-        desc "将图书从黑名单中移除"
+        desc '将图书从黑名单中移除'
         params do
-          requires :book_id, type: Integer, desc: "图书ID"
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :book_id, type: Integer, desc: '图书ID'
         end
-        delete "blacklist/:book_id" do
-          auth_user
-
+        delete 'blacklist/:book_id' do
           parental = current_user.parental_control
-          error_pop_resp("未设置家长管控") unless parental
+          error_pop_resp('未设置家长管控') unless parental
 
           blacklisted = parental.blacklisted_books.find_by!(book_id: params[:book_id])
           blacklisted.destroy!
