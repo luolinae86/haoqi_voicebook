@@ -133,6 +133,28 @@ module Api
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
 
+        # ==================== 用户配置 ====================
+        desc '获取用户配置（App启动时调用，高频接口）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+        end
+        get :config do
+          auth_user
+
+          # 高频接口，使用缓存避免重复查询 parental_controls 表
+          time_limit_minutes = Rails.cache.fetch(
+            "parental_time_limit_#{current_user.id}",
+            expires_in: 5.minutes,
+            version: current_user.parental_control&.updated_at.to_i
+          ) do
+            current_user.parental_control&.time_limit_minutes || 0
+          end
+
+          present response: success_response(
+            time_limit_minutes: time_limit_minutes
+          )
+        end
+
         # ==================== 更新用户资料 ====================
         desc '更新用户资料（昵称、年纪、头像）'
         params do

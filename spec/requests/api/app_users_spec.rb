@@ -92,6 +92,33 @@ RSpec.describe "API AppUsers", type: :request do
       expect(json_response[:response][:code]).to eq(1001)
       expect(json_response[:response][:msg]).to eq("手机号格式不正确")
     end
+  end
+
+  # ==================== 用户配置 ====================
+  describe "GET /api/app_users/config" do
+    it "无家长控制时返回 time_limit_minutes 为 0" do
+      get "/api/app_users/config", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:data][:time_limit_minutes]).to eq(0)
+    end
+
+    it "有家长控制时返回限制时间" do
+      create(:parental_control, app_user: user, time_limit_minutes: 60)
+
+      get "/api/app_users/config", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:data][:time_limit_minutes]).to eq(60)
+    end
+
+    it "无效 uuid 返回未授权" do
+      get "/api/app_users/config", params: { uuid: "invalid_uuid_00000" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+    end
 
     it "uuid 无效返回未授权错误" do
       post "/api/app_users/send_code", params: { uuid: "invalid_uuid", phone: "13800138001" }
