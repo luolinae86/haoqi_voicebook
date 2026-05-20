@@ -12,7 +12,9 @@ module Entities
       instance.devices.order(:created_at).last&.device_id || instance.device_id
     end
     expose :uuid
-    expose :grade_id
+    expose :grade_name do |instance, _|
+      instance.grade_id ? ::Grade.find_by(id: instance.grade_id)&.name : nil
+    end
     expose :reading_words
     expose :reading_minutes
     expose :books_read
