@@ -23,7 +23,8 @@ module Api
             default_head_img = HeadImg.normal.ordered.first
             user = AppUser.create!(
               grade_id: Grade.find_by(name: '三年级')&.id,
-              head_img_id: default_head_img&.id
+              head_img_id: default_head_img&.id,
+              nickname: '少年越读者'
             )
             Device.bind!(params[:device_id], user)
           end

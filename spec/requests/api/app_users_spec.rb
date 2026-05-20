@@ -22,6 +22,16 @@ RSpec.describe "API AppUsers", type: :request do
       expect(created_user.grade_id).to eq(Grade.find_by(name: "三年级")&.id)
     end
 
+    it "创建新用户时默认昵称为少年越读者" do
+      post "/api/app_users/create_by_device",
+           params: { device_id: "test-device-nickname" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.last
+      expect(created_user.nickname).to eq('少年越读者')
+    end
+
     it "创建新用户时分配非VIP基础头像" do
       normal_img = create(:head_img, is_vip: false)
 
