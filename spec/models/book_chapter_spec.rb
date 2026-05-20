@@ -36,6 +36,15 @@ RSpec.describe BookChapter, type: :model do
 
       expect(BookChapter.ordered.map(&:chapter_number)).to eq([1, 2])
     end
+
+    it 'filters chapters by start_page_number' do
+      book = create(:book)
+      chapter = create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 10)
+      create(:book_chapter, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 20)
+
+      expect(BookChapter.by_start_page(10)).to include(chapter)
+      expect(BookChapter.by_start_page(10).size).to eq(1)
+    end
   end
 
   describe 'word_count' do

@@ -25,4 +25,5 @@ class BookChapter < ApplicationRecord
   belongs_to :book
 
   scope :ordered, -> { order(:chapter_number) }
+  scope :by_start_page, ->(page_number) { where(start_page_number: page_number) }
 end

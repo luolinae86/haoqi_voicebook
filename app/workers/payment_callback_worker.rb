@@ -18,7 +18,7 @@ class PaymentCallbackWorker
     order = Order.find_by!(order_no: order_no)
 
     # 原子操作：仅当状态为 pending 时更新为 paid
-    affected = Order.where(id: order.id, status: :pending)
+    affected = Order.pending.where(id: order.id)
                     .update_all(status: :paid, paid_at: Time.current, updated_at: Time.current)
     return if affected.zero? # 已被其他回调处理过
 

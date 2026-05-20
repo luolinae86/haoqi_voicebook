@@ -75,4 +75,29 @@ RSpec.describe Order, type: :model do
       expect(order.paid_at).to be_present
     end
   end
+
+  # 作用域测试
+  describe "scopes" do
+    describe ".pending" do
+      it "只返回待支付订单" do
+        pending_order = create(:order, status: :pending)
+        create(:order, status: :paid)
+        create(:order, status: :failed)
+
+        expect(Order.pending).to include(pending_order)
+        expect(Order.pending.size).to eq(1)
+      end
+    end
+
+    describe ".paid" do
+      it "只返回已支付订单" do
+        create(:order, status: :pending)
+        paid_order = create(:order, status: :paid)
+        create(:order, status: :failed)
+
+        expect(Order.paid).to include(paid_order)
+        expect(Order.paid.size).to eq(1)
+      end
+    end
+  end
 end

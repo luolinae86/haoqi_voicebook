@@ -40,5 +40,17 @@ RSpec.describe ReadingSession, type: :model do
 
       expect(ReadingSession.recent.first).to eq(new_session)
     end
+
+    it 'filters by book and date' do
+      book = create(:book)
+      user = create(:app_user)
+      today = Date.today.to_s
+      session = create(:reading_session, app_user: user, book: book, read_date: today)
+      create(:reading_session, app_user: user, book: create(:book), read_date: today)
+      create(:reading_session, app_user: user, book: book, read_date: '2025-01-01')
+
+      expect(ReadingSession.by_book_and_date(book, today)).to include(session)
+      expect(ReadingSession.by_book_and_date(book, today).size).to eq(1)
+    end
   end
 end

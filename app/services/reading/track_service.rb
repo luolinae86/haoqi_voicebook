@@ -78,7 +78,7 @@ module Reading
 
       # 用刚创建的 session 判断是否是该书今天第一次阅读，避免并发竞态
       if stats.books_read_count.zero? &&
-         @app_user.reading_sessions.where(book: @book, read_date: today).count == 1
+         @app_user.reading_sessions.by_book_and_date(@book, today).count == 1
         stats.books_read_count += 1
       end
 
@@ -89,7 +89,7 @@ module Reading
       stats = BookStats.find_or_create_for(@book.id)
 
       # 用刚创建的 session 判断是否是今天第一次读这本书，避免并发竞态
-      if @app_user.reading_sessions.where(book: @book, read_date: Date.today.to_s).count == 1
+      if @app_user.reading_sessions.by_book_and_date(@book, Date.today.to_s).count == 1
         stats.total_readers += 1
         stats.weekly_readers += 1
         stats.monthly_readers += 1
@@ -103,7 +103,7 @@ module Reading
 
       # 如果用户刚完读这本书，增加完读人数
       if @book.reading_progresses
-                         .where(app_user_id: @app_user.id, completed: true, completed_at: Time.current - 1.minute..)
+                         .recently_completed(@app_user.id, Time.current - 1.minute)
                          .exists?
         stats.completed_count += 1
       end

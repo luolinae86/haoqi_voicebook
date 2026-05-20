@@ -22,6 +22,7 @@ class Leaderboard < ApplicationRecord
   enum :ranking_type, { auto: 0, manual: 1 }
 
   scope :active, -> { where(is_active: true).order(sort_order: :asc) }
+  scope :auto_ranked, -> { where(ranking_type: :auto) }
 
   def calculate!
     return if manual? || auto_rule.blank?

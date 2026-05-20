@@ -36,9 +36,12 @@ class Order < ApplicationRecord
   belongs_to :membership, optional: true # 关联会员
 
   # 作用域
+  scope :pending, -> { where(status: :pending) }
+  scope :paid, -> { where(status: :paid) }
   scope :paid_with_membership, lambda { |user|
     joins(:membership)
-      .where(app_user: user, status: :paid)
+      .where(app_user: user)
+      .merge(paid)
       .includes(:membership)
       .order(created_at: :desc)
   }

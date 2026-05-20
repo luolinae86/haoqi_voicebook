@@ -16,4 +16,5 @@ class UserReadingDailyStats < ApplicationRecord
   belongs_to :app_user
 
   scope :last_n_days, ->(days) { where(stat_date: days.days.ago.to_date.to_s..Date.today.to_s).order(stat_date: :desc) }
+  scope :up_to_date, ->(date) { where('stat_date <= ?', date.to_s) }
 end

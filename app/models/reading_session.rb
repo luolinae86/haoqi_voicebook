@@ -20,4 +20,5 @@ class ReadingSession < ApplicationRecord
   scope :by_date, ->(date) { where(read_date: date) }
   scope :recent, -> { order(started_at: :desc) }
   scope :last_n_days, ->(days) { where(read_date: days.days.ago.to_date..Date.today) }
+  scope :by_book_and_date, ->(book, date) { where(book: book, read_date: date) }
 end

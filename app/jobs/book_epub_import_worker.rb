@@ -136,7 +136,7 @@ class BookEpubImportWorker
           )
 
           # 更新该页面对应章节的字数
-          book.book_chapters.where(start_page_number: page_number).update_all(word_count: word_count)
+          book.book_chapters.by_start_page(page_number).update_all(word_count: word_count)
 
           total_word_count += word_count
           page_number += 1

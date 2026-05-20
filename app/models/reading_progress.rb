@@ -22,4 +22,5 @@ class ReadingProgress < ApplicationRecord
   scope :recently_read, -> { order(last_read_at: :desc) }
   scope :completed, -> { where(completed: true) }
   scope :in_progress, -> { where(completed: false) }
+  scope :recently_completed, ->(app_user_id, since:) { where(app_user_id: app_user_id, completed: true).where('completed_at >= ?', since) }
 end

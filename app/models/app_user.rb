@@ -96,7 +96,7 @@ class AppUser < ApplicationRecord
     return 0 if user_reading_daily_stats.empty?
 
     today = Date.today
-    dates = user_reading_daily_stats.where('stat_date <= ?', today.to_s)
+    dates = user_reading_daily_stats.up_to_date(today)
                                      .pluck(:stat_date).map(&:to_date).sort.reverse
 
     return 0 if dates.empty?

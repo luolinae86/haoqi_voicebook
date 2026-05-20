@@ -7,7 +7,7 @@ class CalculateLeaderboardsJob
   sidekiq_options queue: "default", retry: 3
 
   def perform
-    Leaderboard.auto.where(is_active: true).each do |leaderboard|
+    Leaderboard.auto_ranked.active.each do |leaderboard|
       leaderboard.calculate!
       Rails.logger.info("[CalculateLeaderboards] Calculated leaderboard: #{leaderboard.name}")
     end
