@@ -14,10 +14,15 @@ class PaymentCallbackWorker
     payment_method = args[:payment_method]
     args[:result]
 
+    # 使用乐观锁避免并发回调重复处理
     order = Order.find_by!(order_no: order_no)
-    return if order.paid? # 防止重复处理
 
-    order.mark_paid!
+    # 原子操作：仅当状态为 pending 时更新为 paid
+    affected = Order.where(id: order.id, status: :pending)
+                    .update_all(status: :paid, paid_at: Time.current, updated_at: Time.current)
+    return if affected.zero? # 已被其他回调处理过
+
+    order.reload
     order.activate_membership!
 
     Rails.logger.info("[PaymentCallback] #{payment_method} payment confirmed for order ##{order_no}")

@@ -76,6 +76,11 @@ module Api
 
       # ==================== 认证相关 ====================
 
+      # 清除用户缓存
+      def expire_user_cache(uuid)
+        Rails.cache.delete("app_user_#{uuid}")
+      end
+
       # 根据 uuid 查找当前用户
       # @return [AppUser, nil]
       def current_user

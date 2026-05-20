@@ -132,6 +132,24 @@ RSpec.describe "API Memberships", type: :request do
         expect(order.membership.plan_type).to eq("quarterly")
         expect(order.membership.status).to eq("pending")
       end
+
+      it "重复点击时返回已有待支付订单而非创建新订单" do
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, plan_type: "monthly", payment_method: "wechat" },
+             as: :json
+
+        first_order_no = json_response[:response][:data][:order][:order_no]
+
+        # 再次请求创建订单
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, plan_type: "monthly", payment_method: "wechat" },
+             as: :json
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:response][:data][:order][:order_no]).to eq(first_order_no)
+        expect(json_response[:response][:msg]).to include("待支付")
+      end
     end
 
     context "未登录" do

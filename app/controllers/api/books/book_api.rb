@@ -49,7 +49,8 @@ module Api
         get 'by_id' do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') unless book
 
           present response: success_response(book: Entities::Book.represent(book).as_json)
         end
@@ -63,7 +64,8 @@ module Api
         get 'chapters' do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') unless book
 
           present response: success_response(
             book_id: book.id,
@@ -108,7 +110,8 @@ module Api
         get 'pages' do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') unless book
           pages = book.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
           present response: success_response(
@@ -129,7 +132,8 @@ module Api
         get 'page' do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') unless book
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
 
           present response: success_response(page_response(book, page))
@@ -145,7 +149,8 @@ module Api
         get 'page_html' do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') unless book
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
 
           if page.xhtml_content.present?
@@ -169,7 +174,8 @@ module Api
         get 'styles' do
           auth_user
 
-          book = Book.find(params[:id])
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') unless book
           if book.styles_oss_url.present?
             redirect signed_oss_url(book.styles_oss_url)
           else

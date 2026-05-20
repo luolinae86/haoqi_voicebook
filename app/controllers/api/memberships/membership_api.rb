@@ -7,14 +7,6 @@ module Api
     class MembershipApi < Grape::API
       helpers Api::Concerns::CommonHelpers
 
-      def self.calculate_end_date(plan_type)
-        case plan_type
-        when "monthly"   then 1.month.from_now.to_date
-        when "quarterly" then 3.months.from_now.to_date
-        when "annual"    then 1.year.from_now.to_date
-        end
-      end
-
       namespace :memberships do
         # ==================== 获取会员套餐列表 ====================
         desc "获取会员套餐列表（年度/季度/月度）"
@@ -46,6 +38,17 @@ module Api
         post :create_order do
           auth_user
 
+          # 防止重复点击创建多个待支付订单
+          pending_membership = Membership.find_by(app_user: current_user, status: :pending)
+          if pending_membership && pending_membership.orders.pending.exists?
+            order = pending_membership.orders.pending.first
+            present response: success_response(
+              order: Entities::Order.represent(order).as_json,
+              msg: "已有待支付订单，请完成支付"
+            )
+            next
+          end
+
           plan_info = Membership.plan_info(params[:plan_type])
           raise ArgumentError, "无效的套餐类型" unless plan_info
 
@@ -56,7 +59,7 @@ module Api
             price: plan_info[:price],
             original_price: plan_info[:original_price],
             start_date: Date.current,
-            end_date: MembershipApi.calculate_end_date(params[:plan_type]),
+            end_date: Membership.calculate_end_date(params[:plan_type]),
             status: :pending
           )
 

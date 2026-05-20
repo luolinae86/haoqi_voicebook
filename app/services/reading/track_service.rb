@@ -28,7 +28,7 @@ module Reading
     private
 
     def create_reading_session
-      ReadingSession.create!(
+      @reading_session = ReadingSession.create!(
         app_user: @app_user,
         book: @book,
         page_number: @page_number,
@@ -45,7 +45,7 @@ module Reading
         book_id: @book.id
       )
 
-      is_new_record = progress.new_record?
+      @user_new_book_read = progress.new_record?
 
       if progress.last_page_number < @page_number
         progress.last_page_number = @page_number
@@ -63,9 +63,6 @@ module Reading
       end
 
       progress.save!
-
-      # 如果是首次阅读这本书，增加用户 books_read
-      @user_new_book_read = is_new_record
     end
 
     def update_daily_stats
@@ -79,16 +76,10 @@ module Reading
       stats.total_duration_seconds += @duration_seconds
       stats.total_words_read += @word_count
 
-      # 如果今天还没读过这本书，增加 books_read_count
-      unless stats.books_read_count.positive? &&
-             @app_user.reading_sessions.where(book: @book, read_date: today).count > 1
-        # 检查是否是该书今天的第一个 session
-        first_session_today = @app_user.reading_sessions
-                                       .where(book: @book, read_date: today)
-                                       .order(:id).first
-        if first_session_today && first_session_today.id == ReadingSession.order(:id).last&.id
-          stats.books_read_count += 1
-        end
+      # 用刚创建的 session 判断是否是该书今天第一次阅读，避免并发竞态
+      if stats.books_read_count.zero? &&
+         @app_user.reading_sessions.where(book: @book, read_date: today).count == 1
+        stats.books_read_count += 1
       end
 
       stats.save!
@@ -97,15 +88,8 @@ module Reading
     def update_book_stats
       stats = BookStats.find_or_create_for(@book.id)
 
-      # 检查该用户今天是否已经读过这本书（用于去重 readers）
-      today_sessions = ReadingSession.where(
-        app_user_id: @app_user.id,
-        book_id: @book.id,
-        read_date: Date.today.to_s
-      )
-
-      if today_sessions.count == 1
-        # 今天第一次读这本书，增加 readers
+      # 用刚创建的 session 判断是否是今天第一次读这本书，避免并发竞态
+      if @app_user.reading_sessions.where(book: @book, read_date: Date.today.to_s).count == 1
         stats.total_readers += 1
         stats.weekly_readers += 1
         stats.monthly_readers += 1

@@ -4,24 +4,26 @@ module Reading
   class StatsService
     # 获取用户阅读统计摘要
     def self.user_stats(app_user)
-      total_books = app_user.reading_progresses.count
-      completed_books = app_user.reading_progresses.completed.count
-      total_seconds = app_user.reading_progresses.sum(:total_duration_seconds)
-      total_sessions = app_user.reading_progresses.sum(:session_count)
+      Rails.cache.fetch("user_stats_#{app_user.id}", expires_in: 30.seconds) do
+        total_books = app_user.reading_progresses.count
+        completed_books = app_user.reading_progresses.completed.count
+        total_seconds = app_user.reading_progresses.sum(:total_duration_seconds)
+        total_sessions = app_user.reading_progresses.sum(:session_count)
 
-      avg_duration = total_sessions > 0 ? total_seconds / total_sessions : 0
-      completion_rate = total_books > 0 ? (completed_books.to_f / total_books * 100).round(1) : 0
+        avg_duration = total_sessions > 0 ? total_seconds / total_sessions : 0
+        completion_rate = total_books > 0 ? (completed_books.to_f / total_books * 100).round(1) : 0
 
-      consecutive_days = app_user.consecutive_reading_days
+        consecutive_days = app_user.consecutive_reading_days
 
-      {
-        total_books: total_books,
-        completed_books: completed_books,
-        total_reading_minutes: (total_seconds / 60.0).round,
-        avg_reading_minutes: (avg_duration / 60.0).round(1),
-        completion_rate: completion_rate,
-        consecutive_days: consecutive_days
-      }
+        {
+          total_books: total_books,
+          completed_books: completed_books,
+          total_reading_minutes: (total_seconds / 60.0).round,
+          avg_reading_minutes: (avg_duration / 60.0).round(1),
+          completion_rate: completion_rate,
+          consecutive_days: consecutive_days
+        }
+      end
     end
 
     # 获取图书被阅读统计

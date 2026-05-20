@@ -68,6 +68,7 @@ module Api
             user = existing_user
           else
             user.update!(phone: params[:phone])
+            expire_user_cache(params[:uuid])
           end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
@@ -107,6 +108,7 @@ module Api
             user = existing_user
           else
             user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}") unless user.wechat_openid.present?
+            expire_user_cache(params[:uuid])
           end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
@@ -129,6 +131,7 @@ module Api
             user = existing_user
           else
             user.update!(qq_openid: openid, nickname: "QQ用户#{openid[-4..]}") unless user.qq_openid.present?
+            expire_user_cache(params[:uuid])
           end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
@@ -184,6 +187,7 @@ module Api
           end
 
           current_user.update!(attrs)
+          expire_user_cache(params[:uuid])
           present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
         end
 

@@ -85,4 +85,27 @@ RSpec.describe Membership, type: :model do
       expect(membership.duration_days).to eq(30)
     end
   end
+
+  # 类方法测试
+  describe ".calculate_end_date" do
+    it "月度会员计算 1 个月后日期" do
+      end_date = Membership.calculate_end_date("monthly")
+      expect(end_date).to be_within(2.days).of(1.month.from_now.to_date)
+    end
+
+    it "季度会员计算 3 个月后日期" do
+      end_date = Membership.calculate_end_date("quarterly")
+      expect(end_date).to be_within(2.days).of(3.months.from_now.to_date)
+    end
+
+    it "年度会员计算 1 年后日期" do
+      end_date = Membership.calculate_end_date("annual")
+      expect(end_date).to be_within(2.days).of(1.year.from_now.to_date)
+    end
+
+    it "支持符号类型参数" do
+      end_date = Membership.calculate_end_date(:monthly)
+      expect(end_date).to be_within(2.days).of(1.month.from_now.to_date)
+    end
+  end
 end

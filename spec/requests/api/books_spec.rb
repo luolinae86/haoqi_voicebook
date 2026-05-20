@@ -97,10 +97,12 @@ RSpec.describe "API Books", type: :request do
       expect(json_response[:response][:code]).not_to eq(0)
     end
 
-    it "图书不存在时返回 404" do
+    it "图书不存在时返回错误提示" do
       get "/api/books/by_id", params: { id: 999999, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("图书不存在")
     end
   end
 
@@ -125,6 +127,14 @@ RSpec.describe "API Books", type: :request do
       get "/api/books/chapters", params: { id: book.id }
 
       expect(response).to have_http_status(200)
+    end
+
+    it "图书不存在时返回错误提示" do
+      get "/api/books/chapters", params: { id: 999999, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq("图书不存在")
     end
   end
 

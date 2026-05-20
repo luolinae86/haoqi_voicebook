@@ -71,4 +71,13 @@ class Membership < ApplicationRecord
   def self.plan_info(plan_type)
     PLAN_PRICES[plan_type.to_sym]
   end
+
+  # 根据套餐类型计算结束日期
+  def self.calculate_end_date(plan_type)
+    case plan_type.to_s
+    when "monthly"   then 1.month.from_now.to_date
+    when "quarterly" then 3.months.from_now.to_date
+    when "annual"    then 1.year.from_now.to_date
+    end
+  end
 end
