@@ -22,8 +22,8 @@ module Entities
     expose :is_vip do |instance, _|
       instance.is_vip?
     end
-    expose :has_password do |instance, _|
-      instance.password_digest.present?
+    expose :parental_enabled do |instance, _|
+      instance.parental_control.present?
     end
   end
 end

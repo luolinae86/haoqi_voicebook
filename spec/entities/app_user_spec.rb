@@ -24,4 +24,14 @@ RSpec.describe Entities::AppUser do
     json_bad = described_class.represent(user).as_json
     expect(json_bad[:grade_name]).to be_nil
   end
+
+  it 'returns false for parental_enabled when no parental control is set' do
+    expect(json[:parental_enabled]).to be false
+  end
+
+  it 'returns true for parental_enabled when parental control is active' do
+    ParentalControl.create!(app_user: user, password: '1234')
+    refreshed_json = described_class.represent(user.reload).as_json
+    expect(refreshed_json[:parental_enabled]).to be true
+  end
 end
