@@ -8,9 +8,13 @@ RSpec.describe "API Parental Control", type: :request do
 
   # ==================== 设置家长密码 ====================
   describe "POST /api/parental/setup" do
+    let!(:sms_verification) do
+      create(:sms_verification, phone: "13900001111", code: "8888", expires_at: 5.minutes.from_now)
+    end
+
     context "已登录" do
       it "首次设置家长密码成功" do
-        post "/api/parental/setup", params: auth_params.merge(password: "1234")
+        post "/api/parental/setup", params: auth_params.merge(password: "1234", phone: "13900001111", code: "8888")
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
@@ -18,14 +22,26 @@ RSpec.describe "API Parental Control", type: :request do
 
       it "创建家长控制记录" do
         expect do
-          post "/api/parental/setup", params: auth_params.merge(password: "1234")
+          post "/api/parental/setup", params: auth_params.merge(password: "1234", phone: "13900001111", code: "8888")
         end.to change(ParentalControl, :count).by(1)
       end
 
       it "已设置过不能重复创建" do
         create(:parental_control, app_user: user)
 
-        post "/api/parental/setup", params: auth_params.merge(password: "5678")
+        post "/api/parental/setup", params: auth_params.merge(password: "5678", phone: "13900001111", code: "8888")
+
+        expect(json_response[:response][:code]).not_to eq(0)
+      end
+
+      it "手机号格式不正确返回错误" do
+        post "/api/parental/setup", params: auth_params.merge(password: "1234", phone: "invalid", code: "8888")
+
+        expect(json_response[:response][:code]).not_to eq(0)
+      end
+
+      it "验证码无效返回错误" do
+        post "/api/parental/setup", params: auth_params.merge(password: "1234", phone: "13900001111", code: "0000")
 
         expect(json_response[:response][:code]).not_to eq(0)
       end
@@ -35,7 +51,7 @@ RSpec.describe "API Parental Control", type: :request do
       let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
 
       it "返回 401 未授权" do
-        post "/api/parental/setup", params: invalid_auth_params.merge(password: "1234")
+        post "/api/parental/setup", params: invalid_auth_params.merge(password: "1234", phone: "13900001111", code: "8888")
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)

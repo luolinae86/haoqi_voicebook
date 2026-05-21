@@ -20,13 +20,19 @@ module Api
         params do
           requires :uuid, type: String, desc: '用户uuid'
           requires :password, type: String, regexp: /\A\d{4}\z/, desc: '4位数字密码'
+          requires :phone, type: String, desc: '家长手机号'
+          requires :code, type: String, desc: '短信验证码'
         end
         post :setup do
           error_pop_resp('家长管控已设置，无法重复创建') if current_user.parental_control.present?
 
+          validate_phone!(params[:phone])
+          find_and_consume_verification(params[:phone], params[:code])
+
           ParentalControl.create!(
             app_user: current_user,
-            password: params[:password]
+            password: params[:password],
+            phone: params[:phone]
           )
 
           present response: success_response
