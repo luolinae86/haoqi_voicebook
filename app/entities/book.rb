@@ -43,11 +43,8 @@ module Entities
           name: chapter.name,
           cover_image_url: self.class.sign_oss_url(chapter.cover_image_url),
           content_file_url: self.class.sign_oss_url(chapter.content_file_url),
-          content_file_name: chapter.content_file_name,
           content_file_type: chapter.content_file_type,
           file_type_name: chapter.file_type_name,
-          file_type_icon: chapter.file_type_icon,
-          file_type_color: chapter.file_type_color,
           is_free: chapter.is_free,
           is_published: chapter.is_published,
           sn: chapter.sn

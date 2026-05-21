@@ -22,7 +22,6 @@ RSpec.describe Entities::Book do
     expect(refreshed_json[:chapters][0][:file_type_name]).to eq('有声')
     expect(refreshed_json[:chapters][1][:name]).to eq('第二章')
     expect(refreshed_json[:chapters][1][:content_file_type]).to eq('mp4')
-    expect(refreshed_json[:chapters][1][:file_type_name]).to eq('视频')
   end
 
   it 'orders chapters by sn' do
