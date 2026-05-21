@@ -55,14 +55,7 @@ module Api
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          present response: success_response(
-            time_limit_minutes: parental.time_limit_minutes,
-            time_limit_label: time_limit_label(parental.time_limit_minutes),
-            phone: parental.phone,
-            phone_masked: mask_phone(parental.phone),
-            blacklist_count: parental.blacklisted_books.count,
-            is_active: parental.is_active
-          )
+          present response: success_response(parental_control: Entities::ParentalControl.represent(parental).as_json)
         end
 
         # ==================== 设置时间限制 ====================
