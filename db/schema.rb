@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_19_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_21_070000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -208,6 +208,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_19_090000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_category_subs_on_category_id"
+  end
+
+  create_table "chapters", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "章节表（有声/视频章节）", force: :cascade do |t|
+    t.bigint "book_id", null: false, comment: "所属图书"
+    t.string "name", null: false, comment: "章节名称"
+    t.string "cover_image_url", comment: "章节封面图片URL"
+    t.string "content_file_url", comment: "章节内容文件URL（音频/视频）"
+    t.string "content_file_name", comment: "章节内容文件名"
+    t.string "content_file_type", comment: "内容文件类型 (mp3/mp4/wav等)"
+    t.boolean "is_free", default: false, comment: "是否免费"
+    t.boolean "is_published", default: false, comment: "是否已发布"
+    t.integer "sn", default: 0, comment: "排序"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_chapters_on_book_id"
   end
 
   create_table "compilation_books", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|

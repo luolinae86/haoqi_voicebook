@@ -69,6 +69,7 @@ class Book < ApplicationRecord
   has_many :blacklisted_books, dependent: :destroy
   has_many :ebook_pages, dependent: :destroy
   has_many :book_chapters, dependent: :destroy
+  has_many :chapters, dependent: :destroy
   has_one :book_stats, dependent: :destroy
   has_many :reading_sessions, dependent: :destroy
   has_many :reading_progresses, dependent: :destroy
