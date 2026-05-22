@@ -104,42 +104,45 @@ class BookEpubImportWorker
 
           # 只在 spine 文件有 TOC 对应时才分配 page_number（封面等不在 TOC 中的页面 page_number=0）
           if has_toc
-            # 先计算当前页的字数，供所有指向此页的章节共用
-            page_word_count = nil
+            xhtml_path = extract_dir.join(opf_dir, href)
+            xhtml_content = nil
+            word_count = 0
 
+            if xhtml_path.exist?
+              raw_xhtml = File.read(xhtml_path)
+              # 替换 XHTML 中的相对图片路径为 OSS URL
+              xhtml_content = replace_image_paths(raw_xhtml, image_url_map, href)
+              word_count = extract_word_count(xhtml_content)
+            end
+
+            # 为每个 TOC 条目创建独立的 catalogue 和 ebook_page，确保 start_page_number 唯一
+            # 字数只计入第一个 ebook_page，避免重复计算
+            first_page = true
             matching_tocs.each do |matching_toc|
               chapter_number += 1
+              page_word_count = first_page ? word_count : 0
+
               book.catalogues.create!(
                 chapter_number: chapter_number,
                 chapter_name: matching_toc[:title],
                 start_page_number: page_number,
-                word_count: 0 # 后续更新
+                word_count: page_word_count
               )
+
+              if xhtml_content.present?
+                book.ebook_pages.create!(
+                  page_number: page_number,
+                  xhtml_content: xhtml_content,
+                  word_count: page_word_count
+                )
+              end
+
+              page_number += 1
+              first_page = false
             end
+
+            total_word_count += word_count
           end
-
-          xhtml_path = extract_dir.join(opf_dir, href)
-          next unless xhtml_path.exist?
-
-          # 跳过非 TOC 页面（封面等），这些页面不需要创建 EbookPage 记录
-          next unless has_toc
-
-          xhtml_content = File.read(xhtml_path)
-          # 替换 XHTML 中的相对图片路径为 OSS URL
-          xhtml_content = replace_image_paths(xhtml_content, image_url_map, href)
-          word_count = extract_word_count(xhtml_content)
-
-          book.ebook_pages.create!(
-            page_number: page_number,
-            xhtml_content: xhtml_content,
-            word_count: word_count
-          )
-
-          # 更新该页面对应章节的字数
-          book.catalogues.by_start_page(page_number).update_all(word_count: word_count)
-
-          total_word_count += word_count
-          page_number += 1
         end
 
         book.update!(

@@ -222,5 +222,96 @@ RSpec.describe BookEpubImportWorker do
         hash_including(object_key: include("images/illustration.png"), content_type: "image/png")
       )
     end
+
+    it "多个 TOC 指向同一文件时 start_page_number 互不相同" do
+      # 构建一个两个 TOC 条目指向同一 spine 的 EPUB
+      multi_toc_epub = "/tmp/test_multi_toc_epub.epub"
+      Dir.mktmpdir("epub-multi-toc") do |tmp_dir|
+        root = Pathname.new(tmp_dir)
+
+        File.write(root.join("mimetype"), "application/epub+zip")
+        FileUtils.mkdir_p(root.join("META-INF"))
+        File.write(root.join("META-INF/container.xml"), <<~XML)
+          <?xml version="1.0" encoding="UTF-8"?>
+          <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+            <rootfiles>
+              <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+            </rootfiles>
+          </container>
+        XML
+
+        FileUtils.mkdir_p(root.join("OEBPS/pages"))
+        File.write(root.join("OEBPS/content.opf"), <<~XML)
+          <?xml version="1.0" encoding="UTF-8"?>
+          <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">
+            <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <dc:identifier id="bookid">urn:uuid:test456</dc:identifier>
+              <dc:title>Multi TOC Book</dc:title>
+              <dc:language>zh-CN</dc:language>
+            </metadata>
+            <manifest>
+              <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+              <item id="shared" href="pages/shared.xhtml" media-type="application/xhtml+xml"/>
+            </manifest>
+            <spine>
+              <itemref idref="shared"/>
+            </spine>
+          </package>
+        XML
+
+        File.write(root.join("OEBPS/nav.xhtml"), <<~XHTML)
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE html>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <head><title>目录</title></head>
+            <body>
+              <nav epub:type="toc"><ol>
+                <li><a href="pages/shared.xhtml">章 A</a></li>
+                <li><a href="pages/shared.xhtml">章 B</a></li>
+              </ol></nav>
+            </body>
+          </html>
+        XHTML
+
+        File.write(root.join("OEBPS/pages/shared.xhtml"), <<~XHTML)
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE html>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <head><title>Shared</title></head>
+            <body><p>共享内容，12 个字。</p></body>
+          </html>
+        XHTML
+
+        Zip::OutputStream.open(multi_toc_epub) do |zip|
+          zip.put_next_entry("mimetype", nil, nil, Zip::COMPRESSION_METHOD_STORE)
+          zip.write("application/epub+zip")
+          root.each_child do |entry|
+            next if entry.basename.to_s == "mimetype"
+            add_entry_to_zip(zip, entry, "")
+          end
+        end
+      end
+
+      allow(oss_service).to receive(:download_file) do |object_key:, local_path:|
+        FileUtils.cp(multi_toc_epub, local_path)
+      end
+
+      perform_import
+
+      catalogues = book.catalogues.ordered
+      expect(catalogues.count).to eq(2)
+      expect(catalogues[0].chapter_name).to eq("章 A")
+      expect(catalogues[0].start_page_number).to eq(1)
+      expect(catalogues[1].chapter_name).to eq("章 B")
+      expect(catalogues[1].start_page_number).to eq(2)
+
+      # 只有第一个 ebook_page 有字数
+      pages = book.ebook_pages.order(:page_number)
+      expect(pages.count).to eq(2)
+      expect(pages[0].word_count).to be > 0
+      expect(pages[1].word_count).to eq(0)
+
+      FileUtils.rm_f(multi_toc_epub)
+    end
   end
 end
