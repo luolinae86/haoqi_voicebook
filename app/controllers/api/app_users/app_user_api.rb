@@ -20,13 +20,17 @@ module Api
           if device
             user = device.app_user
           else
-            default_head_img = HeadImg.normal.ordered.first
             user = AppUser.create!(
               grade_id: Grade.find_by(name: '三年级')&.id,
-              head_img_id: default_head_img&.id,
               nickname: '少年越读者'
             )
             Device.bind!(params[:device_id], user)
+          end
+
+          # 确保用户有默认头像
+          if user.head_img_id.blank?
+            default_head_img = HeadImg.normal.ordered.first
+            user.update!(head_img_id: default_head_img.id) if default_head_img
           end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
