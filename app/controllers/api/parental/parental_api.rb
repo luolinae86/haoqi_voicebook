@@ -24,16 +24,18 @@ module Api
           requires :code, type: String, desc: '短信验证码'
         end
         post :setup do
-          error_pop_resp('家长管控已设置，无法重复创建') if current_user.parental_control.present?
-
           validate_phone!(params[:phone])
           find_and_consume_verification(params[:phone], params[:code])
 
-          ParentalControl.create!(
-            app_user: current_user,
-            password: params[:password],
-            phone: params[:phone]
-          )
+          if current_user.parental_control.present?
+            current_user.parental_control.update!(password: params[:password])
+          else
+            ParentalControl.create!(
+              app_user: current_user,
+              password: params[:password],
+              phone: params[:phone]
+            )
+          end
 
           present response: success_response
         end
