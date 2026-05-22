@@ -26,4 +26,16 @@ class BookChapter < ApplicationRecord
 
   scope :ordered, -> { order(:chapter_number) }
   scope :by_start_page, ->(page_number) { where(start_page_number: page_number) }
+
+  # 计算章节字数：从当前章节起始页到下一章起始页之间所有 ebook_pages 的 word_count 总和
+  def calculated_word_count
+    pages = book.ebook_pages.where("page_number >= ?", start_page_number)
+    next_chapter = book.book_chapters
+                       .where("start_page_number > ?", start_page_number)
+                       .order(:start_page_number)
+                       .first
+    pages = pages.where("page_number < ?", next_chapter.start_page_number) if next_chapter
+
+    pages.sum(:word_count)
+  end
 end
