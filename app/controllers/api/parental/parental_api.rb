@@ -25,11 +25,14 @@ module Api
         end
         post :setup do
           validate_phone!(params[:phone])
-          find_and_consume_verification(params[:phone], params[:code])
 
           if current_user.parental_control.present?
+            # 已设置过，手机号必须与系统一致才能重置密码
+            error_pop_resp('手机号与系统记录不一致') unless current_user.parental_control.phone == params[:phone]
+            find_and_consume_verification(params[:phone], params[:code])
             current_user.parental_control.update!(password: params[:password])
           else
+            find_and_consume_verification(params[:phone], params[:code])
             ParentalControl.create!(
               app_user: current_user,
               password: params[:password],

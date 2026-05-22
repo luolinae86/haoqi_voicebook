@@ -26,7 +26,7 @@ RSpec.describe "API Parental Control", type: :request do
         end.to change(ParentalControl, :count).by(1)
       end
 
-      it "已设置过会重置密码" do
+      it "已设置过且手机号一致会重置密码" do
         create(:parental_control, app_user: user, password: "old123", phone: "13900001111")
 
         post "/api/parental/setup", params: auth_params.merge(password: "5678", phone: "13900001111", code: "8888")
@@ -35,6 +35,15 @@ RSpec.describe "API Parental Control", type: :request do
         expect(json_response[:response][:code]).to eq(0)
         expect(user.parental_control.reload.authenticate("5678")).to be_a(ParentalControl)
         expect(user.parental_control.authenticate("old123")).to be false
+      end
+
+      it "已设置过但手机号不一致返回失败" do
+        create(:parental_control, app_user: user, password: "old123", phone: "13900001111")
+
+        post "/api/parental/setup", params: auth_params.merge(password: "5678", phone: "13800000000", code: "8888")
+
+        expect(json_response[:response][:code]).not_to eq(0)
+        expect(user.parental_control.reload.authenticate("old123")).to be_a(ParentalControl)
       end
 
       it "手机号格式不正确返回错误" do
