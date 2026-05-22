@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Entities
-  class BookChapter < Grape::Entity
+  class Catalogue < Grape::Entity
     expose :id
     expose :chapter_number
     expose :chapter_name

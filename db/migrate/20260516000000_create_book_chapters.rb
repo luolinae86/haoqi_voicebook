@@ -2,7 +2,7 @@
 
 class CreateBookChapters < ActiveRecord::Migration[7.1]
   def change
-    create_table :book_chapters do |t|
+    create_table :catalogues do |t|
       t.bigint :book_id, null: false, comment: '图书ID'
       t.integer :chapter_number, null: false, comment: '章节序号'
       t.string :chapter_name, null: false, comment: '章节名称'
@@ -11,7 +11,7 @@ class CreateBookChapters < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :book_chapters, :book_id
-    add_foreign_key :book_chapters, :books
+    add_index :catalogues, :book_id
+    add_foreign_key :catalogues, :books
   end
 end

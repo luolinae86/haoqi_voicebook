@@ -95,7 +95,7 @@ class BookEpubImportWorker
 
       Book.transaction do
         book.ebook_pages.delete_all
-        book.book_chapters.delete_all
+        book.catalogues.delete_all
 
         unique_spine.each do |href|
           # 查找所有指向此 href 的 TOC 条目（一个 spine 文件可能对应多个章节，如父子章节指向同一文件）
@@ -109,7 +109,7 @@ class BookEpubImportWorker
 
             matching_tocs.each do |matching_toc|
               chapter_number += 1
-              book.book_chapters.create!(
+              book.catalogues.create!(
                 chapter_number: chapter_number,
                 chapter_name: matching_toc[:title],
                 start_page_number: page_number,
@@ -136,7 +136,7 @@ class BookEpubImportWorker
           )
 
           # 更新该页面对应章节的字数
-          book.book_chapters.by_start_page(page_number).update_all(word_count: word_count)
+          book.catalogues.by_start_page(page_number).update_all(word_count: word_count)
 
           total_word_count += word_count
           page_number += 1

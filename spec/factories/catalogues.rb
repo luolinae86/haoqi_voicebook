@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# == Schema Information
+# == Schema information
 #
-# Table name: book_chapters
+# Table name: catalogues
 #
 #  id                                :bigint           not null, primary key
 #  book_id                           :bigint           not null, comment: '图书ID'
@@ -15,14 +15,14 @@
 #
 # Indexes
 #
-#  index_book_chapters_on_book_id  (book_id)
+#  index_catalogues_on_book_id  (book_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (book_id => books.id)
 #
 FactoryBot.define do
-  factory :book_chapter do
+  factory :catalogue do
     association :book
     sequence(:chapter_number) { |n| n }
     sequence(:chapter_name) { |n| "第#{n}章" }

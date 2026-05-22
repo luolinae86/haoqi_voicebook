@@ -147,14 +147,14 @@ RSpec.describe BookEpubImportWorker do
       perform_import
 
       expect(book.ebook_pages.count).to eq(3)
-      expect(book.book_chapters.count).to eq(3)
+      expect(book.catalogues.count).to eq(3)
       expect(book.import_status).to eq("ready")
     end
 
     it "creates chapters with correct chapter_number, name, and start_page" do
       perform_import
 
-      chapters = book.book_chapters.ordered
+      chapters = book.catalogues.ordered
       expect(chapters[0].chapter_name).to eq("第一章 出发")
       expect(chapters[0].start_page_number).to eq(1)
       expect(chapters[1].chapter_name).to eq("第二章 冒险")
@@ -166,7 +166,7 @@ RSpec.describe BookEpubImportWorker do
     it "creates chapters with correct word_count for each chapter" do
       perform_import
 
-      chapters = book.book_chapters.ordered
+      chapters = book.catalogues.ordered
       # 每个章节的 XHTML 内容都包含 "这是第N章的内容，测试字数统计"
       # word_count 应该是 XHTML body 中去除空白后的文字长度
       chapters.each do |chapter|
@@ -178,13 +178,13 @@ RSpec.describe BookEpubImportWorker do
     end
 
     it "clears existing chapters before rebuilding" do
-      create(:book_chapter, book: book, chapter_number: 99, chapter_name: "旧章节", start_page_number: 99)
-      expect(book.book_chapters.count).to eq(1)
+      create(:catalogue, book: book, chapter_number: 99, chapter_name: "旧章节", start_page_number: 99)
+      expect(book.catalogues.count).to eq(1)
 
       perform_import
 
-      expect(book.book_chapters.count).to eq(3)
-      expect(book.book_chapters.find_by(chapter_number: 99)).to be_nil
+      expect(book.catalogues.count).to eq(3)
+      expect(book.catalogues.find_by(chapter_number: 99)).to be_nil
     end
 
     it "marks import as failed on error" do

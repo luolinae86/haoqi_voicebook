@@ -36,7 +36,7 @@
 # 用户模型
 # 管理用户账户信息，支持手机号+验证码登录、密码登录、微信登录、QQ登录
 class AppUser < ApplicationRecord
-  self.table_name = "app_users"
+  self.table_name = 'app_users'
   has_secure_password validations: false # 密码加密（可选密码）
 
   before_validation :generate_device_id, on: :create
@@ -62,7 +62,7 @@ class AppUser < ApplicationRecord
 
   # 验证规则
   validates :phone, uniqueness: true,
-                    format: { with: /\A1[3-9]\d{9}\z/, message: "手机号格式不正确" },
+                    format: { with: /\A1[3-9]\d{9}\z/, message: '手机号格式不正确' },
                     allow_blank: true
   validates :wechat_openid, uniqueness: true, allow_blank: true
   validates :qq_openid, uniqueness: true, allow_blank: true
@@ -72,7 +72,7 @@ class AppUser < ApplicationRecord
   after_commit :expire_cache, on: :update
 
   # 作用域
-  scope :vip_users, -> { where(is_vip: true).where("vip_expires_at > ?", Time.current) }
+  scope :vip_users, -> { where(is_vip: true).where('vip_expires_at > ?', Time.current) }
 
   # 检查用户是否为有效 VIP
   def vip_active?
@@ -95,19 +95,17 @@ class AppUser < ApplicationRecord
   def consecutive_reading_days
     return 0 if user_reading_daily_stats.empty?
 
-    today = Date.today
+    today = Time.zone.today
     dates = user_reading_daily_stats.up_to_date(today)
-                                     .pluck(:stat_date).map(&:to_date).sort.reverse
+                                    .pluck(:stat_date).map(&:to_date).sort.reverse
 
     return 0 if dates.empty?
 
     days = 1
     (1...dates.size).each do |i|
-      if dates[i - 1] - dates[i] == 1
-        days += 1
-      else
-        break
-      end
+      break unless dates[i - 1] - dates[i] == 1
+
+      days += 1
     end
 
     # 如果最近一天不是今天或昨天，说明断了
@@ -132,10 +130,10 @@ class AppUser < ApplicationRecord
   end
 
   def generate_device_id
-    self.device_id = SecureRandom.uuid.delete("-") if new_record? && device_id.blank?
+    self.device_id = SecureRandom.uuid.delete('-') if new_record? && device_id.blank?
   end
 
   def generate_uuid
-    self[:uuid] = SecureRandom.uuid.delete("-") if new_record? || uuid.blank?
+    self[:uuid] = SecureRandom.uuid.delete('-') if new_record? || uuid.blank?
   end
 end

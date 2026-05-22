@@ -106,35 +106,51 @@ RSpec.describe "API Books", type: :request do
     end
   end
 
-  # ==================== 章节目录 ====================
-  describe "GET /api/books/chapters" do
-    it "返回章节目录" do
-      create(:book_chapter, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1, word_count: 1200)
-      create(:book_chapter, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 10, word_count: 2500)
+  # ==================== 目录 ====================
+  describe "GET /api/books/catalogue" do
+    it "返回目录" do
+      create(:catalogue, book: book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1, word_count: 1200)
+      create(:catalogue, book: book, chapter_number: 2, chapter_name: '第二章', start_page_number: 10, word_count: 2500)
 
-      get "/api/books/chapters", params: { id: book.id, uuid: user.uuid }
+      get "/api/books/catalogue", params: { id: book.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
-      chapters = json_response[:response][:data][:chapters]
-      expect(chapters.size).to eq(2)
-      expect(chapters.first[:chapter_name]).to eq('第一章')
-      expect(chapters.first).to have_key(:is_free)
-      expect(chapters.first[:word_count]).to eq(1200)
+      catalogues = json_response[:response][:data][:catalogues]
+      expect(catalogues.size).to eq(2)
+      expect(catalogues.first[:chapter_name]).to eq('第一章')
+      expect(catalogues.first).to have_key(:is_free)
+      expect(catalogues.first[:word_count]).to eq(1200)
     end
 
     it "未提供 uuid 时返回参数错误" do
-      get "/api/books/chapters", params: { id: book.id }
+      get "/api/books/catalogue", params: { id: book.id }
 
       expect(response).to have_http_status(200)
     end
 
     it "图书不存在时返回错误提示" do
-      get "/api/books/chapters", params: { id: 999999, uuid: user.uuid }
+      get "/api/books/catalogue", params: { id: 999999, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(1001)
       expect(json_response[:response][:msg]).to eq("图书不存在")
+    end
+
+    it "EPUB 图书返回根据 ebook_pages 计算的字数" do
+      epub_book = create(:book, content_file_type: 'epub')
+      create(:catalogue, book: epub_book, chapter_number: 1, chapter_name: '第一章', start_page_number: 1, word_count: 0)
+      create(:catalogue, book: epub_book, chapter_number: 2, chapter_name: '第二章', start_page_number: 3, word_count: 0)
+      create(:ebook_page, book: epub_book, page_number: 1, word_count: 500)
+      create(:ebook_page, book: epub_book, page_number: 2, word_count: 300)
+      create(:ebook_page, book: epub_book, page_number: 3, word_count: 400)
+
+      get "/api/books/catalogue", params: { id: epub_book.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      catalogues = json_response[:response][:data][:catalogues]
+      expect(catalogues.first[:word_count]).to eq(800)
+      expect(catalogues.second[:word_count]).to eq(400)
     end
   end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_21_070000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_22_080000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -62,18 +62,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_21_070000) do
     t.index ["book_id"], name: "index_blacklisted_books_on_book_id"
     t.index ["parental_control_id", "book_id"], name: "index_blacklisted_books_on_parental_control_id_and_book_id", unique: true
     t.index ["parental_control_id"], name: "index_blacklisted_books_on_parental_control_id"
-  end
-
-  create_table "book_chapters", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
-    t.bigint "book_id", null: false, comment: "图书ID"
-    t.integer "chapter_number", null: false, comment: "章节序号"
-    t.string "chapter_name", null: false, comment: "章节名称"
-    t.integer "start_page_number", null: false, comment: "起始页码"
-    t.boolean "is_free", default: false, null: false, comment: "是否免费"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "word_count", default: 0, null: false, comment: "章节字数"
-    t.index ["book_id"], name: "index_book_chapters_on_book_id"
   end
 
   create_table "book_grades", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -178,6 +166,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_21_070000) do
     t.index ["app_user_id", "book_id"], name: "index_bookshelves_on_app_user_id_and_book_id", unique: true
     t.index ["app_user_id"], name: "index_bookshelves_on_app_user_id"
     t.index ["book_id"], name: "index_bookshelves_on_book_id"
+  end
+
+  create_table "catalogues", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "chapter_number", null: false, comment: "章节序号"
+    t.string "chapter_name", null: false, comment: "章节名称"
+    t.integer "start_page_number", null: false, comment: "起始页码"
+    t.boolean "is_free", default: false, null: false, comment: "是否免费"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "word_count", default: 0, null: false, comment: "章节字数"
+    t.index ["book_id"], name: "index_catalogues_on_book_id"
   end
 
   create_table "categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -483,10 +483,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_21_070000) do
     t.index ["app_user_id", "stat_date"], name: "index_user_reading_daily_stats_on_app_user_id_and_stat_date", unique: true
   end
 
-  add_foreign_key "book_chapters", "books"
   add_foreign_key "book_grades", "books"
   add_foreign_key "book_grades", "grades"
   add_foreign_key "books", "suppliers"
+  add_foreign_key "catalogues", "books"
   add_foreign_key "category_sub_books", "books"
   add_foreign_key "category_sub_books", "category_subs"
   add_foreign_key "category_subs", "categories"
