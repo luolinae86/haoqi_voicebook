@@ -17,11 +17,11 @@ module Api
         end
         post :create_by_device do
           device = Device.find_by(device_id: params[:device_id])
-          if device&.app_user
-            user = device.app_user
-          else
-            user = create_new_app_user(params[:device_id])
-          end
+          user = if device&.app_user
+                   device.app_user
+                 else
+                   create_new_app_user(params[:device_id])
+                 end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
