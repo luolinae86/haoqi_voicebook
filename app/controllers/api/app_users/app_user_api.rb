@@ -17,7 +17,7 @@ module Api
         end
         post :create_by_device do
           device = Device.find_by(device_id: params[:device_id])
-          if device
+          if device&.app_user
             user = device.app_user
           else
             user = AppUser.create!(
@@ -183,9 +183,7 @@ module Api
           if params[:head_img_id].present?
             head_img = HeadImg.find_by(id: params[:head_img_id])
             # 非VIP用户不能选择VIP头像
-            if head_img && head_img.is_vip? && !current_user.is_vip?
-              error_pop_resp('VIP头像需要VIP会员才能使用')
-            end
+            error_pop_resp('VIP头像需要VIP会员才能使用') if head_img&.is_vip? && !current_user.is_vip?
             error_pop_resp('头像不存在') unless head_img
             attrs[:head_img_id] = head_img.id
           end
@@ -215,6 +213,22 @@ module Api
           end
 
           user.update!(password: params[:password])
+
+          present response: success_response
+        end
+
+        # ==================== 退出登录 ====================
+        desc '退出登录（解绑当前设备）'
+        params do
+          requires :device_id, type: String, desc: '设备ID'
+        end
+        post :logout do
+          device = Device.find_by(device_id: params[:device_id])
+          error_pop_resp('设备未绑定') unless device
+
+          user = device.app_user
+          Device.unbind!(params[:device_id])
+          expire_user_cache(user.uuid) if user
 
           present response: success_response
         end

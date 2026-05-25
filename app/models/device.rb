@@ -22,7 +22,7 @@
 #  fk_rails_...  (app_user_id => app_users.id)
 #
 class Device < ApplicationRecord
-  belongs_to :app_user, class_name: "AppUser"
+  belongs_to :app_user, class_name: "AppUser", optional: true
 
   validates :device_id, presence: true, uniqueness: true
 
@@ -31,11 +31,21 @@ class Device < ApplicationRecord
     find_by(device_id: device_id)&.app_user
   end
 
-  # 绑定设备到指定用户（幂等）
+  # 绑定设备到指定用户（幂等，支持重新绑定已解绑设备）
   def self.bind!(device_id, app_user)
-    find_or_create_by!(device_id: device_id) { |d| d.app_user = app_user }
+    device = find_or_create_by!(device_id: device_id) { |d| d.app_user = app_user }
+    device.update_column(:app_user_id, app_user.id) if device.app_user_id.nil?
+    device
   rescue ActiveRecord::RecordNotUnique
     # 并发情况下可能已存在，重新查找
-    find_by!(device_id: device_id).update!(app_user: app_user) if find_by(device_id: device_id)&.app_user_id != app_user.id
+    device = find_by(device_id: device_id)
+    device&.update_column(:app_user_id, app_user.id) if device&.app_user_id.nil?
+  end
+
+  # 解绑设备（退出登录，将 app_user_id 置空）
+  def self.unbind!(device_id)
+    device = find_by(device_id: device_id)
+    device&.update_column(:app_user_id, nil)
+    device
   end
 end

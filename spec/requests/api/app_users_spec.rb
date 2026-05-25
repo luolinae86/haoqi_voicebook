@@ -589,6 +589,59 @@ RSpec.describe "API AppUsers", type: :request do
     end
   end
 
+  # ==================== 退出登录 ====================
+  describe "POST /api/app_users/logout" do
+    it "解绑后设备的 app_user_id 置空" do
+      device = create(:device, app_user: user)
+      device_id = device.device_id
+
+      post "/api/app_users/logout", params: { device_id: device_id }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(device.reload.app_user_id).to be_nil
+    end
+
+    it "解绑后设备记录仍然存在" do
+      device = create(:device, app_user: user)
+
+      expect do
+        post "/api/app_users/logout", params: { device_id: device.device_id }
+      end.not_to change(Device, :count)
+
+      expect(device.reload.app_user_id).to be_nil
+    end
+
+    it "设备未绑定返回错误" do
+      post "/api/app_users/logout", params: { device_id: "nonexistent-device-id" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+      expect(json_response[:response][:msg]).to include("设备未绑定")
+    end
+
+    it "解绑后用户账户仍然存在" do
+      device = create(:device, app_user: user)
+      user_id = user.id
+
+      post "/api/app_users/logout", params: { device_id: device.device_id }
+
+      expect(AppUser.find_by(id: user_id)).to be_present
+    end
+
+    it "多设备场景只解绑当前设备不影响其他设备" do
+      device_a = create(:device, device_id: "multi_device_a", app_user: user)
+      device_b = create(:device, device_id: "multi_device_b", app_user: user)
+
+      post "/api/app_users/logout", params: { device_id: device_a.device_id }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(device_b.reload.app_user_id).to eq(user.id)
+      expect(device_a.reload.app_user_id).to be_nil
+    end
+  end
+
   # ==================== 多设备共享 ====================
   describe "多设备共享同一账户" do
     it "新设备创建新账户" do
@@ -604,6 +657,19 @@ RSpec.describe "API AppUsers", type: :request do
       expect(response).to have_http_status(:success)
       expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:response][:data][:user][:id]).to eq(user.id)
+    end
+
+    it "已解绑的设备重新调用 create_by_device 会创建新用户并绑定" do
+      device = create(:device, app_user: user)
+      device.update_column(:app_user_id, nil)
+
+      expect do
+        post "/api/app_users/create_by_device", params: { device_id: device.device_id }
+      end.to change(AppUser, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      new_user = AppUser.last
+      expect(device.reload.app_user_id).to eq(new_user.id)
     end
 
     it "设备A绑定手机号后，设备B用同一手机号登录共享账户" do
