@@ -14,6 +14,7 @@
 #  duration          :integer          comment: '音频/视频时长（秒）'
 #  is_free           :boolean          default(FALSE), comment: '是否免费'
 #  is_published      :boolean          default(FALSE), comment: '是否已发布'
+#  publish_date      :date             comment: '发布日期'
 #  sn                :integer          default(0), comment: '排序'
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null

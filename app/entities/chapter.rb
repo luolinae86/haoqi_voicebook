@@ -14,6 +14,7 @@ module Entities
     expose :file_type_name
     expose :is_free
     expose :is_published
+    expose :publish_date
     expose :duration
     expose :sn
 

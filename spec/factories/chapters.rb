@@ -10,5 +10,6 @@ FactoryBot.define do
     content_file_type { "mp3" }
     content_file_url { "https://cdn.example.com/audio/chapter1.mp3" }
     content_file_name { "chapter1.mp3" }
+    publish_date { nil }
   end
 end
