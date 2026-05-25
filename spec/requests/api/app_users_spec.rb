@@ -591,54 +591,69 @@ RSpec.describe "API AppUsers", type: :request do
 
   # ==================== 退出登录 ====================
   describe "POST /api/app_users/logout" do
-    it "解绑后设备的 app_user_id 置空" do
-      device = create(:device, app_user: user)
-      device_id = device.device_id
+    let!(:device) { create(:device, app_user: user) }
 
-      post "/api/app_users/logout", params: { device_id: device_id }
+    before do
+      # 清除 factory 创建的默认设备，只保留测试用的 device
+      user.devices.where.not(device_id: device.device_id).destroy_all
+    end
+
+    it "解绑旧设备并返回新用户的 uuid" do
+      old_uuid = user.uuid
+
+      post "/api/app_users/logout", params: { uuid: old_uuid }
 
       expect(response).to have_http_status(201)
       expect(json_response[:response][:code]).to eq(0)
-      expect(device.reload.app_user_id).to be_nil
+      new_uuid = json_response[:response][:data][:user][:uuid]
+      expect(new_uuid).to be_present
+      expect(new_uuid).not_to eq(old_uuid)
     end
 
-    it "解绑后设备记录仍然存在" do
-      device = create(:device, app_user: user)
+    it "解绑旧设备后设备重新绑定到新用户" do
+      device_id = device.device_id
 
-      expect do
-        post "/api/app_users/logout", params: { device_id: device.device_id }
-      end.not_to change(Device, :count)
+      post "/api/app_users/logout", params: { uuid: user.uuid }
 
-      expect(device.reload.app_user_id).to be_nil
+      new_user = AppUser.last
+      expect(device.reload.app_user_id).to eq(new_user.id)
+      expect(device.reload.app_user_id).not_to eq(user.id)
     end
 
-    it "设备未绑定返回错误" do
-      post "/api/app_users/logout", params: { device_id: "nonexistent-device-id" }
-
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:code]).not_to eq(0)
-      expect(json_response[:response][:msg]).to include("设备未绑定")
-    end
-
-    it "解绑后用户账户仍然存在" do
-      device = create(:device, app_user: user)
+    it "旧用户账户仍然存在" do
       user_id = user.id
 
-      post "/api/app_users/logout", params: { device_id: device.device_id }
+      post "/api/app_users/logout", params: { uuid: user.uuid }
 
       expect(AppUser.find_by(id: user_id)).to be_present
     end
 
-    it "多设备场景只解绑当前设备不影响其他设备" do
-      device_a = create(:device, device_id: "multi_device_a", app_user: user)
-      device_b = create(:device, device_id: "multi_device_b", app_user: user)
+    it "无效 uuid 返回未授权" do
+      post "/api/app_users/logout", params: { uuid: "invalid_uuid_00000" }
 
-      post "/api/app_users/logout", params: { device_id: device_a.device_id }
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:msg]).to eq("未授权访问")
+    end
+
+    it "用户没有设备也能正常创建新用户" do
+      user.devices.destroy_all
+
+      post "/api/app_users/logout", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(201)
-      expect(json_response[:response][:code]).to eq(0)
-      expect(device_b.reload.app_user_id).to eq(user.id)
-      expect(device_a.reload.app_user_id).to be_nil
+      expect(json_response[:response][:data][:user][:uuid]).to be_present
+    end
+
+    it "退出后新用户可以继续使用该设备" do
+      post "/api/app_users/logout", params: { uuid: user.uuid }
+
+      new_uuid = json_response[:response][:data][:user][:uuid]
+      # 用新 uuid 再次退出
+      post "/api/app_users/logout", params: { uuid: new_uuid }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:data][:user][:uuid]).not_to eq(new_uuid)
     end
   end
 

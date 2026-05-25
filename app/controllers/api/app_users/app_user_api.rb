@@ -20,17 +20,7 @@ module Api
           if device&.app_user
             user = device.app_user
           else
-            user = AppUser.create!(
-              grade_id: Grade.find_by(name: '三年级')&.id,
-              nickname: '少年越读者'
-            )
-            Device.bind!(params[:device_id], user)
-          end
-
-          # 确保用户有默认头像
-          if user.head_img_id.blank?
-            default_head_img = HeadImg.normal.ordered.first
-            user.update!(head_img_id: default_head_img.id) if default_head_img
+            user = create_new_app_user(params[:device_id])
           end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
@@ -218,19 +208,21 @@ module Api
         end
 
         # ==================== 退出登录 ====================
-        desc '退出登录（解绑当前设备）'
+        desc '退出登录（解绑当前设备，返回新用户）'
         params do
-          requires :device_id, type: String, desc: '设备ID'
+          requires :uuid, type: String, desc: '用户uuid'
         end
         post :logout do
-          device = Device.find_by(device_id: params[:device_id])
-          error_pop_resp('设备未绑定') unless device
+          auth_user
 
-          user = device.app_user
-          Device.unbind!(params[:device_id])
-          expire_user_cache(user.uuid) if user
+          device = current_user.devices.first
+          if device
+            Device.unbind!(device.device_id)
+            expire_user_cache(current_user.uuid)
+          end
 
-          present response: success_response
+          new_user = create_new_app_user(device&.device_id)
+          present response: success_response(user: Entities::AppUser.represent(new_user).as_json)
         end
       end
     end
