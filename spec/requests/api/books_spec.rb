@@ -334,4 +334,80 @@ RSpec.describe "API Books", type: :request do
       expect(response).to have_http_status(200)
     end
   end
+
+  # ==================== 章节内容文件URL ====================
+  describe "GET /api/books/chapter_url" do
+    let!(:chapter) { create(:chapter, book: book, content_file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/audio.mp3") }
+
+    it "返回签名后的 content_file_url" do
+      get "/api/books/chapter_url", params: { chapter_id: chapter.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      data = json_response[:response][:data]
+      expect(data[:chapter_id]).to eq(chapter.id)
+      expect(data[:content_file_url]).to include("Signature=")
+      expect(data[:content_file_url]).to include("Expires=")
+      expect(data[:content_file_type]).to eq("mp3")
+      expect(data[:duration]).to be_nil
+    end
+
+    it "URL 过期时间设置为1天" do
+      get "/api/books/chapter_url", params: { chapter_id: chapter.id, uuid: user.uuid }
+
+      data = json_response[:response][:data]
+      expires = data[:content_file_url].match(/Expires=(\d+)/)
+      expect(expires).to be_present
+      expires_at = expires[1].to_i
+      one_day_later = (Time.now + 86400).to_i
+      expect(expires_at).to be_within(60).of(one_day_later)
+    end
+
+    it "章节没有 content_file_url 时返回 nil" do
+      chapter.update!(content_file_url: nil)
+
+      get "/api/books/chapter_url", params: { chapter_id: chapter.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:data][:content_file_url]).to be_nil
+    end
+
+    it "章节不存在时返回错误" do
+      get "/api/books/chapter_url", params: { chapter_id: 999999, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+      expect(json_response[:response][:msg]).to include("章节不存在")
+    end
+
+    it "未提供 uuid 时返回参数错误" do
+      get "/api/books/chapter_url", params: { chapter_id: chapter.id }
+
+      expect(response).to have_http_status(200)
+    end
+
+    it "无效 uuid 时返回未授权错误" do
+      get "/api/books/chapter_url", params: { chapter_id: chapter.id, uuid: "invalid-uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+    end
+  end
+
+  # ==================== 图书详情 - 章节不包含 content_file_url ====================
+  describe "GET /api/books/by_id 章节字段" do
+    it "图书详情中的章节不返回 content_file_url" do
+      create(:chapter, book: book, content_file_url: "https://bucket.oss-cn-beijing.aliyuncs.com/test/audio.mp3")
+
+      get "/api/books/by_id", params: { id: book.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      chapters = json_response[:response][:data][:book][:chapters]
+      expect(chapters).to be_an(Array)
+      expect(chapters.first).not_to have_key(:content_file_url)
+      expect(chapters.first).to have_key(:id)
+      expect(chapters.first).to have_key(:name)
+      expect(chapters.first).to have_key(:content_file_type)
+    end
+  end
 end

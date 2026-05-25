@@ -7,9 +7,6 @@ module Entities
     expose :cover_image_url do |instance, _|
       self.class.sign_oss_url(instance.cover_image_url)
     end
-    expose :content_file_url do |instance, _|
-      self.class.sign_oss_url(instance.content_file_url, expires: 86400)
-    end
     expose :content_file_type
     expose :file_type_name
     expose :is_free

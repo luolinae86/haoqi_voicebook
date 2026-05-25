@@ -55,6 +55,28 @@ module Api
           present response: success_response(book: Entities::Book.represent(book).as_json)
         end
 
+        # ==================== 章节音频/视频URL ====================
+        desc '获取章节内容文件URL（需 uuid 鉴权）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :chapter_id, type: Integer, desc: '章节ID'
+        end
+        get 'chapter_url' do
+          auth_user
+
+          chapter = Chapter.find_by(id: params[:chapter_id])
+          error_pop_resp('章节不存在') unless chapter
+
+          signed_url = chapter.content_file_url.present? ? Book.sign_oss_url(chapter.content_file_url, expires: 86400) : nil
+
+          present response: success_response(
+            chapter_id: chapter.id,
+            content_file_url: signed_url,
+            content_file_type: chapter.content_file_type,
+            duration: chapter.duration
+          )
+        end
+
         # ==================== 目录 ====================
         desc '获取图书目录（需 uuid 鉴权）'
         params do
