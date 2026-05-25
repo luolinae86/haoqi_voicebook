@@ -15,7 +15,9 @@ module Api
         get :index do
           auth_user
 
-          imgs = current_user.vip_active? ? HeadImg.all : HeadImg.normal
+          # imgs = current_user.vip_active? ? HeadImg.all : HeadImg.normal
+          # 头像直接返回所有的，普通用户也可以看到，但不能选择
+          imgs = HeadImg.all
           present response: success_response(
             head_imgs: serialize_collection(imgs.ordered, Entities::HeadImg)
           )
