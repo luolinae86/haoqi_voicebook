@@ -46,5 +46,17 @@ RSpec.describe "API HeadImgs", type: :request do
       expect(head_imgs.map { |h| h[:id] }).to include(normal_img.id)
       expect(head_imgs.map { |h| h[:id] }).not_to include(vip_img.id)
     end
+
+    it "头像 URL 签名有效期为一年" do
+      normal_img = create(:head_img, img_url: "https://zheli.oss-cn-beijing.aliyuncs.com/test/avatar.png")
+
+      get "/api/head_imgs/index", params: { uuid: user.uuid }
+
+      head_img = json_response[:response][:data][:head_imgs].first
+      expires = head_img[:img_url].match(/Expires=(\d+)/)
+      expect(expires).to be_present
+      expires_at = expires[1].to_i
+      expect(expires_at).to be > (Time.now + 4 * 365 * 24 * 3600).to_i
+    end
   end
 end
