@@ -108,7 +108,7 @@ class Chapter < ApplicationRecord
     return if content_file_url.blank?
     return unless content_file_url.include?('aliyuncs.com')
 
-    require 'ffmpeg'
+    require 'streamio-ffmpeg'
 
     temp_file = Tempfile.new(['chapter', File.extname(URI.parse(content_file_url.split('?').first).path)])
     begin
