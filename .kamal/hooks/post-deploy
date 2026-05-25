@@ -5,7 +5,7 @@ for host in "${HOSTS[@]}"; do
   echo "[$host] 验证服务健康..."
   HEALTH_OK=false
   for i in $(seq 1 10); do
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.zheliyuedu.com/up 2>/dev/null)
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.zheliyuedu.cn/up 2>/dev/null)
     if [ "$STATUS" = "200" ]; then
       HEALTH_OK=true
       echo "[$host] 健康检查通过 (HTTP $STATUS)"
