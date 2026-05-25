@@ -37,23 +37,11 @@ module Entities
     expose :created_at
     expose :updated_at
     expose :chapters do |instance, _|
-      instance.chapters.order(:sn).map do |chapter|
-        {
-          id: chapter.id,
-          name: chapter.name,
-          cover_image_url: self.class.sign_oss_url(chapter.cover_image_url),
-          content_file_url: self.class.sign_oss_url(chapter.content_file_url),
-          content_file_type: chapter.content_file_type,
-          file_type_name: chapter.file_type_name,
-          is_free: chapter.is_free,
-          is_published: chapter.is_published,
-          sn: chapter.sn
-        }
-      end
+      Entities::Chapter.represent(instance.chapters.order(:sn))
     end
 
-    def self.sign_oss_url(url)
-      ::Book.sign_oss_url(url)
+    def self.sign_oss_url(url, expires: 3600)
+      ::Book.sign_oss_url(url, expires: expires)
     end
   end
 end

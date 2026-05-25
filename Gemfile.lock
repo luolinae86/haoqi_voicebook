@@ -214,6 +214,7 @@ GEM
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
+    multi_json (1.21.1)
     multi_xml (0.8.1)
       bigdecimal (>= 3.1, < 5)
     mustermann (3.0.4)
@@ -411,6 +412,8 @@ GEM
       net-sftp (>= 2.1.2)
       net-ssh (>= 2.8.0)
       ostruct
+    streamio-ffmpeg (3.0.2)
+      multi_json (~> 1.8)
     stringio (3.2.0)
     thor (1.5.0)
     timecop (0.9.11)
@@ -478,6 +481,7 @@ DEPENDENCIES
   shoulda-matchers
   sidekiq (~> 7.3)
   simplecov
+  streamio-ffmpeg (~> 3.0)
   timecop
   tzinfo-data
   webmock
@@ -563,6 +567,7 @@ CHECKSUMS
   mini_mime (1.1.5)
   minitest (6.0.3) sha256=88ac8a1de36c00692420e7cb3cc11a0773bbcb126aee1c249f320160a7d11411
   msgpack (1.8.0) sha256=e64ce0212000d016809f5048b48eb3a65ffb169db22238fb4b72472fecb2d732
+  multi_json (1.21.1) sha256=e6126a31808e3b4d19f483c775ceac34df190dffa62adfb63a165ee14ba68080
   multi_xml (0.8.1) sha256=addba0290bac34e9088bfe73dc4878530297a82a7bbd66cb44dcd0a4b86edf5a
   mustermann (3.0.4) sha256=85fadcb6b3c6493a8b511b42426f904b7f27b282835502233dd154daab13aa22
   mustermann-grape (1.1.0)
@@ -636,6 +641,7 @@ CHECKSUMS
   simplecov-html (0.13.2)
   simplecov_json_formatter (0.1.4)
   sshkit (1.25.0) sha256=c8c6543cdb60f91f1d277306d585dd11b6a064cb44eab0972827e4311ff96744
+  streamio-ffmpeg (3.0.2)
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
   timecop (0.9.11)

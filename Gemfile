@@ -42,3 +42,5 @@ group :test do
   gem "timecop"
   gem "webmock"
 end
+
+gem "streamio-ffmpeg", "~> 3.0"

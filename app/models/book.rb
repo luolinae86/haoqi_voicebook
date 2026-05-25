@@ -93,7 +93,7 @@ class Book < ApplicationRecord
   scope :recently_added, -> { order(created_at: :desc) }
 
   # OSS URL 签名辅助方法（统一使用，处理中文路径）
-  def self.sign_oss_url(url)
+  def self.sign_oss_url(url, expires: 3600)
     return nil if url.blank?
     return url unless url.include?("aliyuncs.com")
 
@@ -118,7 +118,7 @@ class Book < ApplicationRecord
     endpoint = host_parts.last
     object_key = CGI.unescape(object_key)
 
-    expires_at = Time.now.to_i + 3600
+    expires_at = Time.now.to_i + expires
     canonicalized_resource = "/#{bucket_name}/#{object_key}"
     string_to_sign = "GET\n\n\n#{expires_at}\n#{canonicalized_resource}"
 
