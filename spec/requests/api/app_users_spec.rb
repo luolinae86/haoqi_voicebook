@@ -139,6 +139,33 @@ RSpec.describe "API AppUsers", type: :request do
     end
   end
 
+  # ==================== 获取用户信息 ====================
+  describe "GET /api/app_users/info" do
+    it "返回用户基本信息包含 time_limit_minutes" do
+      get "/api/app_users/info", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
+      expect(json_response[:response][:data][:user][:time_limit_minutes]).to eq(0)
+    end
+
+    it "有家长控制时返回正确的 time_limit_minutes" do
+      create(:parental_control, app_user: user, time_limit_minutes: 60)
+
+      get "/api/app_users/info", params: { uuid: user.uuid }
+
+      expect(json_response[:response][:data][:user][:time_limit_minutes]).to eq(60)
+    end
+
+    it "无效 uuid 返回未授权" do
+      get "/api/app_users/info", params: { uuid: "invalid_uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+    end
+  end
+
   # ==================== 验证码登录 ====================
   describe "POST /api/app_users/login_by_code" do
     let!(:sms_verification) do

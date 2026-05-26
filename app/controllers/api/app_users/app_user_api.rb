@@ -153,6 +153,17 @@ module Api
           )
         end
 
+        # ==================== 获取用户信息 ====================
+        desc '获取当前设备绑定的用户基本信息'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+        end
+        get :info do
+          auth_user
+
+          present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
+        end
+
         # ==================== 更新用户资料 ====================
         desc '更新用户资料（昵称、年纪、头像）'
         params do
