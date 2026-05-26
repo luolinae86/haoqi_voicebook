@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_25_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_26_000001) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -339,6 +339,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_25_100000) do
     t.boolean "is_vip", default: false, comment: "是否VIP用户可用"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "hot_searches", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "热门搜索表", force: :cascade do |t|
+    t.string "keyword", null: false, comment: "关键词"
+    t.integer "search_count", default: 0, null: false, comment: "搜索次数"
+    t.integer "sort_order", default: 0, null: false, comment: "排序"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "is_active", default: true, null: false, comment: "是否启用"
+    t.index ["is_active", "sort_order"], name: "index_hot_searches_on_is_active_and_sort_order"
+    t.index ["keyword"], name: "index_hot_searches_on_keyword", unique: true
   end
 
   create_table "leaderboard_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "排行榜项表", force: :cascade do |t|

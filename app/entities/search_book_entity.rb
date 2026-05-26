@@ -1,0 +1,16 @@
+# frozen_string_literal: true
+
+module Entities
+  class SearchBookEntity < Grape::Entity
+    expose :id
+    expose :name
+    expose :cover_image_url do |instance, _|
+      Book.sign_oss_url(instance.cover_image_url)
+    end
+    expose :content_type
+    expose :author_name do |instance, _|
+      instance.author ? instance.author.name : nil
+    end
+    expose :play_count
+  end
+end

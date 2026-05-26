@@ -502,15 +502,36 @@ RSpec.describe "API AppUsers", type: :request do
   # ==================== 设置/重置密码 ====================
   describe "POST /api/app_users/reset_password" do
     context "首次设置密码（用户没有密码）" do
-      it "只需要 uuid 和 password，不需要手机号和验证码" do
-        user = AppUser.create! # 不设置密码
+      it "需要提供手机号，不需要验证码" do
+        user = AppUser.create!(phone: "13800138000") # 不设置密码
         post "/api/app_users/reset_password",
-             params: { uuid: user.uuid, password: "NewPass123" },
+             params: { uuid: user.uuid, password: "NewPass123", phone: "13800138000" },
              as: :json
 
         expect(response).to have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
         expect(user.reload.password_digest).to be_present
+      end
+
+      it "不提供手机号返回错误" do
+        user = AppUser.create! # 不设置密码
+        post "/api/app_users/reset_password",
+             params: { uuid: user.uuid, password: "NewPass123" },
+             as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
+        expect(json_response[:response][:msg]).to include("手机号")
+      end
+
+      it "手机号未绑定账户返回错误" do
+        user = AppUser.create!
+        post "/api/app_users/reset_password",
+             params: { uuid: user.uuid, password: "NewPass123", phone: "19900000000" },
+             as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
       end
 
       it "用户未注册时返回错误" do
