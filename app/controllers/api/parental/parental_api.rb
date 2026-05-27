@@ -80,9 +80,9 @@ module Api
           error_pop_resp('未设置家长管控') unless parental
 
           value = params[:time_limit_minutes]
-          error_pop_resp('时间限制必须为 30、60 或 90 分钟') if value.present? && ParentalControl::TIME_LIMITS.exclude?(value)
+          error_pop_resp('时间限制必须为30, 60, 90分钟或0（无限制）') if value.present? && ParentalControl::TIME_LIMITS.exclude?(value) && value != 0
 
-          parental.update!(time_limit_minutes: value.presence)
+          parental.update!(time_limit_minutes: value == 0 ? nil : value.presence)
 
           present response: success_response(
             time_limit_minutes: parental.time_limit_minutes,

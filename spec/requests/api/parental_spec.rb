@@ -151,6 +151,16 @@ RSpec.describe "API Parental Control", type: :request do
         expect(parental_control.reload.time_limit_minutes).to eq(30)
       end
 
+      it "设置为0表示无限制（存为nil）" do
+        put "/api/parental/time_limit",
+            params: auth_params.merge(time_limit_minutes: 0)
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(json_response[:response][:data][:time_limit_label]).to eq('无限制')
+        expect(parental_control.reload.time_limit_minutes).to be_nil
+      end
+
       it "取消时间限制" do
         put "/api/parental/time_limit",
             params: auth_params.merge(time_limit_minutes: nil)
