@@ -19,6 +19,7 @@ module Reading
           total_books: total_books,
           completed_books: completed_books,
           total_reading_minutes: (total_seconds / 60.0).round,
+          total_reading_words: app_user.reading_words,
           avg_reading_minutes: (avg_duration / 60.0).round(1),
           completion_rate: completion_rate,
           consecutive_days: consecutive_days

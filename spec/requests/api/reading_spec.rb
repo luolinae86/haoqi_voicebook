@@ -55,6 +55,7 @@ RSpec.describe 'API Reading', type: :request do
       expect(stats).to have_key(:total_books)
       expect(stats).to have_key(:completed_books)
       expect(stats).to have_key(:total_reading_minutes)
+      expect(stats).to have_key(:total_reading_words)
       expect(stats).to have_key(:consecutive_days)
     end
 
