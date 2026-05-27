@@ -45,6 +45,19 @@ module Api
           present response: success_response(stats: stats)
         end
 
+        # ==================== 阅读时长图表数据 ====================
+        desc '获取阅读时长图表数据（按周/月）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :period, type: String, desc: '统计周期', values: %w[week month], default: 'week'
+        end
+        get :chart do
+          auth_user
+
+          data = Reading::StatsService.chart_data(current_user, period: params[:period])
+          present response: success_response(data)
+        end
+
         # ==================== 我的阅读进度列表 ====================
         desc '获取我的阅读进度列表'
         params do

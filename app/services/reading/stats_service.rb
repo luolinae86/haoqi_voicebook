@@ -59,6 +59,29 @@ module Reading
       progress_to_hash(progress)
     end
 
+    # 获取阅读时长图表数据（按周/月）
+    def self.chart_data(app_user, period: 'week')
+      days = period == 'month' ? 28 : 7
+      stats = app_user.user_reading_daily_stats
+        .where(stat_date: days.days.ago.to_date.to_s..Date.today.to_s)
+        .pluck(:stat_date, :total_duration_seconds)
+
+      # 补齐缺失的日期（没有阅读记录的日期时长为 0）
+      result = {}
+      days.times do |i|
+        date = (days - 1 - i).days.ago.to_date.to_s
+        result[date] = 0
+      end
+      stats.each { |d, s| result[d] = (s.to_f / 60.0).round }
+
+      # 返回按日期升序的数组
+      total_minutes = result.values.sum
+      {
+        daily: result.sort.map { |date, minutes| { date: date, minutes: minutes } },
+        total_minutes: total_minutes
+      }
+    end
+
     private
 
     def self.default_book_stats

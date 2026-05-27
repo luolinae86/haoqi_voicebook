@@ -66,6 +66,50 @@ RSpec.describe 'API Reading', type: :request do
     end
   end
 
+  # ==================== 阅读时长图表数据 ====================
+  describe 'GET /api/reading/chart' do
+    it 'week 返回 7 天数据' do
+      get '/api/reading/chart', params: { uuid: user.uuid, period: 'week' }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      daily = json_response[:response][:data][:daily]
+      expect(daily.size).to eq(7)
+      expect(json_response[:response][:data]).to have_key(:total_minutes)
+    end
+
+    it 'month 返回 28 天数据' do
+      get '/api/reading/chart', params: { uuid: user.uuid, period: 'month' }
+
+      expect(response).to have_http_status(200)
+      daily = json_response[:response][:data][:daily]
+      expect(daily.size).to eq(28)
+    end
+
+    it '无阅读记录时所有天数为 0' do
+      get '/api/reading/chart', params: { uuid: user.uuid, period: 'week' }
+
+      daily = json_response[:response][:data][:daily]
+      expect(daily.all? { |d| d[:minutes] == 0 }).to be true
+    end
+
+    it '有阅读记录时返回正确时长' do
+      create(:user_reading_daily_stats, app_user: user, stat_date: Date.today.to_s, total_duration_seconds: 900)
+
+      get '/api/reading/chart', params: { uuid: user.uuid, period: 'week' }
+
+      daily = json_response[:response][:data][:daily]
+      today_entry = daily.find { |d| d[:date] == Date.today.to_s }
+      expect(today_entry[:minutes]).to eq(15)
+    end
+
+    it '未提供 uuid 时返回参数错误' do
+      get '/api/reading/chart', params: { period: 'week' }
+
+      expect(response).to have_http_status(200)
+    end
+  end
+
   # ==================== 我的阅读进度列表 ====================
   describe 'GET /api/reading/my_progress' do
     it '返回空的阅读进度列表' do
