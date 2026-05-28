@@ -19,9 +19,12 @@ module Api
         scope = scope.where(category_id: category_id) if category_id.present?
         scope = scope.by_type(content_type) if content_type.present?
 
-        # 按用户年级过滤
+        # 按用户年级过滤（用 exists 避免 join 产生的去重问题）
         if grade_id.present?
-          scope = scope.joins(:grades).where(grades: { id: grade_id }).distinct
+          scope = scope.where(
+            "EXISTS (SELECT 1 FROM book_grades WHERE book_grades.book_id = books.id AND book_grades.grade_id = ?)",
+            grade_id
+          )
         end
 
         case ranking_type
