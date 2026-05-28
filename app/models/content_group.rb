@@ -51,6 +51,7 @@ class ContentGroup < ApplicationRecord
   scope :sorted, -> { order(sn: :asc, id: :desc) }
 
   def group_type_name
+    return group_type if group_type.blank?
     GROUP_TYPE_NAMES[group_type.to_sym] || group_type
   end
 

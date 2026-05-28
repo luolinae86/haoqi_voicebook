@@ -272,6 +272,26 @@ RSpec.describe "API Home", type: :request do
           expect(json_response[:response][:code]).to eq(0)
           expect(json_response[:response][:data][:content_groups]).to eq([])
         end
+
+        it "content_group 的 group_type 为空字符串时不报 500 错误" do
+          recommend = Recommend.create!(grade: grade, name: "测试推荐", status: true)
+          content_group = ContentGroup.create!(
+            recommend: recommend,
+            name: "异常分组",
+            group_type: "single_column",
+            sn: 0
+          )
+          content_group.update_column(:group_type, "")
+          Content.create!(content_group: content_group, content_type: "book", book: book, sn: 0)
+
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: recommend.id, uuid: user.uuid }
+
+          expect(response).to have_http_status(:success)
+          expect(json_response[:response][:code]).to eq(0)
+          content_groups = json_response[:response][:data][:content_groups]
+          expect(content_groups.size).to eq(1)
+          expect(content_groups.first).to have_key(:group_type_name)
+        end
       end
 
       context "参数校验" do
