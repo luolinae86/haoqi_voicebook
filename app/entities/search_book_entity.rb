@@ -19,6 +19,9 @@ module Entities
     expose :supplier_name do |instance, _|
       instance.supplier ? instance.supplier.name : nil
     end
+    expose :category_subs do |instance, _|
+      instance.category_subs.map { |cs| Entities::CategorySub.represent(cs).as_json }
+    end
     expose :play_count
   end
 end

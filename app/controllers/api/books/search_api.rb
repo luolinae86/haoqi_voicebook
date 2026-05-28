@@ -41,7 +41,7 @@ module Api
           books = Book.published_books
             .by_author(params[:author_id])
             .left_joins(:book_stats)
-            .includes(:category, :supplier)
+            .includes(:category, :supplier, :category_subs)
 
           books = books.where(category_id: params[:category_id]) if params[:category_id].present?
 
