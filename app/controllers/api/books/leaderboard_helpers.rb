@@ -9,15 +9,13 @@ module Api
       # 获取排行榜图书
       # @param category_id [Integer, nil] 分类ID
       # @param ranking_type [String] hot/rating/new
-      # @param content_type [String, nil] 内容类型
       # @param period [String] week/month（仅hot有效）
       # @param grade_id [Integer, nil] 年级ID
-      def leaderboard_books(category_id:, ranking_type:, content_type:, period:, grade_id:)
+      def leaderboard_books(category_id:, ranking_type:, period:, grade_id:)
         scope = Book.published_books
           .includes(:author, :category, :book_stats)
 
         scope = scope.where(category_id: category_id) if category_id.present?
-        scope = scope.by_type(content_type) if content_type.present?
 
         # 按用户年级过滤（用 exists 避免 join 产生的去重问题）
         if grade_id.present? && grade_id != 0

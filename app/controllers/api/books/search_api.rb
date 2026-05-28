@@ -34,7 +34,6 @@ module Api
           requires :uuid, type: String, desc: '用户uuid'
           optional :category_id, type: Integer, desc: '分类ID'
           optional :ranking_type, type: String, desc: '排行类型', values: %w[hot rating new], default: 'hot'
-          optional :content_type, type: String, desc: '内容类型', values: %w[ebook audio picture_book]
           optional :period, type: String, desc: '统计周期（仅hot有效）', values: %w[week month], default: 'week'
           optional :limit, type: Integer, desc: '返回数量', default: 20
         end
@@ -44,7 +43,6 @@ module Api
           books = leaderboard_books(
             category_id: params[:category_id],
             ranking_type: params[:ranking_type],
-            content_type: params[:content_type],
             period: params[:period],
             grade_id: current_user.grade_id
           )

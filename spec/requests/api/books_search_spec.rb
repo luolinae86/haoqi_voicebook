@@ -211,17 +211,6 @@ RSpec.describe "API Books Search", type: :request do
       expect(data[:books].map { |b| b[:name] }).to eq(["文学书"])
     end
 
-    it "content_type 参数过滤内容类型" do
-      create(:book, name: "电子书", status: :published, content_type: :ebook)
-      create(:book, name: "有声书", status: :published, content_type: :audio)
-
-      get "/api/books/leaderboard", params: { uuid: user.uuid, ranking_type: "new", content_type: "ebook" }
-
-      expect(response).to have_http_status(200)
-      data = json_response[:response][:data]
-      expect(data[:books].map { |b| b[:name] }).to eq(["电子书"])
-    end
-
     it "按用户年级过滤（只返回对应年级的图书）" do
       grade1 = create(:grade, name: "一年级")
       grade3 = create(:grade, name: "三年级")
