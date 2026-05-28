@@ -408,6 +408,39 @@ RSpec.describe "API Books Search", type: :request do
       expect(book[:cover_image_url]).to match(/\?Expires=/)
     end
 
+    it "返回图书包含分类名、简介和出版社名" do
+      author = create(:author, name: "曹文轩")
+      category = create(:category, name: "儿童文学")
+      supplier = create(:supplier, name: "人民文学出版社")
+      create(:book, name: "草房子", author: author, play_count: 200,
+                           category: category, supplier: supplier,
+                           content_description: "这是一本好书")
+
+      get "/api/books/by_author", params: { author_id: author.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book = data[:books].first
+      expect(book[:category_name]).to eq("儿童文学")
+      expect(book[:content_description]).to eq("这是一本好书")
+      expect(book[:supplier_name]).to eq("人民文学出版社")
+    end
+
+    it "category_id 参数过滤指定分类" do
+      author = create(:author)
+      cat_a = create(:category, name: "文学")
+      cat_b = create(:category, name: "科普")
+      create(:book, name: "文学书", author: author, category: cat_a, play_count: 10)
+      create(:book, name: "科普书", author: author, category: cat_b, play_count: 50)
+
+      get "/api/books/by_author", params: { author_id: author.id, category_id: cat_a.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].size).to eq(1)
+      expect(data[:books].first[:name]).to eq("文学书")
+    end
+
     it "有 book_stats 时按 monthly_readers 优先排序" do
       author = create(:author)
       book1 = create(:book, name: "高阅读", author: author, play_count: 10)

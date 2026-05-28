@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_28_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_29_100000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -148,6 +148,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_28_100000) do
     t.string "content_file_type", comment: "内容文件类型 (epub/pdf)"
     t.string "content_file_name", comment: "内容文件名"
     t.text "content_description"
+    t.string "publisher", comment: "出版社"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["name"], name: "index_books_on_name"

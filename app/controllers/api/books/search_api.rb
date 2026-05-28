@@ -33,6 +33,7 @@ module Api
         params do
           requires :uuid, type: String, desc: '用户uuid'
           requires :author_id, type: Integer, desc: '作者ID'
+          optional :category_id, type: Integer, desc: '分类ID'
         end
         get :by_author do
           auth_user
@@ -40,10 +41,14 @@ module Api
           books = Book.published_books
             .by_author(params[:author_id])
             .left_joins(:book_stats)
-            .order(
-              Arel.sql("COALESCE(book_stats.monthly_readers, 0) DESC"),
-              Arel.sql("books.play_count DESC")
-            )
+            .includes(:category, :supplier)
+
+          books = books.where(category_id: params[:category_id]) if params[:category_id].present?
+
+          books = books.order(
+            Arel.sql("COALESCE(book_stats.monthly_readers, 0) DESC"),
+            Arel.sql("books.play_count DESC")
+          )
 
           present response: success_response(
             books: serialize_collection(books, Entities::SearchBookEntity),

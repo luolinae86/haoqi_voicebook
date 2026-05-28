@@ -11,6 +11,13 @@ module Entities
     expose :author_name do |instance, _|
       instance.author ? instance.author.name : nil
     end
+    expose :category_name do |instance, _|
+      instance.category ? instance.category.name : nil
+    end
+    expose :content_description
+    expose :supplier_name do |instance, _|
+      instance.supplier ? instance.supplier.name : nil
+    end
     expose :play_count
   end
 end
