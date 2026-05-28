@@ -140,6 +140,89 @@ RSpec.describe "API Books Search", type: :request do
     end
   end
 
+  # ==================== GET /api/books/hot ====================
+  describe "GET /api/books/hot" do
+    it "返回按 weekly_readers 降序排列的热门图书" do
+      book1 = create(:book, name: "热门书", status: :published)
+      create(:book_stats, book: book1, weekly_readers: 500, monthly_readers: 2000)
+      book2 = create(:book, name: "一般书", status: :published)
+      create(:book_stats, book: book2, weekly_readers: 100, monthly_readers: 400)
+      create(:book, name: "无数据书", status: :published)
+
+      get "/api/books/hot", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      data = json_response[:response][:data]
+      expect(data[:books].size).to eq(3)
+      expect(data[:books].map { |b| b[:name] }).to eq(["热门书", "一般书", "无数据书"])
+      expect(data[:period]).to eq("week")
+    end
+
+    it "period=month 时按 monthly_readers 排序" do
+      book1 = create(:book, name: "月热门", status: :published)
+      create(:book_stats, book: book1, weekly_readers: 10, monthly_readers: 500)
+      book2 = create(:book, name: "周热门", status: :published)
+      create(:book_stats, book: book2, weekly_readers: 100, monthly_readers: 200)
+
+      get "/api/books/hot", params: { uuid: user.uuid, period: "month" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].map { |b| b[:name] }).to eq(["月热门", "周热门"])
+      expect(data[:period]).to eq("month")
+    end
+
+    it "limit 参数限制返回数量" do
+      5.times do |i|
+        book = create(:book, name: "图书#{i}", status: :published)
+        create(:book_stats, book: book, weekly_readers: 100 - i * 10)
+      end
+
+      get "/api/books/hot", params: { uuid: user.uuid, limit: 3 }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].size).to eq(3)
+    end
+
+    it "不返回草稿状态的书籍" do
+      book1 = create(:book, name: "已发布书", status: :published)
+      create(:book_stats, book: book1, weekly_readers: 100)
+      create(:book, name: "草稿书", status: :draft)
+
+      get "/api/books/hot", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books]).not_to include(a_hash_including(name: "草稿书"))
+    end
+
+    it "无 book_stats 记录的已发布图书也返回" do
+      create(:book, name: "无统计书", status: :published)
+
+      get "/api/books/hot", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("无统计书")
+    end
+
+    it "未提供 uuid 返回参数错误" do
+      get "/api/books/hot"
+
+      expect(response).to have_http_status(200)
+    end
+
+    it "无效 uuid 返回未授权" do
+      get "/api/books/hot", params: { uuid: "invalid-uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+    end
+  end
+
   # ==================== GET /api/books/hot_search ====================
   describe "GET /api/books/hot_search" do
     it "返回按 sort_order 排序的活跃关键词" do

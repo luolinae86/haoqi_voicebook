@@ -31,5 +31,5 @@ class ParentalControl < ApplicationRecord
   validates :time_limit_minutes, numericality: { greater_than: 0 }, allow_nil: true
 
   # 时间限制选项（分钟）
-  TIME_LIMITS = [30, 60, 90, nil].freeze # nil 表示无限制
+  TIME_LIMITS = [0, 30, 60, 90].freeze # 0 表示无限制
 end

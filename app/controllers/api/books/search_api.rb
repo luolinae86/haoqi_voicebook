@@ -19,16 +19,35 @@ module Api
         get :search do
           auth_user
 
-          if params[:keyword].blank?
-            present response: success_response(books: [], total_count: 0)
-            return
-          end
-
           books = search_books(keyword: params[:keyword], content_type: params[:content_type])
 
           present response: success_response(
             books: serialize_collection(books, Entities::SearchBookEntity),
-            total_count: books.count("DISTINCT books.id")
+            total_count: books.count('DISTINCT books.id')
+          )
+        end
+
+        # ==================== 热门图书 ====================
+        desc '获取热门图书列表（按近期阅读人数排序）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :period, type: String, desc: '统计周期', values: %w[week month], default: 'week'
+          optional :limit, type: Integer, desc: '返回数量', default: 20
+        end
+        get :hot do
+          auth_user
+
+          order_field = params[:period] == 'month' \
+            ? 'COALESCE(book_stats.monthly_readers, 0) DESC' \
+            : 'COALESCE(book_stats.weekly_readers, 0) DESC'
+
+          books = Book.published_books.left_joins(:book_stats)
+            .order(Arel.sql(order_field))
+            .limit(params[:limit] || 20)
+
+          present response: success_response(
+            books: serialize_collection(books, Entities::SearchBookEntity),
+            period: params[:period]
           )
         end
 
