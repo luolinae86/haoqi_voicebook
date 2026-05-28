@@ -85,6 +85,7 @@ class Book < ApplicationRecord
 
   scope :published_books, -> { where(status: :published) }
   scope :by_type, ->(type) { where(content_type: type) }
+  scope :by_author, ->(id) { where(author_id: id) }
   scope :by_category, ->(id) { where(category_id: id) }
   scope :by_grade, ->(id) { where(grade_id: id) }
   scope :free_books, -> { where(is_free: true) }

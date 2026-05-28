@@ -28,6 +28,29 @@ module Api
           )
         end
 
+        # ==================== 按作者查询图书 ====================
+        desc '根据作者ID查询作者所有图书（按播放量降序）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :author_id, type: Integer, desc: '作者ID'
+        end
+        get :by_author do
+          auth_user
+
+          books = Book.published_books
+            .by_author(params[:author_id])
+            .left_joins(:book_stats)
+            .order(
+              Arel.sql("COALESCE(book_stats.monthly_readers, 0) DESC"),
+              Arel.sql("books.play_count DESC")
+            )
+
+          present response: success_response(
+            books: serialize_collection(books, Entities::SearchBookEntity),
+            total_count: books.count
+          )
+        end
+
         # ==================== 排行榜 ====================
         desc '获取图书排行榜（支持分类、排行类型过滤）'
         params do

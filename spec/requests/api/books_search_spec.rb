@@ -340,4 +340,86 @@ RSpec.describe "API Books Search", type: :request do
       expect(data[:keywords]).to eq([])
     end
   end
+
+  # ==================== GET /api/books/by_author ====================
+  describe "GET /api/books/by_author" do
+    it "返回作者所有图书，按播放量降序排列" do
+      author = create(:author, name: "鲁迅")
+      create(:book, name: "西游记", author: author, play_count: 10)
+      create(:book, name: "水浒传", author: author, play_count: 50)
+      create(:book, name: "其他作者书", author: create(:author), play_count: 100)
+
+      get "/api/books/by_author", params: { author_id: author.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+      data = json_response[:response][:data]
+      expect(data[:books].size).to eq(2)
+      expect(data[:books].map { |b| b[:name] }).to eq(["水浒传", "西游记"])
+    end
+
+    it "只返回已发布的图书" do
+      author = create(:author)
+      create(:book, name: "已发布", author: author, status: :published, play_count: 10)
+      create(:book, name: "草稿", author: author, status: :draft, play_count: 100)
+      create(:book, name: "已下架", author: author, status: :offline, play_count: 50)
+
+      get "/api/books/by_author", params: { author_id: author.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].size).to eq(1)
+      expect(data[:books].first[:name]).to eq("已发布")
+    end
+
+    it "无图书时返回空数组" do
+      get "/api/books/by_author", params: { author_id: 999, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books]).to eq([])
+      expect(data[:total_count]).to eq(0)
+    end
+
+    it "未提供 uuid 返回参数错误" do
+      get "/api/books/by_author", params: { author_id: 1 }
+
+      expect(response).to have_http_status(200)
+    end
+
+    it "无效 uuid 返回未授权" do
+      get "/api/books/by_author", params: { author_id: 1, uuid: "invalid-uuid" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+    end
+
+    it "返回图书包含封面签名URL和作者名" do
+      author = create(:author, name: "曹文轩")
+      create(:book, name: "草房子", author: author, play_count: 200,
+                           cover_image_url: "https://bucket.oss-cn-beijing.aliyuncs.com/covers/test.jpg")
+
+      get "/api/books/by_author", params: { author_id: author.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book = data[:books].first
+      expect(book[:name]).to eq("草房子")
+      expect(book[:cover_image_url]).to match(/\?Expires=/)
+    end
+
+    it "有 book_stats 时按 monthly_readers 优先排序" do
+      author = create(:author)
+      book1 = create(:book, name: "高阅读", author: author, play_count: 10)
+      create(:book_stats, book: book1, monthly_readers: 500)
+      book2 = create(:book, name: "低阅读", author: author, play_count: 200)
+      create(:book_stats, book: book2, monthly_readers: 10)
+
+      get "/api/books/by_author", params: { author_id: author.id, uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].map { |b| b[:name] }).to eq(["高阅读", "低阅读"])
+    end
+  end
 end
