@@ -11,6 +11,7 @@ module Entities
     expose :author_name do |instance, _|
       instance.author ? instance.author.name : nil
     end
+    expose :category_id
     expose :category_name do |instance, _|
       instance.category ? instance.category.name : nil
     end
