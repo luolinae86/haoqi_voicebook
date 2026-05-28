@@ -20,7 +20,7 @@ module Api
         scope = scope.by_type(content_type) if content_type.present?
 
         # 按用户年级过滤（用 exists 避免 join 产生的去重问题）
-        if grade_id.present?
+        if grade_id.present? && grade_id != 0
           scope = scope.where(
             "EXISTS (SELECT 1 FROM book_grades WHERE book_grades.book_id = books.id AND book_grades.grade_id = ?)",
             grade_id
