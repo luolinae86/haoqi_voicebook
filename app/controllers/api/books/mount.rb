@@ -6,6 +6,7 @@ module Api
     class Mount < Grape::API
       mount Api::Books::BookApi
       mount Api::Books::SearchApi
+      mount Api::Books::CategoriesApi
     end
   end
 end

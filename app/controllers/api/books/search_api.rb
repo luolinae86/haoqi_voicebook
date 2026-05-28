@@ -6,6 +6,7 @@ module Api
     class SearchApi < Grape::API
       helpers Api::Concerns::CommonHelpers
       helpers Api::Books::SearchHelpers
+      helpers Api::Books::LeaderboardHelpers
       helpers Api::Oss::OssHelpers
 
       namespace :books do
@@ -27,27 +28,30 @@ module Api
           )
         end
 
-        # ==================== 热门图书 ====================
-        desc '获取热门图书列表（按近期阅读人数排序）'
+        # ==================== 排行榜 ====================
+        desc '获取图书排行榜（支持分类、排行类型过滤）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
-          optional :period, type: String, desc: '统计周期', values: %w[week month], default: 'week'
+          optional :category_id, type: Integer, desc: '分类ID'
+          optional :ranking_type, type: String, desc: '排行类型', values: %w[hot rating new], default: 'hot'
+          optional :content_type, type: String, desc: '内容类型', values: %w[ebook audio picture_book]
+          optional :period, type: String, desc: '统计周期（仅hot有效）', values: %w[week month], default: 'week'
           optional :limit, type: Integer, desc: '返回数量', default: 20
         end
-        get :hot do
+        get :leaderboard do
           auth_user
 
-          order_field = params[:period] == 'month' \
-            ? 'COALESCE(book_stats.monthly_readers, 0) DESC' \
-            : 'COALESCE(book_stats.weekly_readers, 0) DESC'
-
-          books = Book.published_books.left_joins(:book_stats)
-            .order(Arel.sql(order_field))
-            .limit(params[:limit] || 20)
+          books = leaderboard_books(
+            category_id: params[:category_id],
+            ranking_type: params[:ranking_type],
+            content_type: params[:content_type],
+            period: params[:period],
+            grade_id: current_user.grade_id
+          )
 
           present response: success_response(
-            books: serialize_collection(books, Entities::SearchBookEntity),
-            period: params[:period]
+            books: serialize_collection(books, Entities::LeaderboardBook, ranking_type: params[:ranking_type]),
+            ranking_type: params[:ranking_type]
           )
         end
 
