@@ -2,6 +2,9 @@
 
 class CreatePackages < ActiveRecord::Migration[8.0]
   def change
+    # packages 表已在生产环境存在，仅确保迁移记录被标记
+    return if table_exists?(:packages)
+
     create_table :packages do |t|
       t.string :name, limit: 255
       t.float :price
