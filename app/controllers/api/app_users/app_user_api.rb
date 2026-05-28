@@ -229,14 +229,22 @@ module Api
         post :delete_account do
           auth_user
 
+          # 记录当前请求的设备ID，用于返回新账户
+          current_device_id = current_user.devices.order(:created_at).last&.device_id || current_user.device_id
+
           device_ids = current_user.devices.pluck(:device_id)
           current_user.destroy
 
+          new_user = nil
           device_ids.each do |device_id|
-            create_new_app_user(device_id)
+            user = create_new_app_user(device_id)
+            new_user = user if device_id == current_device_id
           end
 
-          present response: success_response(msg: '账户已注销')
+          present response: success_response(
+            msg: '账户已注销',
+            user: new_user ? Entities::AppUser.represent(new_user).as_json : nil
+          )
         end
 
         # ==================== 退出登录 ====================

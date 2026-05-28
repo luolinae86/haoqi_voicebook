@@ -720,6 +720,17 @@ RSpec.describe "API AppUsers", type: :request do
       expect(AppUser.find_by(uuid: user_uuid)).to be_nil
     end
 
+    it "注销后返回新的匿名用户信息" do
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(201)
+      data = json_response[:response][:data]
+      expect(data[:user]).to be_present
+      expect(data[:user][:uuid]).to be_present
+      expect(data[:user][:uuid]).not_to eq(user.uuid)
+      expect(data[:user][:phone]).to be_nil
+    end
+
     it "注销后原 uuid 无法再查询到用户" do
       post "/api/app_users/delete_account", params: { uuid: user.uuid }
 
@@ -815,6 +826,8 @@ RSpec.describe "API AppUsers", type: :request do
       expect(AppUser.find_by(id: user_id)).to be_nil
       # 没有创建新用户（因为没有设备）
       expect(AppUser.count).to eq(0)
+      # 没有设备时返回 user 为 nil
+      expect(json_response[:response][:data][:user]).to be_nil
     end
 
     it "VIP 用户注销 — 会员记录也被删除" do
