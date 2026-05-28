@@ -16,9 +16,9 @@ RSpec.describe Package, type: :model do
       expect(package).not_to be_valid
     end
 
-    it "允许 price 为 nil" do
+    it "不允许 price 为 nil" do
       package = build(:package, price: nil)
-      expect(package).to be_valid
+      expect(package).not_to be_valid
     end
 
     it "允许 price 为 0" do

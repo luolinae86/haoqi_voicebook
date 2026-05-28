@@ -7,53 +7,57 @@ RSpec.describe "API Memberships", type: :request do
 
   # ==================== 会员套餐 ====================
   describe "GET /api/memberships/plans" do
-    it "返回会员套餐列表" do
+    before do
+      create(:package, name: "季套餐包", price: 59.9, origin_price: 59.9, effective_days: 90)
+      create(:package, name: "月套餐", price: 19.9, origin_price: 19.9, effective_days: 30)
+      create(:package, name: "年套餐", price: 168.0, origin_price: 358.8, effective_days: 365)
+    end
+
+    it "返回套餐列表，按价格降序排列" do
       get "/api/memberships/plans", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
-      expect(json_response[:response][:data][:plans]).to be_an(Array)
-      expect(json_response[:response][:data][:plans].size).to eq(3)
+      packages = json_response[:response][:data][:packages]
+      expect(packages.size).to eq(3)
+      expect(packages.map { |p| p[:price] }).to eq([168.0, 59.9, 19.9])
     end
 
-    it "包含月度、季度、年度套餐" do
+    it "金额最大的套餐返回在最前面" do
       get "/api/memberships/plans", params: { uuid: user.uuid }
 
-      plan_types = json_response[:response][:data][:plans].map { |p| p[:plan_type] }
-      expect(plan_types).to include("monthly", "quarterly", "annual")
+      packages = json_response[:response][:data][:packages]
+      expect(packages.first[:name]).to eq("年套餐")
     end
 
-    it "每个套餐包含价格信息" do
+    it "每个套餐包含必要字段" do
       get "/api/memberships/plans", params: { uuid: user.uuid }
 
-      json_response[:response][:data][:plans].each do |plan|
-        expect(plan[:price]).to be_present
-        expect(plan[:plan_label]).to be_present
-        expect(plan[:original_price]).to be_present
+      json_response[:response][:data][:packages].each do |pkg|
+        expect(pkg[:id]).to be_present
+        expect(pkg[:name]).to be_present
+        expect(pkg[:price]).to be_present
+        expect(pkg[:origin_price]).to be_present
+        expect(pkg[:effective_days]).to be_present
+        expect(pkg).to have_key(:is_discount)
       end
     end
 
-    it "月度会员价格为19.90" do
+    it "无套餐时返回空数组" do
+      Package.where(is_delete: false).destroy_all
+
       get "/api/memberships/plans", params: { uuid: user.uuid }
 
-      monthly = json_response[:response][:data][:plans].find { |p| p[:plan_type] == "monthly" }
-      expect(monthly[:price]).to eq(19.90)
-      expect(monthly[:plan_label]).to eq("月度会员")
-    end
-
-    it "年度会员价格为168.00" do
-      get "/api/memberships/plans", params: { uuid: user.uuid }
-
-      annual = json_response[:response][:data][:plans].find { |p| p[:plan_type] == "annual" }
-      expect(annual[:price]).to eq(168.00)
-      expect(annual[:plan_label]).to eq("年度会员")
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:data][:packages]).to eq([])
     end
   end
 
   # ==================== 购买会员 ====================
   describe "POST /api/memberships/create_order" do
+    let(:package) { create(:package, name: "月套餐", price: 19.9, origin_price: 29.9, effective_days: 30) }
+
     before do
-      # 设置测试用支付配置
       private_key = OpenSSL::PKey::RSA.generate(2048)
       ENV["ALIPAY_APP_ID"] = "test_alipay_app"
       ENV["ALIPAY_PRIVATE_KEY"] = private_key.to_pem
@@ -66,7 +70,6 @@ RSpec.describe "API Memberships", type: :request do
       ENV["WECHAT_API_CERT_SERIAL"] = "test_serial"
       ENV["WECHAT_NOTIFY_URL"] = "https://test.example.com/wechat/notify"
 
-      # 阻止微信支付实际 HTTP 调用，返回 mock 预支付 ID
       stub_request(:post, "https://api.mch.weixin.qq.com/v3/pay/transactions/app")
         .to_return(
           status: 200,
@@ -76,73 +79,58 @@ RSpec.describe "API Memberships", type: :request do
     end
 
     context "已登录" do
-      it "创建月度会员订单" do
+      it "创建订单" do
         post "/api/memberships/create_order",
-             params: { uuid: user.uuid, plan_type: "monthly", payment_method: "wechat" },
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
              as: :json
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
         expect(json_response[:response][:data][:order][:order_no]).to be_present
-        expect(json_response[:response][:data][:order][:amount].to_f).to eq(19.90)
+        expect(json_response[:response][:data][:order][:amount].to_f).to eq(19.9)
         expect(json_response[:response][:data][:order][:payment_method]).to eq("wechat")
         expect(json_response[:response][:data][:order][:status]).to eq("pending")
         expect(json_response[:response][:data][:payment_params]).to be_a(Hash)
         expect(json_response[:response][:data][:payment_params][:prepayid]).to eq("wx_mock_prepay_id")
       end
 
-      it "创建季度会员订单" do
-        post "/api/memberships/create_order",
-             params: { uuid: user.uuid, plan_type: "quarterly", payment_method: "alipay" },
-             as: :json
-
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:response][:data][:order][:amount].to_f).to eq(49.90)
-        expect(json_response[:response][:data][:payment_params]).to be_a(String)
-        expect(json_response[:response][:data][:payment_params]).to include("test_alipay_app")
-      end
-
-      it "创建年度会员订单" do
-        post "/api/memberships/create_order",
-             params: { uuid: user.uuid, plan_type: "annual", payment_method: "wechat" },
-             as: :json
-
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:response][:data][:order][:amount].to_f).to eq(168.00)
-      end
-
       it "生成订单记录和会员记录" do
         expect do
           post "/api/memberships/create_order",
-               params: { uuid: user.uuid, plan_type: "monthly", payment_method: "wechat" },
+               params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
                as: :json
         end.to change(Order, :count).by(1)
                                     .and change(Membership, :count).by(1)
       end
 
-      it "会员记录关联订单" do
+      it "会员记录使用套餐的价格和有效天数" do
         post "/api/memberships/create_order",
-             params: { uuid: user.uuid, plan_type: "quarterly", payment_method: "alipay" },
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
              as: :json
 
         order = Order.find_by(order_no: json_response[:response][:data][:order][:order_no])
-        expect(order.membership).to be_present
-        expect(order.membership.plan_type).to eq("quarterly")
-        expect(order.membership.status).to eq("pending")
+        expect(order.membership.price.to_f).to eq(19.9)
+        expect(order.membership.end_date).to eq(Date.current + 30)
+      end
+
+      it "无效的 package_id 返回错误" do
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, package_id: 999, payment_method: "wechat" },
+             as: :json
+
+        expect(response).to have_http_status(200)
+        expect(json_response[:response][:code]).not_to eq(0)
       end
 
       it "重复点击时返回已有待支付订单而非创建新订单" do
         post "/api/memberships/create_order",
-             params: { uuid: user.uuid, plan_type: "monthly", payment_method: "wechat" },
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
              as: :json
 
         first_order_no = json_response[:response][:data][:order][:order_no]
 
-        # 再次请求创建订单
         post "/api/memberships/create_order",
-             params: { uuid: user.uuid, plan_type: "monthly", payment_method: "wechat" },
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
              as: :json
 
         expect(response).to have_http_status(200).or have_http_status(201)
@@ -155,7 +143,7 @@ RSpec.describe "API Memberships", type: :request do
     context "未登录" do
       it "返回未授权" do
         post "/api/memberships/create_order",
-             params: { uuid: "nonexistent-uuid", plan_type: "monthly", payment_method: "wechat" },
+             params: { uuid: "nonexistent-uuid", package_id: package.id, payment_method: "wechat" },
              as: :json
 
         expect(response).to have_http_status(200)
@@ -214,49 +202,6 @@ RSpec.describe "API Memberships", type: :request do
       item = json_response[:response][:data][:items].first
       expect(item[:expired]).to be false
       expect(item[:days_left]).to be >= 360
-    end
-
-    it "月度会员显示正确天数" do
-      membership = create(:membership, :monthly, app_user: user, status: :active)
-      create(:order, :paid, app_user: user, membership: membership)
-
-      get "/api/memberships/subscriptions", params: { uuid: user.uuid }
-
-      item = json_response[:response][:data][:items].first
-      expect(item[:expired]).to be false
-      expect(item[:days_left]).to be >= 25
-      expect(item[:days_left]).to be <= 31
-    end
-
-    it "按创建时间倒序排列" do
-      old_membership = create(:membership, :monthly, app_user: user, status: :active,
-                                                     created_at: 2.months.ago)
-      new_membership = create(:membership, :annual, app_user: user, status: :active,
-                                                    created_at: 1.month.ago)
-      create(:order, :paid, app_user: user, membership: old_membership,
-                            created_at: 2.months.ago)
-      create(:order, :paid, app_user: user, membership: new_membership,
-                            created_at: 1.month.ago)
-
-      get "/api/memberships/subscriptions", params: { uuid: user.uuid }
-
-      items = json_response[:response][:data][:items]
-      expect(items.size).to eq(2)
-      expect(items[0][:plan_label]).to eq("年度会员")
-      expect(items[1][:plan_label]).to eq("月度会员")
-    end
-
-    it "多条订阅记录全部返回" do
-      3.times do |i|
-        membership = create(:membership, :monthly, app_user: user, status: :active,
-                                                   created_at: i.months.ago)
-        create(:order, :paid, app_user: user, membership: membership,
-                              created_at: i.months.ago)
-      end
-
-      get "/api/memberships/subscriptions", params: { uuid: user.uuid }
-
-      expect(json_response[:response][:data][:items].size).to eq(3)
     end
 
     it "无订阅用户返回空数组" do

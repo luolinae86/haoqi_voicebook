@@ -9,34 +9,30 @@ module Api
 
       namespace :memberships do
         # ==================== 获取会员套餐列表 ====================
-        desc '获取会员套餐列表（年度/季度/月度）'
+        desc '获取会员套餐列表'
         params do
           requires :uuid, type: String, desc: '用户uuid'
         end
         get :plans do
           auth_user
 
-          plans = Membership::PLAN_PRICES.map do |plan_type, info|
-            {
-              plan_type: plan_type.to_s,
-              plan_label: Membership::PLAN_LABELS[plan_type],
-              price: info[:price],
-              original_price: info[:original_price]
-            }
-          end
+          packages = Package.ordered_by_price
 
-          present response: success_response(plans: plans)
+          present response: success_response(packages: serialize_collection(packages, Entities::Package))
         end
 
         # ==================== 创建会员订单 ====================
         desc '创建会员购买订单，返回支付参数'
         params do
           requires :uuid, type: String, desc: '用户uuid'
-          requires :plan_type, type: String, desc: '套餐类型：monthly/quarterly/annual', values: %w[monthly quarterly annual]
+          requires :package_id, type: Integer, desc: '套餐ID'
           requires :payment_method, type: String, desc: '支付方式：alipay/wechat', values: %w[alipay wechat]
         end
         post :create_order do
           auth_user
+
+          package = Package.find_by(id: params[:package_id])
+          raise ArgumentError, '无效的套餐' unless package
 
           # 防止重复点击创建多个待支付订单
           pending_membership = Membership.find_by(app_user: current_user, status: :pending)
@@ -49,17 +45,14 @@ module Api
             next
           end
 
-          plan_info = Membership.plan_info(params[:plan_type])
-          raise ArgumentError, '无效的套餐类型' unless plan_info
-
           # 创建待支付会员记录
           membership = Membership.create!(
             app_user: current_user,
-            plan_type: params[:plan_type],
-            price: plan_info[:price],
-            original_price: plan_info[:original_price],
+            plan_type: :monthly,
+            price: package.price,
+            original_price: package.origin_price,
             start_date: Date.current,
-            end_date: Membership.calculate_end_date(params[:plan_type]),
+            end_date: Date.current + package.effective_days,
             status: :pending
           )
 
@@ -67,23 +60,23 @@ module Api
           order = Order.create!(
             app_user: current_user,
             membership: membership,
-            amount: plan_info[:price],
+            amount: package.price,
             payment_method: params[:payment_method]
           )
 
           # 生成支付参数
-          subject = "#{Membership::PLAN_LABELS[params[:plan_type].to_sym]} - #{plan_info[:price]}元"
+          subject = "#{package.name} - #{package.price}元"
           payment_params = case params[:payment_method]
                            when 'alipay'
                              AlipayPaymentService.new.create_order(
                                order_no: order.order_no,
-                               amount: plan_info[:price],
+                               amount: package.price,
                                subject: subject
                              )
                            when 'wechat'
                              WechatPaymentService.new.create_prepay(
                                order_no: order.order_no,
-                               amount: plan_info[:price],
+                               amount: package.price,
                                subject: subject
                              )
                            end

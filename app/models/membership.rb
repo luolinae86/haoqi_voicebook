@@ -61,17 +61,6 @@ class Membership < ApplicationRecord
     PLAN_LABELS[plan_type.to_sym]
   end
 
-  # 会员套餐价格配置（单位：元）
-  PLAN_PRICES = {
-    monthly: { price: 19.90, original_price: 29.90 },
-    quarterly: { price: 49.90, original_price: 89.70 },
-    annual: { price: 168.00, original_price: 358.80 }
-  }.freeze
-
-  def self.plan_info(plan_type)
-    PLAN_PRICES[plan_type.to_sym]
-  end
-
   # 根据套餐类型计算结束日期
   def self.calculate_end_date(plan_type)
     case plan_type.to_s

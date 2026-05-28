@@ -7,6 +7,7 @@
 #  id             :bigint           not null, primary key
 #  effective_days :integer
 #  is_delete      :boolean          default("0")
+#  is_discount    :boolean          default("0")
 #  name           :string(255)
 #  origin_price   :float
 #  price          :float
@@ -18,8 +19,9 @@ class Package < ApplicationRecord
   default_scope { where(is_delete: false).order(sn: :asc, id: :desc) }
 
   validates :name, presence: true, length: { maximum: 100 }
-  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   scope :active, -> { where(is_delete: false) }
   scope :sorted, -> { order(sn: :asc, id: :desc) }
+  scope :ordered_by_price, -> { where(is_delete: false).reorder(price: :desc) }
 end

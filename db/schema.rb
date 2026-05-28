@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_25_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_28_100000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -410,6 +410,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_25_100000) do
     t.index ["membership_id"], name: "index_orders_on_membership_id"
     t.index ["order_no"], name: "index_orders_on_order_no", unique: true
     t.index ["status"], name: "index_orders_on_status"
+  end
+
+  create_table "packages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "name"
+    t.float "price"
+    t.float "origin_price"
+    t.integer "effective_days"
+    t.integer "sn", default: 0
+    t.boolean "is_delete", default: false
+    t.boolean "is_discount", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_delete"], name: "index_packages_on_is_delete"
   end
 
   create_table "parental_controls", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "家长管控表", force: :cascade do |t|
