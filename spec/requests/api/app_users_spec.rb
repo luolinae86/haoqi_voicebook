@@ -705,6 +705,160 @@ RSpec.describe "API AppUsers", type: :request do
     end
   end
 
+  # ==================== 注销账户 ====================
+  describe "POST /api/app_users/delete_account" do
+    it "成功注销账户，用户记录被删除" do
+      user_id = user.id
+      user_uuid = user.uuid
+
+      post "/api/app_users/delete_account", params: { uuid: user_uuid }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:msg]).to eq("账户已注销")
+      expect(AppUser.find_by(id: user_id)).to be_nil
+      expect(AppUser.find_by(uuid: user_uuid)).to be_nil
+    end
+
+    it "注销后原 uuid 无法再查询到用户" do
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      get "/api/app_users/info", params: { uuid: user.uuid }
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+    end
+
+    it "所有关联资源被删除（书架、书签、会员、订单、阅读记录等）" do
+      book = create(:book)
+      create(:bookshelf, app_user: user, book: book)
+      create(:bookmark, app_user: user, book: book)
+      create(:membership, app_user: user)
+      create(:order, app_user: user)
+      create(:reading_session, app_user: user)
+      create(:reading_progress, app_user: user)
+      create(:user_reading_daily_stats, app_user: user)
+      create(:parental_control, app_user: user, time_limit_minutes: 30)
+
+      user_id = user.id
+
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      expect(Bookshelf.where(app_user_id: user_id)).to eq([])
+      expect(Bookmark.where(app_user_id: user_id)).to eq([])
+      expect(Membership.where(app_user_id: user_id)).to eq([])
+      expect(Order.where(app_user_id: user_id)).to eq([])
+      expect(ReadingSession.where(app_user_id: user_id)).to eq([])
+      expect(ReadingProgress.where(app_user_id: user_id)).to eq([])
+      expect(UserReadingDailyStats.where(app_user_id: user_id)).to eq([])
+      expect(ParentalControl.where(app_user_id: user_id)).to eq([])
+    end
+
+    it "多设备场景 — 所有设备被解绑并创建新的匿名用户" do
+      device1 = create(:device, app_user: user)
+      device2 = create(:device, app_user: user)
+      device3 = create(:device, app_user: user)
+      device_ids = [device1.device_id, device2.device_id, device3.device_id]
+
+      old_user_id = user.id
+
+      expect do
+        post "/api/app_users/delete_account", params: { uuid: user.uuid }
+      end.to change(AppUser, :count).by(3)
+
+      expect(response).to have_http_status(201)
+
+      # 原用户被删除
+      expect(AppUser.find_by(id: old_user_id)).to be_nil
+
+      # 每个设备都绑定到了新的匿名用户
+      device_ids.each do |device_id|
+        device = Device.find_by(device_id: device_id)
+        expect(device.app_user).to be_present
+        expect(device.app_user.id).not_to eq(old_user_id)
+      end
+
+      # 三个设备绑定到三个不同的新账户
+      new_user_ids = device_ids.map { |did| Device.find_by(device_id: did).app_user_id }.uniq
+      expect(new_user_ids.size).to eq(3)
+    end
+
+    it "用户有两个设备时，每个设备获得独立的新账户（模拟多设备登录踢下线）" do
+      # 模拟：设备 A 和设备 B 都通过手机号登录到同一个账户
+      phone = "13800138099"
+      user.update!(phone: phone)
+
+      device_a = create(:device, app_user: user, device_id: "device_a_delete_test")
+      device_b = create(:device, app_user: user, device_id: "device_b_delete_test")
+
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      # 两个设备都被重新绑定到新的匿名用户
+      new_user_a = Device.find_by(device_id: device_a.device_id).app_user
+      new_user_b = Device.find_by(device_id: device_b.device_id).app_user
+
+      expect(new_user_a).to be_present
+      expect(new_user_b).to be_present
+      expect(new_user_a.id).not_to eq(new_user_b.id)
+      # 新账户没有手机号（匿名用户）
+      expect(new_user_a.phone).to be_nil
+      expect(new_user_b.phone).to be_nil
+    end
+
+    it "用户无设备时也能正常注销" do
+      user.devices.destroy_all
+      user_id = user.id
+
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(AppUser.find_by(id: user_id)).to be_nil
+      # 没有创建新用户（因为没有设备）
+      expect(AppUser.count).to eq(0)
+    end
+
+    it "VIP 用户注销 — 会员记录也被删除" do
+      create(:membership, app_user: user)
+      user.update!(is_vip: true, vip_expires_at: 30.days.from_now)
+
+      user_id = user.id
+
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      expect(AppUser.find_by(id: user_id)).to be_nil
+      expect(Membership.where(app_user_id: user_id)).to eq([])
+    end
+
+    it "有家长管控的用户注销 — 管控记录也被删除" do
+      create(:parental_control, app_user: user, time_limit_minutes: 60)
+      user_id = user.id
+
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      expect(ParentalControl.where(app_user_id: user_id)).to eq([])
+    end
+
+    it "无效 uuid 返回未授权" do
+      post "/api/app_users/delete_account", params: { uuid: "invalid_uuid_00000" }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:msg]).to eq("未授权访问")
+    end
+
+    it "有书架图书的用户注销 — 书架记录被删除" do
+      book = create(:book)
+      create(:bookshelf, app_user: user, book: book, reading_progress: 50.0)
+      user_id = user.id
+
+      post "/api/app_users/delete_account", params: { uuid: user.uuid }
+
+      expect(Bookshelf.where(app_user_id: user_id)).to eq([])
+      # 图书本身不被删除
+      expect(Book.find_by(id: book.id)).to be_present
+    end
+  end
+
   # ==================== 多设备共享 ====================
   describe "多设备共享同一账户" do
     it "新设备创建新账户" do

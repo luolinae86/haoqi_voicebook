@@ -221,6 +221,24 @@ module Api
           present response: success_response
         end
 
+        # ==================== 注销账户 ====================
+        desc '注销账户（删除用户及其所有资源，解绑所有设备并创建新匿名账户）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+        end
+        post :delete_account do
+          auth_user
+
+          device_ids = current_user.devices.pluck(:device_id)
+          current_user.destroy
+
+          device_ids.each do |device_id|
+            create_new_app_user(device_id)
+          end
+
+          present response: success_response(msg: '账户已注销')
+        end
+
         # ==================== 退出登录 ====================
         desc '退出登录（解绑当前设备，返回新用户）'
         params do
