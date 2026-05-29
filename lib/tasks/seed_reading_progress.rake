@@ -14,91 +14,62 @@ namespace :db do
 
       puts "Found user: id=#{user.id}, uuid=#{user.uuid}"
 
-      # Get published books
-      books = Book.published_books.limit(10).to_a
-      if books.size < 5
-        puts "ERROR: Need at least 5 published books, found #{books.size}"
+      # Get published books with page_count > 0
+      books = Book.published_books.where('page_count > 0').order(id: :desc).limit(10).to_a
+      if books.empty?
+        puts "ERROR: No published books with page_count > 0 found"
         exit 1
       end
 
-      puts "Using #{books.size} published books"
+      puts "Using #{books.size} published books (with page_count > 0)"
+      books.each { |b| puts "  - #{b.name} (#{b.page_count} pages)" }
 
       # Clear existing progress for this user
       user.reading_progresses.destroy_all
       puts "Cleared existing reading progresses"
 
-      # 1. Reading in progress - page 15 of a longer book
-      b1 = books[0]
-      ReadingProgress.create!(
-        app_user: user,
-        book: b1,
-        last_page_number: [15, b1.page_count].min,
-        total_words_read: 3000,
-        total_duration_seconds: 600,
-        session_count: 3,
-        completed: false,
-        last_read_at: 2.hours.ago
-      )
-      puts "  [reading] #{b1.name} - page #{[15, b1.page_count].min}/#{b1.page_count}"
+      # Create reading progress for each available book (max 5)
+      books_to_use = books.first(5)
+      scenarios = []
 
-      # 2. Completed book
-      b2 = books[1]
-      ReadingProgress.create!(
-        app_user: user,
-        book: b2,
-        last_page_number: b2.page_count,
-        total_words_read: b2.word_count,
-        total_duration_seconds: 1800,
-        session_count: 5,
-        completed: true,
-        completed_at: 1.day.ago,
-        last_read_at: 1.day.ago
-      )
-      puts "  [completed] #{b2.name} - page #{b2.page_count}/#{b2.page_count}"
+      books_to_use.each_with_index do |book, idx|
+        case idx
+        when 0
+          # Reading in progress - page ~30% through
+          page = [(book.page_count * 0.3).floor, 1].max
+          scenarios << { last_page: page, completed: false, label: 'reading', words: book.word_count / 3, duration: 600, sessions: 3, time: 2.hours.ago }
+        when 1
+          # Completed book
+          scenarios << { last_page: book.page_count, completed: true, label: 'completed', words: book.word_count, duration: 1800, sessions: 5, time: 1.day.ago, completed_at: 1.day.ago }
+        when 2
+          # Just started - only a few pages in
+          page = [3, book.page_count].min
+          scenarios << { last_page: page, completed: false, label: 'started', words: 500, duration: 180, sessions: 1, time: 30.minutes.ago }
+        when 3
+          # Halfway through
+          page = [(book.page_count / 2.0).floor, 1].max
+          scenarios << { last_page: page, completed: false, label: 'halfway', words: book.word_count / 2, duration: 900, sessions: 4, time: 5.hours.ago }
+        when 4
+          # Another completed book
+          scenarios << { last_page: book.page_count, completed: true, label: 'completed', words: book.word_count, duration: 2400, sessions: 8, time: 2.days.ago, completed_at: 2.days.ago }
+        end
+      end
 
-      # 3. Just started - only a few pages in
-      b3 = books[2]
-      ReadingProgress.create!(
-        app_user: user,
-        book: b3,
-        last_page_number: [3, b3.page_count].min,
-        total_words_read: 500,
-        total_duration_seconds: 180,
-        session_count: 1,
-        completed: false,
-        last_read_at: 30.minutes.ago
-      )
-      puts "  [started] #{b3.name} - page #{[3, b3.page_count].min}/#{b3.page_count}"
-
-      # 4. Halfway through
-      b4 = books[3]
-      half_page = [(b4.page_count / 2.0).floor, 1].max
-      ReadingProgress.create!(
-        app_user: user,
-        book: b4,
-        last_page_number: half_page,
-        total_words_read: (b4.word_count / 2.0).floor,
-        total_duration_seconds: 900,
-        session_count: 4,
-        completed: false,
-        last_read_at: 5.hours.ago
-      )
-      puts "  [halfway] #{b4.name} - page #{half_page}/#{b4.page_count}"
-
-      # 5. Another completed book
-      b5 = books[4]
-      ReadingProgress.create!(
-        app_user: user,
-        book: b5,
-        last_page_number: b5.page_count,
-        total_words_read: b5.word_count,
-        total_duration_seconds: 2400,
-        session_count: 8,
-        completed: true,
-        completed_at: 2.days.ago,
-        last_read_at: 2.days.ago
-      )
-      puts "  [completed] #{b5.name} - page #{b5.page_count}/#{b5.page_count}"
+      books_to_use.each_with_index do |book, idx|
+        s = scenarios[idx]
+        ReadingProgress.create!(
+          app_user: user,
+          book: book,
+          last_page_number: s[:last_page],
+          total_words_read: s[:words],
+          total_duration_seconds: s[:duration],
+          session_count: s[:sessions],
+          completed: s[:completed],
+          completed_at: s[:completed_at],
+          last_read_at: s[:time]
+        )
+        puts "  [#{s[:label]}] #{book.name} - page #{s[:last_page]}/#{book.page_count}"
+      end
 
       puts ""
       puts "=== Summary ==="
