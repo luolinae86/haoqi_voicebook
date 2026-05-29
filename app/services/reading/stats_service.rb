@@ -100,7 +100,7 @@ module Reading
       {
         book_id: progress.book_id,
         book_name: progress.book&.name,
-        cover_image_url: progress.book&.cover_image_url,
+        cover_image_url: Book.sign_oss_url(progress.book&.cover_image_url),
         last_page_number: progress.last_page_number,
         total_pages: progress.book&.page_count,
         total_words_read: progress.total_words_read,
