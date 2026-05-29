@@ -110,6 +110,64 @@ RSpec.describe Reading::TrackService do
       user.reload
       expect(user.books_read).to eq(old_books)
     end
+
+    it 'handles book completion without error (recently_completed scope)' do
+      # 用户直接翻到最后一页，触发完读逻辑
+      Reading::TrackService.new(
+        app_user: user,
+        book: book,
+        page_number: book.page_count,
+        word_count: 500,
+        duration_seconds: 300
+      ).call
+
+      progress = ReadingProgress.find_by(app_user_id: user.id, book_id: book.id)
+      expect(progress.completed).to be true
+
+      # BookStats 的 completed_count 应增加
+      book_stats = BookStats.find_by(book_id: book.id)
+      expect(book_stats.completed_count).to eq(1)
+    end
+
+    it 'handles page_number=0 without crashing' do
+      # 0 不是 blank，会通过 guard，正常创建 session
+      Reading::TrackService.new(
+        app_user: user,
+        book: book,
+        page_number: 0,
+        word_count: 100,
+        duration_seconds: 60
+      ).call
+
+      expect(ReadingSession.count).to eq(1)
+      expect(ReadingSession.last.page_number).to eq(0)
+    end
+
+    it 'handles blank page_number without crashing' do
+      Reading::TrackService.new(
+        app_user: user,
+        book: book,
+        page_number: nil,
+        word_count: 100,
+        duration_seconds: 60
+      ).call
+
+      expect(ReadingSession.count).to eq(0)
+    end
+
+    it 'handles zero duration and word_count' do
+      Reading::TrackService.new(
+        app_user: user,
+        book: book,
+        page_number: 3,
+        word_count: 0,
+        duration_seconds: 0
+      ).call
+
+      progress = ReadingProgress.find_by(app_user_id: user.id, book_id: book.id)
+      expect(progress.total_words_read).to eq(0)
+      expect(progress.total_duration_seconds).to eq(0)
+    end
   end
 
   def track_reading
