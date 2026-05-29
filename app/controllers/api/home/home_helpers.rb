@@ -51,6 +51,8 @@ module Api
           content_hash[:recommend] = serialize_sub_recommend(content.recommend) if content.recommend
         end
 
+        content_hash[:img_url] = signed_oss_url(content.img_url) if content.img_url.present?
+
         content_hash
       end
 

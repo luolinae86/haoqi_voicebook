@@ -383,6 +383,16 @@ RSpec.describe "API Home", type: :request do
           expect(recommend_content[:recommend]).not_to have_key(:content_groups)
         end
 
+        it "sub_recommend 内容返回 img_url（含 OSS 签名）" do
+          Content.find_by(content_group: sub_recommend_group).update_column(:img_url, "https://epub-files.oss-cn-beijing.aliyuncs.com/recommends/sub_icon.png")
+
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
+
+          recommend_content = json_response[:response][:data][:content_groups].find { |g| g[:group_type] == "sub_recommend" }[:contents].first
+          expect(recommend_content[:img_url]).to include("sub_icon.png")
+          expect(recommend_content[:img_url]).to include("OSSAccessKeyId")
+        end
+
         it "子推荐指向自身时不报 500 错误（循环引用保护）" do
           # 让子推荐的内容指向父推荐，形成循环引用
           Content.first.update!(recommend: parent_recommend)
