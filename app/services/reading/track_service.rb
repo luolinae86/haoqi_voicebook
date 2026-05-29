@@ -103,7 +103,7 @@ module Reading
 
       # 如果用户刚完读这本书，增加完读人数
       if @book.reading_progresses
-                         .recently_completed(@app_user.id, Time.current - 1.minute)
+                         .recently_completed(@app_user.id, since: Time.current - 1.minute)
                          .exists?
         stats.completed_count += 1
       end
