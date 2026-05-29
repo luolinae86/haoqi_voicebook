@@ -5,7 +5,6 @@ module Entities
     expose :id
     expose :name
     expose :sn
-    expose :color
     expose :status_text
   end
 end

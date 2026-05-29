@@ -12,6 +12,7 @@
 #  book_id(单本信息)              :bigint
 #  compilation_id(合辑信息)       :bigint
 #  content_group_id(关联内容分组) :bigint           not null
+#  rank_id(排行榜信息)            :bigint
 #  recommend_id(推荐信息)         :bigint
 #
 # Indexes
@@ -27,6 +28,8 @@ class Content < ApplicationRecord
   belongs_to :compilation, optional: true
   belongs_to :book, optional: true
   belongs_to :author, optional: true
+  belongs_to :recommend, optional: true
+  belongs_to :rank, optional: true
 
   scope :sorted, -> { order(sn: :asc, id: :desc) }
 
@@ -34,12 +37,16 @@ class Content < ApplicationRecord
     compilation: 'compilation',           # 合辑
     book: 'book', # 单本
     author_display: 'author_display', # 作者显示
+    recommend: 'recommend', # 推荐
+    rank: 'rank', # 排行榜
   }, prefix: true
 
   CONTENT_TYPES = {
     compilation: '合辑',
     book: '单本',
-    author_display: '作者显示'
+    author_display: '作者显示',
+    recommend: '推荐',
+    rank: '排行榜'
   }.freeze
 
   def content_type_name

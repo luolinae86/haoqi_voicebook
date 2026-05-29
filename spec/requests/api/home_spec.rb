@@ -39,7 +39,7 @@ RSpec.describe "API Home", type: :request do
       expect(json_response[:response][:code]).to eq(0)
       recommends = json_response[:response][:data][:recommends]
       expect(recommends.size).to eq(2)
-      expect(recommends.first.keys).to match_array([:id, :name, :sn, :color, :status_text])
+      expect(recommends.first.keys).to match_array([:id, :name, :sn, :status_text])
     end
 
     it "返回的推荐不包含 content_groups" do
@@ -328,6 +328,68 @@ RSpec.describe "API Home", type: :request do
           contents = json_response[:response][:data][:content_groups].first[:contents]
           expect(contents.size).to eq(1)
           expect(contents.first).to have_key(:content_type_name)
+        end
+      end
+
+      context "sub_recommend 内容分组" do
+        let!(:parent_recommend) { Recommend.create!(grade: grade, name: "父推荐", status: true) }
+        let!(:sub_recommend_group) do
+          ContentGroup.create!(
+            recommend: parent_recommend,
+            name: "二级推荐",
+            group_type: "sub_recommend",
+            sn: 0
+          )
+        end
+        let!(:child_recommend) { Recommend.create!(grade: grade, name: "子推荐", status: true, sn: 1) }
+        let!(:child_content_group) do
+          ContentGroup.create!(
+            recommend: child_recommend,
+            name: "子推荐分组",
+            group_type: "single_column",
+            sn: 0
+          )
+        end
+
+        before do
+          Content.create!(
+            content_group: sub_recommend_group,
+            content_type: "recommend",
+            recommend: child_recommend,
+            sn: 1
+          )
+          Content.create!(
+            content_group: child_content_group,
+            content_type: "book",
+            book: book,
+            sn: 0
+          )
+        end
+
+        it "返回子推荐的完整信息（含 content_groups）" do
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
+
+          expect(response).to have_http_status(:success)
+          expect(json_response[:response][:code]).to eq(0)
+          content_groups = json_response[:response][:data][:content_groups]
+          sub_group = content_groups.find { |g| g[:group_type] == "sub_recommend" }
+          expect(sub_group).to be_present
+
+          recommend_content = sub_group[:contents].first
+          expect(recommend_content[:content_type]).to eq("recommend")
+          expect(recommend_content[:recommend][:id]).to eq(child_recommend.id)
+          expect(recommend_content[:recommend][:name]).to eq("子推荐")
+          expect(recommend_content[:recommend][:content_groups]).to be_an(Array)
+        end
+
+        it "子推荐的内容分组包含书籍信息" do
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
+
+          content_groups = json_response[:response][:data][:content_groups]
+          sub_group = content_groups.find { |g| g[:group_type] == "sub_recommend" }
+          recommend_content = sub_group[:contents].first
+          child_cg = recommend_content[:recommend][:content_groups].first
+          expect(child_cg[:contents].first[:book][:name]).to eq("小王子")
         end
       end
 

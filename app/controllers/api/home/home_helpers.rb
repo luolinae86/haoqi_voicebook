@@ -47,6 +47,10 @@ module Api
           content_hash[:book] = serialize_book(content.book) if content.book
         when "author_display"
           content_hash[:author] = serialize_author(content.author) if content.author
+        when "recommend"
+          content_hash[:recommend] = serialize_sub_recommend(content.recommend) if content.recommend
+        when "rank"
+          content_hash[:rank] = serialize_rank(content.rank) if content.rank
         end
 
         content_hash
@@ -82,6 +86,24 @@ module Api
           id: author.id,
           name: author.name,
           head_img: signed_oss_url(author.head_img)
+        }
+      end
+
+      def serialize_sub_recommend(recommend)
+        {
+          id: recommend.id,
+          name: recommend.name,
+          sn: recommend.sn,
+          status_text: recommend.status_text,
+          content_groups: recommend.content_groups.sorted.includes(:contents).map { |cg| serialize_content_group(cg) }
+        }
+      end
+
+      def serialize_rank(rank)
+        return nil unless rank
+        {
+          id: rank.id,
+          name: rank.name
         }
       end
     end
