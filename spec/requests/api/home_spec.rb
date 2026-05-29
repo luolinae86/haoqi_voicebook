@@ -173,6 +173,23 @@ RSpec.describe "API Home", type: :request do
           expect(book_content[:book][:cover_url]).to include("OSSAccessKeyId")
         end
 
+        it "单本内容包含 category_id, category_name, supplier_name, category_subs" do
+          supplier = Supplier.create!(name: "人民文学出版社")
+          category_sub = CategorySub.create!(name: "文学经典", category: category, sn: 1)
+          book.update!(category: category, supplier: supplier)
+          book.category_subs << category_sub
+
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: recommend.id, uuid: user.uuid }
+
+          contents = json_response[:response][:data][:content_groups].first[:contents]
+          book_content = contents.find { |c| c[:content_type] == "book" }
+          book_data = book_content[:book]
+          expect(book_data[:category_id]).to eq(category.id)
+          expect(book_data[:category_name]).to eq("文学")
+          expect(book_data[:supplier_name]).to eq("人民文学出版社")
+          expect(book_data[:category_subs]).to eq([{ id: category_sub.id, name: "文学经典", sn: 1 }])
+        end
+
         it "作者展示类型返回 author 信息" do
           author_group = ContentGroup.create!(
             recommend: recommend,

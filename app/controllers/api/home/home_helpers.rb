@@ -72,7 +72,8 @@ module Api
           cover_url: signed_oss_url(book.cover_image_url),
           category_id: book.category_id,
           category_name: book.category&.name,
-          supplier_name: book.supplier&.name
+          supplier_name: book.supplier&.name,
+          category_subs: book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } }
         }
       end
 
