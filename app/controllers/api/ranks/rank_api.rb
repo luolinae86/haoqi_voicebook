@@ -22,7 +22,7 @@ module Api
 
           ranks = Rank.where(grade_id: grade_id)
           present response: success_response(
-            ranks: serialize_ranks(ranks)
+            categories: serialize_ranks_by_category(ranks)
           )
         end
 

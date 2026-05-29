@@ -16,37 +16,59 @@ RSpec.describe "API Ranks", type: :request do
 
   # ==================== 接口一：获取用户年级的排行榜列表 ====================
   describe "GET /api/ranks/" do
-    it "返回用户年级的所有排行榜" do
-      Rank.create!(grade: grade, name: "必读榜单", sn: 1)
-      Rank.create!(grade: grade, name: "推荐榜单", sn: 2)
+    it "返回用户年级的所有排行榜（按 category 分组）" do
+      cat1 = create(:category, name: "文学")
+      cat2 = create(:category, name: "漫画")
+      Rank.create!(grade: grade, name: "必读榜单", sn: 1, category: cat1)
+      Rank.create!(grade: grade, name: "推荐榜单", sn: 2, category: cat1)
+      Rank.create!(grade: grade, name: "热门榜单", sn: 3, category: cat2)
 
       get "/api/ranks/", params: { uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
-      ranks = json_response[:response][:data][:ranks]
-      expect(ranks.size).to eq(2)
-      expect(ranks.first.keys).to match_array([:id, :name, :sn, :category_id, :category_name])
+      categories = json_response[:response][:data][:categories]
+      expect(categories.size).to eq(2)
+      # 文学分类
+      lit_cat = categories.find { |c| c[:category_id] == cat1.id }
+      expect(lit_cat[:category_name]).to eq("文学")
+      expect(lit_cat[:ranks].size).to eq(2)
+      expect(lit_cat[:ranks].first.keys).to match_array([:id, :name, :sn])
+      # 漫画分类
+      comic_cat = categories.find { |c| c[:category_id] == cat2.id }
+      expect(comic_cat[:category_name]).to eq("漫画")
     end
 
     it "不返回其他年级的排行榜" do
       other_grade = create(:grade, name: "三年级")
-      Rank.create!(grade: other_grade, name: "其他年级榜单", sn: 1)
+      Rank.create!(grade: other_grade, name: "其他年级榜单", sn: 1, category: category)
 
       get "/api/ranks/", params: { uuid: user.uuid }
 
-      ranks = json_response[:response][:data][:ranks]
-      expect(ranks).to eq([])
+      categories = json_response[:response][:data][:categories]
+      expect(categories).to eq([])
     end
 
     it "排行榜按 sn 升序排列" do
-      Rank.create!(grade: grade, name: "第二", sn: 10)
-      Rank.create!(grade: grade, name: "第一", sn: 1)
+      Rank.create!(grade: grade, name: "第二", sn: 10, category: category)
+      Rank.create!(grade: grade, name: "第一", sn: 1, category: category)
 
       get "/api/ranks/", params: { uuid: user.uuid }
 
-      ranks = json_response[:response][:data][:ranks]
+      ranks = json_response[:response][:data][:categories].first[:ranks]
       expect(ranks.first[:name]).to eq("第一")
+    end
+
+    it "category_id 按升序排列" do
+      cat1 = create(:category, name: "A类")
+      cat2 = create(:category, name: "B类")
+      Rank.create!(grade: grade, name: "榜单1", sn: 1, category: cat2)
+      Rank.create!(grade: grade, name: "榜单2", sn: 1, category: cat1)
+
+      get "/api/ranks/", params: { uuid: user.uuid }
+
+      categories = json_response[:response][:data][:categories]
+      expect(categories.map { |c| c[:category_id] }).to eq(categories.map { |c| c[:category_id] }.sort)
     end
 
     it "用户未设置年级时返回错误" do
@@ -68,7 +90,7 @@ RSpec.describe "API Ranks", type: :request do
 
   # ==================== 接口二：获取指定排行榜的内容 ====================
   describe "GET /api/ranks/:rank_id" do
-    let!(:rank) { Rank.create!(grade: grade, name: "必读榜单", sn: 1) }
+    let!(:rank) { Rank.create!(grade: grade, name: "必读榜单", sn: 1, category: category) }
     let!(:book) do
       Book.create!(
         name: "小王子",
@@ -125,7 +147,7 @@ RSpec.describe "API Ranks", type: :request do
 
     it "排行榜不属于当前用户年级时返回错误" do
       other_grade = create(:grade, name: "三年级")
-      other_rank = Rank.create!(grade: other_grade, name: "其他年级", sn: 1)
+      other_rank = Rank.create!(grade: other_grade, name: "其他年级", sn: 1, category: category)
 
       get "/api/ranks/#{other_rank.id}", params: { uuid: user.uuid }
 
