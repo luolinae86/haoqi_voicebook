@@ -20,6 +20,12 @@ module Entities
       instance.content_file_type
     end
     expose :content_description
+    expose :supplier_name do |instance, _|
+      instance.supplier&.name
+    end
+    expose :category_subs do |instance, _|
+      instance.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } }
+    end
     expose :is_free
     expose :is_vip
     expose :grade_id
