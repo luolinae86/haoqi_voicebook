@@ -32,6 +32,7 @@ module Api
     mount Api::Parental::Mount
     mount Api::Readings::Mount
     mount Api::Leaderboards::Mount
+    mount Api::Ranks::Mount
     mount Api::HeadImgs::Mount
 
     # ==================== Swagger 文档 ====================
@@ -52,7 +53,8 @@ module Api
         { name: "oss", description: "OSS 临时授权" },
         { name: "parental", description: "家长管控" },
         { name: "reading", description: "阅读统计与进度" },
-        { name: "leaderboards", description: "排行榜" }
+        { name: "leaderboards", description: "排行榜" },
+        { name: "ranks", description: "年级推荐榜" }
       ],
       hide_documentation_path: false
     )
