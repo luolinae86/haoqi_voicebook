@@ -40,6 +40,7 @@ RSpec.describe "API Memberships", type: :request do
         expect(pkg[:origin_price]).to be_present
         expect(pkg[:effective_days]).to be_present
         expect(pkg).to have_key(:is_discount)
+        expect(pkg).to have_key(:discount_tag)
       end
     end
 

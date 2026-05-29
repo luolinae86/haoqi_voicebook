@@ -5,6 +5,7 @@
 # Table name: packages
 #
 #  id             :bigint           not null, primary key
+#  discount_tag   :string(255)
 #  effective_days :integer
 #  is_delete      :boolean          default("0")
 #  is_discount    :boolean          default("0")
@@ -24,5 +25,6 @@ FactoryBot.define do
     sn { 0 }
     is_delete { false }
     is_discount { false }
+    discount_tag { "限时优惠" }
   end
 end

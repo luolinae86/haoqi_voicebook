@@ -8,5 +8,6 @@ module Entities
     expose :origin_price
     expose :effective_days
     expose :is_discount
+    expose :discount_tag
   end
 end

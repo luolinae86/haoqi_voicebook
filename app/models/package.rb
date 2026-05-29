@@ -5,6 +5,7 @@
 # Table name: packages
 #
 #  id             :bigint           not null, primary key
+#  discount_tag   :string(255)
 #  effective_days :integer
 #  is_delete      :boolean          default("0")
 #  is_discount    :boolean          default("0")
