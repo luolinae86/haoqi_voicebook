@@ -94,7 +94,7 @@ module Api
           id: recommend.id,
           name: recommend.name,
           sn: recommend.sn,
-          color: recommend.try(:color) || "",
+          color: recommend.color || "",
           status_text: recommend.status_text
         }
       end
