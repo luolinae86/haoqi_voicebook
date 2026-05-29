@@ -34,8 +34,12 @@ module Entities
     expose :styles_oss_url do |instance, _|
       self.class.sign_oss_url(instance.styles_oss_url)
     end
-    expose :created_at
-    expose :updated_at
+    expose :created_at do |instance, _|
+      instance.created_at&.strftime('%Y-%m-%d %H:%M:%S')
+    end
+    expose :updated_at do |instance, _|
+      instance.updated_at&.strftime('%Y-%m-%d %H:%M:%S')
+    end
     expose :chapters do |instance, _|
       Entities::Chapter.represent(instance.chapters.order(:sn))
     end

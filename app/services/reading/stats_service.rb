@@ -106,7 +106,7 @@ module Reading
         total_words_read: progress.total_words_read,
         session_count: progress.session_count,
         completed: progress.completed,
-        last_read_at: progress.last_read_at
+        last_read_at: progress.last_read_at&.strftime('%Y-%m-%d %H:%M:%S')
       }
     end
   end

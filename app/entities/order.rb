@@ -7,7 +7,9 @@ module Entities
     expose :amount
     expose :payment_method
     expose :status
-    expose :paid_at
+    expose :paid_at do |instance, _|
+      instance.paid_at&.strftime('%Y-%m-%d %H:%M:%S')
+    end
     expose :membership do |instance, _|
       {
         id: instance.membership&.id,

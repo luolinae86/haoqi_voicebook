@@ -16,6 +16,8 @@ module Entities
     expose :total_words_read
     expose :session_count
     expose :completed
-    expose :last_read_at
+    expose :last_read_at do |instance, _|
+      instance.last_read_at&.strftime('%Y-%m-%d %H:%M:%S')
+    end
   end
 end
