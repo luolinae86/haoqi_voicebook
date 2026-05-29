@@ -108,6 +108,12 @@ RSpec.describe 'API Reading', type: :request do
 
       expect(response).to have_http_status(200)
     end
+
+    it '未提供 period 时返回参数错误' do
+      get '/api/reading/chart', params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+    end
   end
 
   # ==================== 我的阅读进度列表 ====================

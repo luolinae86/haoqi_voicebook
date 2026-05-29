@@ -49,7 +49,7 @@ module Api
         desc '获取阅读时长图表数据（按周/月）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
-          optional :period, type: String, desc: '统计周期', values: %w[week month], default: 'week'
+          requires :period, type: String, desc: '统计周期', values: %w[week month]
         end
         get :chart do
           auth_user
