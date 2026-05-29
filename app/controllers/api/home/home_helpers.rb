@@ -49,8 +49,6 @@ module Api
           content_hash[:author] = serialize_author(content.author) if content.author
         when "recommend"
           content_hash[:recommend] = serialize_sub_recommend(content.recommend) if content.recommend
-        when "rank"
-          content_hash[:rank] = serialize_rank(content.rank) if content.rank
         end
 
         content_hash
@@ -95,14 +93,6 @@ module Api
           name: recommend.name,
           sn: recommend.sn,
           status_text: recommend.status_text
-        }
-      end
-
-      def serialize_rank(rank)
-        return nil unless rank
-        {
-          id: rank.id,
-          name: rank.name
         }
       end
     end
