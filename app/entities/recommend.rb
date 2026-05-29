@@ -5,6 +5,11 @@ module Entities
     expose :id
     expose :name
     expose :sn
+    expose :color
     expose :status_text
+
+    def color
+      object.try(:color) || ""
+    end
   end
 end

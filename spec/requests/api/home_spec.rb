@@ -39,7 +39,7 @@ RSpec.describe "API Home", type: :request do
       expect(json_response[:response][:code]).to eq(0)
       recommends = json_response[:response][:data][:recommends]
       expect(recommends.size).to eq(2)
-      expect(recommends.first.keys).to match_array([:id, :name, :sn, :status_text])
+      expect(recommends.first.keys).to match_array([:id, :name, :sn, :color, :status_text])
     end
 
     it "返回的推荐不包含 content_groups" do
@@ -380,6 +380,7 @@ RSpec.describe "API Home", type: :request do
           expect(recommend_content[:recommend][:id]).to eq(child_recommend.id)
           expect(recommend_content[:recommend][:name]).to eq("子推荐")
           expect(recommend_content[:recommend][:sn]).to eq(1)
+          expect(recommend_content[:recommend][:color]).to be_blank
           expect(recommend_content[:recommend]).not_to have_key(:content_groups)
         end
 
