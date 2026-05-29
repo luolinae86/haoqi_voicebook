@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_29_021514) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_29_063842) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -476,6 +476,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_29_021514) do
     t.boolean "status", default: true, comment: "状态: true发布/false草稿"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "color", default: ""
     t.index ["grade_id", "sn"], name: "index_recommends_on_grade_id_and_sn"
     t.index ["grade_id"], name: "index_recommends_on_grade_id"
   end
