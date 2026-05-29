@@ -94,8 +94,7 @@ module Api
           id: recommend.id,
           name: recommend.name,
           sn: recommend.sn,
-          status_text: recommend.status_text,
-          content_groups: recommend.content_groups.sorted.includes(:contents).map { |cg| serialize_content_group(cg) }
+          status_text: recommend.status_text
         }
       end
 

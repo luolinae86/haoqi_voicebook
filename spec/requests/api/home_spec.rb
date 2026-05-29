@@ -366,7 +366,7 @@ RSpec.describe "API Home", type: :request do
           )
         end
 
-        it "返回子推荐的完整信息（含 content_groups）" do
+        it "返回子推荐的基本信息（不递归 content_groups，避免循环引用）" do
           get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
 
           expect(response).to have_http_status(:success)
@@ -379,17 +379,18 @@ RSpec.describe "API Home", type: :request do
           expect(recommend_content[:content_type]).to eq("recommend")
           expect(recommend_content[:recommend][:id]).to eq(child_recommend.id)
           expect(recommend_content[:recommend][:name]).to eq("子推荐")
-          expect(recommend_content[:recommend][:content_groups]).to be_an(Array)
+          expect(recommend_content[:recommend][:sn]).to eq(1)
+          expect(recommend_content[:recommend]).not_to have_key(:content_groups)
         end
 
-        it "子推荐的内容分组包含书籍信息" do
+        it "子推荐指向自身时不报 500 错误（循环引用保护）" do
+          # 让子推荐的内容指向父推荐，形成循环引用
+          Content.first.update!(recommend: parent_recommend)
+
           get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
 
-          content_groups = json_response[:response][:data][:content_groups]
-          sub_group = content_groups.find { |g| g[:group_type] == "sub_recommend" }
-          recommend_content = sub_group[:contents].first
-          child_cg = recommend_content[:recommend][:content_groups].first
-          expect(child_cg[:contents].first[:book][:name]).to eq("小王子")
+          expect(response).to have_http_status(:success)
+          expect(json_response[:response][:code]).to eq(0)
         end
       end
 
