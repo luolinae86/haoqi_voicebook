@@ -60,26 +60,52 @@ module Reading
     end
 
     # 获取阅读时长图表数据（按周/月）
+    # period: 'week'  → 返回最近 7 天的每日数据
+    # period: 'month' → 返回最近 4 周的每周数据（4 条记录）
     def self.chart_data(app_user, period: 'week')
-      days = period == 'month' ? 28 : 7
-      stats = app_user.user_reading_daily_stats
-        .last_n_days(days)
-        .pluck(:stat_date, :total_duration_seconds)
+      if period == 'month'
+        weekly_data = []
+        4.times do |i|
+          # 非重叠的周范围：本周 = today-6d..today，上周 = today-13d..today-7d，以此类推
+          week_start = (7 * i + 6).days.ago.to_date
+          week_end = (7 * i).days.ago.to_date
+          stat_date_range = (week_start.to_s..week_end.to_s)
 
-      # 补齐缺失的日期（没有阅读记录的日期时长为 0）
-      result = {}
-      days.times do |i|
-        date = (days - 1 - i).days.ago.to_date.to_s
-        result[date] = 0
+          total_seconds = app_user.user_reading_daily_stats
+            .where(stat_date: stat_date_range)
+            .sum(:total_duration_seconds)
+
+          weekly_data << {
+            date: week_start.to_s,
+            minutes: (total_seconds.to_f / 60.0).round
+          }
+        end
+
+        {
+          weekly: weekly_data.reverse,
+          total_minutes: weekly_data.sum { |w| w[:minutes] }
+        }
+      else
+        days = 7
+        stats = app_user.user_reading_daily_stats
+          .last_n_days(days)
+          .pluck(:stat_date, :total_duration_seconds)
+
+        # 补齐缺失的日期（没有阅读记录的日期时长为 0）
+        result = {}
+        days.times do |i|
+          date = (days - 1 - i).days.ago.to_date.to_s
+          result[date] = 0
+        end
+        stats.each { |d, s| result[d] = (s.to_f / 60.0).round }
+
+        # 返回按日期升序的数组
+        total_minutes = result.values.sum
+        {
+          daily: result.sort.map { |date, minutes| { date: date, minutes: minutes } },
+          total_minutes: total_minutes
+        }
       end
-      stats.each { |d, s| result[d] = (s.to_f / 60.0).round }
-
-      # 返回按日期升序的数组
-      total_minutes = result.values.sum
-      {
-        daily: result.sort.map { |date, minutes| { date: date, minutes: minutes } },
-        total_minutes: total_minutes
-      }
     end
 
     private

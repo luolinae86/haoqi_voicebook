@@ -85,9 +85,9 @@ RSpec.describe Reading::StatsService do
       expect(data[:daily].size).to eq(7)
     end
 
-    it 'month returns 28 days' do
+    it 'month returns 4 weeks' do
       data = described_class.chart_data(user, period: 'month')
-      expect(data[:daily].size).to eq(28)
+      expect(data[:weekly].size).to eq(4)
     end
 
     it 'all zeros when no records' do
@@ -95,11 +95,22 @@ RSpec.describe Reading::StatsService do
       expect(data[:daily].all? { |d| d[:minutes] == 0 }).to be true
     end
 
-    it 'correct minutes when records exist' do
+    it 'correct minutes when records exist for week' do
       create(:user_reading_daily_stats, app_user: user, stat_date: Date.today.to_s, total_duration_seconds: 900)
       data = described_class.chart_data(user, period: 'week')
       today_entry = data[:daily].find { |d| d[:date] == Date.today.to_s }
       expect(today_entry[:minutes]).to eq(15)
+    end
+
+    it 'correct weekly minutes when records exist for month' do
+      # 本周（最近 7 天）的某一天有阅读记录
+      today = Date.today
+      create(:user_reading_daily_stats, app_user: user, stat_date: today.to_s, total_duration_seconds: 1800)
+
+      data = described_class.chart_data(user, period: 'month')
+      # 最后一周（本周）应该包含今天的记录（数组按时间升序排列）
+      this_week = data[:weekly].last
+      expect(this_week[:minutes]).to be >= 30
     end
   end
 end
