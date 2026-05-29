@@ -35,7 +35,7 @@ class AlipayPaymentService
     string_to_sign = sorted_params.map { |k, v| "#{k}=#{v}" }.join("&")
 
     if sign_type == "RSA2"
-      public_key = OpenSSL::PKey::RSA.new(ENV.fetch("ALIPAY_PUBLIC_KEY"))
+      public_key = OpenSSL::PKey::RSA.new(alipay_response_public_key)
       public_key.verify(
         OpenSSL::Digest.new("SHA256"),
         Base64.decode64(sign),
@@ -47,6 +47,24 @@ class AlipayPaymentService
   end
 
   private
+
+  def private_key
+    @private_key ||= OpenSSL::PKey::RSA.new(ensure_pem_private_key(ENV.fetch("ALIPAY_PRIVATE_KEY")))
+  end
+
+  def alipay_response_public_key
+    @alipay_response_public_key ||= OpenSSL::PKey::RSA.new(ensure_pem_public_key(ENV.fetch("ALIPAY_RESPONSE_PUBLIC_KEY")))
+  end
+
+  def ensure_pem_private_key(str)
+    return str if str.include?("BEGIN")
+    "-----BEGIN RSA PRIVATE KEY-----\n#{str}\n-----END RSA PRIVATE KEY-----"
+  end
+
+  def ensure_pem_public_key(str)
+    return str if str.include?("BEGIN")
+    "-----BEGIN PUBLIC KEY-----\n#{str}\n-----END PUBLIC KEY-----"
+  end
 
   def build_sign_params(order_no, amount, subject)
     {
@@ -73,7 +91,6 @@ class AlipayPaymentService
   end
 
   def rsa_sign(encoded_string)
-    private_key = OpenSSL::PKey::RSA.new(ENV.fetch("ALIPAY_PRIVATE_KEY"))
     Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new("SHA256"), encoded_string))
   end
 end
