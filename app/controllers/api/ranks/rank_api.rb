@@ -32,7 +32,7 @@ module Api
           requires :rank_id, type: Integer, desc: '排行榜ID'
           requires :uuid, type: String, desc: '用户uuid'
         end
-        get ':rank_id' do
+        get 'by_id' do
           rank = Rank.find_by(id: params[:rank_id])
           error_pop_resp('排行榜不存在') if rank.blank?
 

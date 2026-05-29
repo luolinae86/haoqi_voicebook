@@ -89,7 +89,7 @@ RSpec.describe "API Ranks", type: :request do
   end
 
   # ==================== 接口二：获取指定排行榜的内容 ====================
-  describe "GET /api/ranks/:rank_id" do
+  describe "GET /api/ranks/by_id" do
     let!(:rank) { Rank.create!(grade: grade, name: "必读榜单", sn: 1, category: category) }
     let!(:book) do
       Book.create!(
@@ -111,7 +111,7 @@ RSpec.describe "API Ranks", type: :request do
     it "返回排行榜内容和图书信息" do
       RankContent.create!(rank: rank, content_type: "book", book: book, sn: 1)
 
-      get "/api/ranks/#{rank.id}", params: { uuid: user.uuid }
+      get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(0)
@@ -124,10 +124,31 @@ RSpec.describe "API Ranks", type: :request do
       expect(contents.first[:book][:cover_url]).to include("book-cover.jpg")
     end
 
+    it "返回图书的内容简介、出版社和二级分类" do
+      supplier = Supplier.create!(name: "人民文学出版社")
+      category_for_sub = Category.create!(name: "测试分类")
+      sub = CategorySub.create!(name: "儿童文学", sn: 1, category: category_for_sub)
+      book_with_details = Book.create!(
+        name: "安徒生童话",
+        cover_image_url: "https://example.com/cover.jpg",
+        content_description: "经典童话合集",
+        supplier: supplier
+      )
+      book_with_details.category_subs << sub
+      RankContent.create!(rank: rank, content_type: "book", book: book_with_details, sn: 1)
+
+      get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
+
+      book_data = json_response[:response][:data][:contents].first[:book]
+      expect(book_data[:content_description]).to eq("经典童话合集")
+      expect(book_data[:supplier_name]).to eq("人民文学出版社")
+      expect(book_data[:category_subs]).to eq([{ id: sub.id, name: "儿童文学", sn: 1 }])
+    end
+
     it "返回合集信息" do
       RankContent.create!(rank: rank, content_type: "compilation", compilation: compilation, sn: 1)
 
-      get "/api/ranks/#{rank.id}", params: { uuid: user.uuid }
+      get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
 
       contents = json_response[:response][:data][:contents]
       expect(contents.first[:compilation][:name]).to eq("经典文学合集")
@@ -138,7 +159,7 @@ RSpec.describe "API Ranks", type: :request do
       RankContent.create!(rank: rank, content_type: "book", book: book, sn: 10)
       RankContent.create!(rank: rank, content_type: "book", book: book, sn: 5)
 
-      get "/api/ranks/#{rank.id}", params: { uuid: user.uuid }
+      get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
 
       contents = json_response[:response][:data][:contents]
       sns = contents.map { |c| c[:sn] }
@@ -149,21 +170,21 @@ RSpec.describe "API Ranks", type: :request do
       other_grade = create(:grade, name: "三年级")
       other_rank = Rank.create!(grade: other_grade, name: "其他年级", sn: 1, category: category)
 
-      get "/api/ranks/#{other_rank.id}", params: { uuid: user.uuid }
+      get "/api/ranks/by_id", params: { rank_id: other_rank.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to be > 0
     end
 
     it "排行榜不存在时返回错误" do
-      get "/api/ranks/999999", params: { uuid: user.uuid }
+      get "/api/ranks/by_id", params: { rank_id: 999999, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to be > 0
     end
 
     it "空排行榜返回空数组" do
-      get "/api/ranks/#{rank.id}", params: { uuid: user.uuid }
+      get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:data][:contents]).to eq([])

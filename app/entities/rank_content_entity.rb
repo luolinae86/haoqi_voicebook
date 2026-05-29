@@ -14,7 +14,10 @@ module Entities
         cover_url: Book.sign_oss_url(instance.book.cover_image_url),
         page_count: instance.book.page_count,
         word_count: instance.book.word_count,
-        rating: instance.book.rating
+        rating: instance.book.rating,
+        content_description: instance.book.content_description,
+        supplier_name: instance.book.supplier&.name,
+        category_subs: instance.book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } }
       }
     end
     expose :compilation do |instance, _|

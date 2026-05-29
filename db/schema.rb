@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_29_063842) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_29_180100) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -435,6 +435,30 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_29_063842) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["app_user_id"], name: "index_parental_controls_on_app_user_id", unique: true
+  end
+
+  create_table "rank_contents", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "rank_id", null: false
+    t.bigint "compilation_id"
+    t.bigint "book_id"
+    t.string "content_type", default: "book", null: false
+    t.integer "sn", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_rank_contents_on_book_id"
+    t.index ["compilation_id"], name: "index_rank_contents_on_compilation_id"
+    t.index ["rank_id"], name: "index_rank_contents_on_rank_id"
+  end
+
+  create_table "ranks", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "grade_id", null: false
+    t.bigint "category_id"
+    t.string "name", null: false
+    t.integer "sn", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_ranks_on_category_id"
+    t.index ["grade_id"], name: "index_ranks_on_grade_id"
   end
 
   create_table "reading_progress", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "阅读进度表", force: :cascade do |t|
