@@ -70,7 +70,9 @@ module Api
           id: book.id,
           name: book.name,
           cover_url: signed_oss_url(book.cover_image_url),
-          category_id: book.category_id
+          category_id: book.category_id,
+          category_name: book.category&.name,
+          supplier_name: book.supplier&.name
         }
       end
 
