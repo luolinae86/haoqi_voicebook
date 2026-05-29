@@ -43,6 +43,7 @@ class Content < ApplicationRecord
   }.freeze
 
   def content_type_name
+    return content_type if content_type.blank?
     CONTENT_TYPES[content_type.to_sym] || content_type
   end
 
