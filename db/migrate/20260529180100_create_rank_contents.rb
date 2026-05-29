@@ -1,6 +1,6 @@
 class CreateRankContents < ActiveRecord::Migration[8.0]
   def change
-    create_table :rank_contents do |t|
+    create_table :rank_contents, if_not_exists: true do |t|
       t.references :rank, null: false, index: true
       t.references :compilation, index: true
       t.references :book, index: true
