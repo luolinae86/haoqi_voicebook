@@ -81,18 +81,26 @@ module Api
           )
         end
 
-        # ==================== 热搜关键词 ====================
-        desc '获取热门搜索关键词列表'
+        # ==================== 热搜榜单 ====================
+        desc '获取热搜图书榜单（支持分类和排行类型过滤）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
+          requires :category_id, type: Integer, desc: '分类ID（图书/有声/漫画）'
+          requires :ranking_type, type: String, desc: '排行类型', values: %w[hot rating new award classic]
+          optional :limit, type: Integer, desc: '返回数量', default: 20
         end
         get :hot_search do
           auth_user
 
-          hot_keywords = HotSearch.active.ordered
+          books = hot_search_books(
+            category_id: params[:category_id],
+            ranking_type: params[:ranking_type],
+            grade_id: current_user.grade_id
+          )
 
           present response: success_response(
-            keywords: serialize_collection(hot_keywords, Entities::HotSearchEntity)
+            books: serialize_collection(books, Entities::SearchBookEntity),
+            ranking_type: params[:ranking_type]
           )
         end
       end

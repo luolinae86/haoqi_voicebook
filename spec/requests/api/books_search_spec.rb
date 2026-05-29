@@ -294,50 +294,162 @@ RSpec.describe "API Books Search", type: :request do
 
   # ==================== GET /api/books/hot_search ====================
   describe "GET /api/books/hot_search" do
-    it "返回按 sort_order 排序的活跃关键词" do
-      create(:hot_search, keyword: "第一", sort_order: 3)
-      create(:hot_search, keyword: "第二", sort_order: 1)
-      create(:hot_search, keyword: "第三", sort_order: 2)
+    let(:ebook_category) { create(:category, name: "图书") }
+    let(:grade) { create(:grade, name: "三年级") }
+    let(:user_with_grade) { create(:app_user, grade_id: grade.id) }
 
-      get "/api/books/hot_search", params: { uuid: user.uuid }
+    it "ranking_type=hot 时按 weekly_readers 降序排列" do
+      book1 = create(:book, name: "热门书", status: :published, category: ebook_category)
+      create(:book_stats, book: book1, weekly_readers: 500)
+      book2 = create(:book, name: "一般书", status: :published, category: ebook_category)
+      create(:book_stats, book: book2, weekly_readers: 100)
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "hot" }
 
       expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
       data = json_response[:response][:data]
-      expect(data[:keywords].map { |k| k[:keyword] }).to eq(["第二", "第三", "第一"])
+      expect(data[:books].map { |b| b[:name] }).to eq(["热门书", "一般书"])
+      expect(data[:ranking_type]).to eq("hot")
     end
 
-    it "不返回非活跃关键词" do
-      create(:hot_search, keyword: "活跃词", is_active: true)
-      create(:hot_search, keyword: "非活跃词", is_active: false)
+    it "ranking_type=rating 时按评分降序排列" do
+      create(:book, name: "高分书", status: :published, category: ebook_category, rating: 9.5)
+      create(:book, name: "低分书", status: :published, category: ebook_category, rating: 5.0)
+      create(:book, name: "零分书", status: :published, category: ebook_category, rating: 0)
 
-      get "/api/books/hot_search", params: { uuid: user.uuid }
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "rating" }
 
       expect(response).to have_http_status(200)
       data = json_response[:response][:data]
-      keywords = data[:keywords].map { |k| k[:keyword] }
-      expect(keywords).to include("活跃词")
-      expect(keywords).not_to include("非活跃词")
+      expect(data[:books].map { |b| b[:name] }).to eq(["高分书", "低分书"])
+    end
+
+    it "ranking_type=new 时按创建时间降序排列" do
+      book_old = create(:book, name: "旧书", status: :published, category: ebook_category, created_at: 1.month.ago)
+      book_new = create(:book, name: "新书", status: :published, category: ebook_category, created_at: 1.day.ago)
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "new" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].map { |b| b[:name] }).to eq(["新书", "旧书"])
+    end
+
+    it "ranking_type=award 时只返回关联了「大奖版」category_sub 的图书" do
+      award_sub = create(:category_sub, name: "大奖版", category: ebook_category)
+      classic_sub = create(:category_sub, name: "名著榜", category: ebook_category)
+
+      award_book = create(:book, name: "大奖书", status: :published, category: ebook_category)
+      award_book.category_subs << award_sub
+      classic_book = create(:book, name: "名著书", status: :published, category: ebook_category)
+      classic_book.category_subs << classic_sub
+      normal_book = create(:book, name: "普通书", status: :published, category: ebook_category)
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "award" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("大奖书")
+      expect(book_names).not_to include("名著书", "普通书")
+    end
+
+    it "ranking_type=classic 时只返回关联了「名著榜」category_sub 的图书" do
+      award_sub = create(:category_sub, name: "大奖版", category: ebook_category)
+      classic_sub = create(:category_sub, name: "名著榜", category: ebook_category)
+
+      award_book = create(:book, name: "大奖书", status: :published, category: ebook_category)
+      award_book.category_subs << award_sub
+      classic_book = create(:book, name: "名著书", status: :published, category: ebook_category)
+      classic_book.category_subs << classic_sub
+      normal_book = create(:book, name: "普通书", status: :published, category: ebook_category)
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "classic" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("名著书")
+      expect(book_names).not_to include("大奖书", "普通书")
+    end
+
+    it "category_id 参数过滤指定分类" do
+      audio_category = create(:category, name: "有声")
+      create(:book, name: "图书类书", status: :published, category: ebook_category)
+      create(:book, name: "有声类书", status: :published, category: audio_category)
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "hot" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("图书类书")
+      expect(book_names).not_to include("有声类书")
+    end
+
+    it "按用户年级过滤（只返回对应年级的图书）" do
+      grade1 = create(:grade, name: "一年级")
+      grade3 = create(:grade, name: "三年级")
+      user3 = create(:app_user, grade_id: grade3.id)
+
+      book1 = create(:book, name: "一年级书", status: :published, category: ebook_category)
+      book1.grades << grade1
+      book3 = create(:book, name: "三年级书", status: :published, category: ebook_category)
+      book3.grades << grade3
+      book_both = create(:book, name: "通用书", status: :published, category: ebook_category)
+      book_both.grades << grade1 << grade3
+
+      get "/api/books/hot_search", params: { uuid: user3.uuid, category_id: ebook_category.id, ranking_type: "hot" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("三年级书")
+      expect(book_names).to include("通用书")
+      expect(book_names).not_to include("一年级书")
+    end
+
+    it "limit 参数限制返回数量" do
+      5.times do |i|
+        create(:book, name: "新书#{i}", status: :published, category: ebook_category, created_at: i.days.ago)
+      end
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "new", limit: 3 }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books].size).to eq(3)
+    end
+
+    it "不返回草稿状态的书籍" do
+      create(:book, name: "已发布书", status: :published, category: ebook_category)
+      create(:book, name: "草稿书", status: :draft, category: ebook_category)
+
+      get "/api/books/hot_search", params: { uuid: user.uuid, category_id: ebook_category.id, ranking_type: "hot" }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:books]).not_to include(a_hash_including(name: "草稿书"))
+    end
+
+    it "未提供 category_id 参数时返回参数错误" do
+      get "/api/books/hot_search", params: { uuid: user.uuid, ranking_type: "hot" }
+
+      expect(response).to have_http_status(200)
     end
 
     it "未提供 uuid 返回参数错误" do
-      get "/api/books/hot_search"
+      get "/api/books/hot_search", params: { category_id: 1, ranking_type: "hot" }
 
       expect(response).to have_http_status(200)
     end
 
     it "无效 uuid 返回未授权" do
-      get "/api/books/hot_search", params: { uuid: "invalid-uuid" }
+      get "/api/books/hot_search", params: { uuid: "invalid-uuid", category_id: 1, ranking_type: "hot" }
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).not_to eq(0)
-    end
-
-    it "无数据时返回空数组" do
-      get "/api/books/hot_search", params: { uuid: user.uuid }
-
-      expect(response).to have_http_status(200)
-      data = json_response[:response][:data]
-      expect(data[:keywords]).to eq([])
     end
   end
 
