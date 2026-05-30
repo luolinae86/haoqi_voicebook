@@ -9,13 +9,19 @@ RSpec.describe Entities::AppUser do
 
   subject(:json) { described_class.represent(user).as_json }
 
-  it 'exposes grade_name instead of grade_id' do
+  it 'exposes grade_id' do
+    expect(json).to include(:grade_id)
+    expect(json[:grade_id]).to eq(grade.id)
+  end
+
+  it 'exposes grade_name' do
     expect(json).to include(:grade_name)
     expect(json[:grade_name]).to eq('一年级')
   end
 
-  it 'returns nil grade_name when user has no grade_id' do
+  it 'returns nil grade_id and grade_name when user has no grade' do
     json_without_grade = described_class.represent(user_without_grade).as_json
+    expect(json_without_grade[:grade_id]).to be_nil
     expect(json_without_grade[:grade_name]).to be_nil
   end
 
