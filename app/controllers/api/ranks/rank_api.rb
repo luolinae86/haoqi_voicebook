@@ -43,6 +43,7 @@ module Api
             rank: {
               id: rank.id,
               name: rank.name,
+              category_id: rank.category_id,
               category_name: rank.category&.name
             },
             contents: serialize_rank_contents(rank)

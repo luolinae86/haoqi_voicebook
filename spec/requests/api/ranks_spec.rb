@@ -117,6 +117,7 @@ RSpec.describe "API Ranks", type: :request do
       expect(json_response[:response][:code]).to eq(0)
       data = json_response[:response][:data]
       expect(data[:rank][:name]).to eq("必读榜单")
+      expect(data[:rank][:category_id]).to eq(category.id)
       contents = data[:contents]
       expect(contents.size).to eq(1)
       expect(contents.first[:book][:name]).to eq("小王子")
