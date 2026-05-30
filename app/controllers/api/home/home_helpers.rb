@@ -22,13 +22,22 @@ module Api
 
       private
 
+      def book_blacklisted?(book_id)
+        return false if book_id.blank?
+        pc = current_user&.parental_control
+        return false unless pc
+        pc.blacklisted_books.exists?(book_id: book_id)
+      rescue
+        false
+      end
+
       def serialize_content_group(cg)
         {
           id: cg.id,
           name: cg.name,
           group_type: cg.group_type,
           group_type_name: cg.group_type_name,
-          contents: cg.contents.sorted.map { |content| serialize_content(content) }
+          contents: cg.contents.includes(:book).sorted.reject { |c| book_blacklisted?(c.book_id) }.map { |content| serialize_content(content) }
         }
       end
 

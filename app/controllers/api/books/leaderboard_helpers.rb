@@ -13,6 +13,7 @@ module Api
       # @param grade_id [Integer, nil] 年级ID
       def leaderboard_books(category_id:, ranking_type:, period:, grade_id:)
         scope = Book.published_books
+          .not_in_blacklist(current_user.id)
           .includes(:author, :category, :book_stats)
 
         scope = scope.where(category_id: category_id) if category_id.present?

@@ -21,7 +21,9 @@ module Api
       end
 
       def serialize_rank_contents(rank)
-        rank.rank_contents.order(sn: :asc).map do |rc|
+        rank.rank_contents.includes(:book).order(sn: :asc).reject do |rc|
+          rc.book_id.present? && rc.book&.id && current_user&.parental_control&.blacklisted_books&.exists?(book_id: rc.book_id)
+        end.map do |rc|
           Entities::RankContent.represent(rc).as_json
         end
       end

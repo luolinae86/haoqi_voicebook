@@ -81,6 +81,25 @@ module Api
 
       private
 
+      # 检查图书是否在用户黑名单中，如在则抛出错误
+      def check_book_not_blacklisted!(book_id)
+        return if book_id.blank?
+        pc = current_user&.parental_control
+        return unless pc
+        if pc.blacklisted_books.exists?(book_id: book_id)
+          error_pop_resp('该资源已被家长加入黑名单')
+        end
+      end
+
+      def book_blacklisted?(book_id)
+        return false if book_id.blank?
+        pc = current_user&.parental_control
+        return false unless pc
+        pc.blacklisted_books.exists?(book_id: book_id)
+      rescue
+        false
+      end
+
       def extract_body_preview(xhtml)
         match = xhtml.match(/<body[^>]*>(.*?)<\/body>/m)
         match ? match[1].to_s : nil

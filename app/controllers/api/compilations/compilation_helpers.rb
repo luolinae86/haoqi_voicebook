@@ -16,7 +16,7 @@ module Api
           author: compilation.author,
           publisher: compilation.publisher,
           cover_url: signed_oss_url(compilation.landscape_cover_url),
-          books: compilation.books.map do |book|
+          books: compilation.books.not_in_blacklist(current_user.id).map do |book|
             {
               id: book.id,
               name: book.name,

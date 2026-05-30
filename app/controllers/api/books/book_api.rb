@@ -18,8 +18,8 @@ module Api
         get :compilation do
           auth_user
           compilation = Compilation.find(params[:compilation_id])
-          books = compilation.books.includes(:author).order(created_at: :desc)
-          contents = compilation.contents.includes(:book, :author).sorted
+          books = compilation.books.includes(:author).order(created_at: :desc).not_in_blacklist(current_user.id)
+          contents = compilation.contents.includes(:book, :author).sorted.reject { |c| book_blacklisted?(c.book_id) }
 
           serialized_books = serialize_collection(books, Entities::Book)
           serialized_contents = contents.map do |content|
@@ -51,6 +51,7 @@ module Api
 
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') unless book
+          check_book_not_blacklisted!(book.id)
 
           present response: success_response(book: Entities::Book.represent(book).as_json)
         end
@@ -88,6 +89,7 @@ module Api
 
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') unless book
+          check_book_not_blacklisted!(book.id)
 
           present response: success_response(
             book_id: book.id,
@@ -134,6 +136,7 @@ module Api
 
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') unless book
+          check_book_not_blacklisted!(book.id)
           pages = book.ebook_pages.ordered.page(params[:page]).per(params[:per_page])
 
           present response: success_response(
@@ -156,6 +159,7 @@ module Api
 
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') unless book
+          check_book_not_blacklisted!(book.id)
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
 
           present response: success_response(page_response(book, page))
@@ -173,6 +177,7 @@ module Api
 
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') unless book
+          check_book_not_blacklisted!(book.id)
           page = book.ebook_pages.find_by!(page_number: params[:page_number])
 
           if page.xhtml_content.present?
@@ -198,6 +203,7 @@ module Api
 
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') unless book
+          check_book_not_blacklisted!(book.id)
           if book.styles_oss_url.present?
             redirect signed_oss_url(book.styles_oss_url)
           else

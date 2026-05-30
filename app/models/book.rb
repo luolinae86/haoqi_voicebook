@@ -93,6 +93,13 @@ class Book < ApplicationRecord
   scope :highest_rated, -> { order(rating: :desc) }
   scope :recently_added, -> { order(created_at: :desc) }
 
+  # 过滤指定用户黑名单中的图书
+  scope :not_in_blacklist, ->(app_user_id) {
+    where.not(id: BlacklistedBook.select(:book_id)
+      .joins(:parental_control)
+      .where(parental_controls: { app_user_id: app_user_id }))
+  }
+
   # OSS URL 签名辅助方法（统一使用，处理中文路径）
   def self.sign_oss_url(url, expires: 3600)
     return nil if url.blank?

@@ -12,6 +12,7 @@ module Api
       # @return [ActiveRecord::Relation] 搜索结果
       def search_books(keyword:, content_type: nil)
         scope = Book.published_books
+          .not_in_blacklist(current_user.id)
           .left_joins(:author, :book_stats)
           .where("books.name LIKE :kw OR authors.name LIKE :kw", kw: "%#{keyword}%")
 
@@ -29,6 +30,7 @@ module Api
       # @param grade_id [Integer, nil] 年级ID
       def hot_search_books(category_id:, ranking_type:, grade_id:)
         scope = Book.published_books
+          .not_in_blacklist(current_user.id)
           .includes(:author, :category, :book_stats)
           .where(category_id: category_id)
 

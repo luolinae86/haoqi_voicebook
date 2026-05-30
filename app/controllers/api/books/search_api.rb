@@ -39,6 +39,7 @@ module Api
           auth_user
 
           books = Book.published_books
+            .not_in_blacklist(current_user.id)
             .by_author(params[:author_id])
             .left_joins(:book_stats)
             .includes(:category, :supplier, :category_subs)
