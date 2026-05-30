@@ -123,6 +123,7 @@ RSpec.describe "API Ranks", type: :request do
       expect(contents.first[:book][:name]).to eq("小王子")
       expect(contents.first[:book][:page_count]).to eq(50)
       expect(contents.first[:book][:cover_url]).to include("book-cover.jpg")
+      expect(contents.first[:book]).to have_key(:category_id)
     end
 
     it "返回图书的内容简介、出版社和二级分类" do

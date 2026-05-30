@@ -12,6 +12,7 @@ module Entities
         id: instance.book.id,
         name: instance.book.name,
         cover_url: Book.sign_oss_url(instance.book.cover_image_url),
+        category_id: instance.book.category_id,
         page_count: instance.book.page_count,
         word_count: instance.book.word_count,
         rating: instance.book.rating,
