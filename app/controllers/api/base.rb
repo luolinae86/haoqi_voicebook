@@ -33,6 +33,7 @@ module Api
     mount Api::Readings::Mount
     mount Api::Leaderboards::Mount
     mount Api::Ranks::Mount
+    mount Api::Categories::Mount
     mount Api::HeadImgs::Mount
 
     # ==================== Swagger 文档 ====================
@@ -54,7 +55,8 @@ module Api
         { name: "parental", description: "家长管控" },
         { name: "reading", description: "阅读统计与进度" },
         { name: "leaderboards", description: "排行榜" },
-        { name: "ranks", description: "年级推荐榜" }
+        { name: "ranks", description: "年级推荐榜" },
+        { name: "categories", description: "分类浏览" }
       ],
       hide_documentation_path: false
     )
