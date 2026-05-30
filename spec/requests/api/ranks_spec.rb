@@ -151,9 +151,34 @@ RSpec.describe "API Ranks", type: :request do
 
       get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
 
-      contents = json_response[:response][:data][:contents]
-      expect(contents.first[:compilation][:name]).to eq("经典文学合集")
-      expect(contents.first[:compilation][:total_count]).to eq(10)
+      comp = json_response[:response][:data][:contents].first[:compilation]
+      expect(comp[:name]).to eq("经典文学合集")
+      expect(comp[:total_count]).to eq(10)
+      expect(comp).to have_key(:editor_recommendation)
+      expect(comp).to have_key(:publisher)
+      expect(comp).to have_key(:author)
+      expect(comp).to have_key(:tags)
+    end
+
+    it "返回合集内容属性字段值" do
+      comp_with_attrs = Compilation.create!(
+        name: "有声故事合集",
+        banner_image_url: "https://example.com/banner.jpg",
+        total_count: 5,
+        editor_recommendation: "精选有声故事",
+        publisher: "海豚出版社",
+        author: "张三",
+        tags: "有声,儿童"
+      )
+      RankContent.create!(rank: rank, content_type: "compilation", compilation: comp_with_attrs, sn: 1)
+
+      get "/api/ranks/by_id", params: { rank_id: rank.id, uuid: user.uuid }
+
+      comp = json_response[:response][:data][:contents].first[:compilation]
+      expect(comp[:editor_recommendation]).to eq("精选有声故事")
+      expect(comp[:publisher]).to eq("海豚出版社")
+      expect(comp[:author]).to eq("张三")
+      expect(comp[:tags]).to eq("有声,儿童")
     end
 
     it "内容按 sn 排序" do

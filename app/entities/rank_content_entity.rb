@@ -26,7 +26,11 @@ module Entities
         id: instance.compilation.id,
         name: instance.compilation.name,
         cover_url: signed_oss_url(instance.compilation.banner_image_url),
-        total_count: instance.compilation.total_count
+        editor_recommendation: instance.compilation.editor_recommendation,
+        publisher: instance.compilation.publisher,
+        total_count: instance.compilation.total_count,
+        author: instance.compilation.author,
+        tags: instance.compilation.tags
       }
     end
 
