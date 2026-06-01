@@ -125,18 +125,20 @@ RSpec.describe "API Books Search", type: :request do
       expect(data[:total_count]).to eq(0)
     end
 
-    # -- 草稿书籍不出现 --
-    it "不返回草稿状态的书籍" do
+    # -- 所有状态均可被搜索 --
+    it "搜索草稿和已发布状态的书籍" do
       author = create(:author)
       create(:book, name: "已发布书", author: author, status: :published)
-      create(:book, name: "已发布书第二本", author: author, status: :draft)
+      create(:book, name: "草稿书", author: author, status: :draft)
+      create(:book, name: "已下架书", author: author, status: :offline)
 
-      get "/api/books/search", params: { keyword: "已发布", uuid: user.uuid }
+      get "/api/books/search", params: { keyword: "书", uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       data = json_response[:response][:data]
-      expect(data[:books].size).to eq(1)
-      expect(data[:books].first[:name]).to eq("已发布书")
+      expect(data[:books].size).to eq(3)
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("已发布书", "草稿书", "已下架书")
     end
   end
 

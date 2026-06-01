@@ -6,11 +6,11 @@ module Api
     module SearchHelpers
       extend Grape::API::Helpers
 
-      # 搜索资源：书名 LIKE 或作者名 LIKE，仅返回已发布资源
+      # 搜索资源：书名 LIKE 或作者名 LIKE，返回所有状态资源
       # @param keyword [String] 搜索关键词
       # @return [ActiveRecord::Relation] 搜索结果
       def search_books(keyword:)
-        Book.published_books
+        Book.all
           .not_in_blacklist(current_user.id)
           .left_joins(:author, :book_stats)
           .where("books.name LIKE :kw OR authors.name LIKE :kw", kw: "%#{keyword}%")
