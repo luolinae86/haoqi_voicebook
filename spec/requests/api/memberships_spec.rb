@@ -114,7 +114,7 @@ RSpec.describe "API Memberships", type: :request do
         expect(data[:order][:payment_method]).to eq("alipay")
       end
 
-      it "微信支付返回 payment_params Hash" do
+      it "微信支付返回 payment_params Hash 且包含所有必要字段" do
         post "/api/memberships/create_order",
              params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
              as: :json
@@ -122,8 +122,14 @@ RSpec.describe "API Memberships", type: :request do
         data = json_response[:response][:data]
         expect(data[:payment_params]).to be_a(Hash)
         expect(data[:payment_params]).to have_key(:appid)
+        expect(data[:payment_params]).to have_key(:partnerid)
         expect(data[:payment_params]).to have_key(:prepayid)
+        expect(data[:payment_params]).to have_key(:package)
+        expect(data[:payment_params]).to have_key(:noncestr)
+        expect(data[:payment_params]).to have_key(:timestamp)
         expect(data[:payment_params]).to have_key(:sign)
+        expect(data[:order][:payment_method]).to eq("wechat")
+        expect(data[:payment_params][:prepayid]).to eq("wx_mock_prepay_id")
       end
 
       it "返回 msg 提示消息" do
@@ -304,6 +310,42 @@ RSpec.describe "API Memberships", type: :request do
            params: { out_trade_no: "test", trade_status: "TRADE_SUCCESS", sign: "bad", sign_type: "RSA2" }
 
       expect(response.body).to include("failure")
+    end
+  end
+
+  # ==================== 微信支付回调 ====================
+  # 注：微信回调使用 env['rack.input'].gets(nil) 读取原始 JSON body，
+  # 而 Grape 在解析 JSON 参数时会消费 rack.input 流，导致 endpoint 中
+  # reads 为空。签名验证逻辑已在 spec/services/wechat_payment_service_spec.rb 中充分测试。
+  describe "POST /api/memberships/wechat_callback" do
+    it "成功回调时入队 PaymentCallbackWorker" do
+      order = create(:order, status: :pending, membership: create(:membership, status: :pending))
+
+      # 模拟 service 验证成功
+      allow_any_instance_of(WechatPaymentService).to receive(:verify_callback?).and_return(true)
+
+      post "/api/memberships/wechat_callback",
+           params: { out_trade_no: order.order_no, trade_state: "SUCCESS" }.to_json,
+           as: :json
+
+      expect(response).to have_http_status(200).or have_http_status(201)
+      json = JSON.parse(response.body)
+      expect(json["code"]).to eq("SUCCESS")
+
+      # 验证 worker 被入队
+      expect(PaymentCallbackWorker.jobs.size).to eq(1)
+    end
+
+    it "验证失败时返回 FAIL" do
+      allow_any_instance_of(WechatPaymentService).to receive(:verify_callback?).and_return(false)
+
+      post "/api/memberships/wechat_callback",
+           params: "{}",
+           as: :json
+
+      expect(response).to have_http_status(200).or have_http_status(201)
+      json = JSON.parse(response.body)
+      expect(json["code"]).to eq("FAIL")
     end
   end
 end

@@ -148,7 +148,26 @@ module Api
         # ==================== 微信异步回调 ====================
         desc '微信支付异步通知回调（无需鉴权）'
         post :wechat_callback do
-          callback_body = env['rack.input'].gets(nil)&.force_encoding('utf-8') || ''
+          # 读取回调 body（优先从 rack.input 读取原始 body，兼容 Grape 解析后）
+          callback_body = begin
+            raw = env['rack.input']
+            if raw.respond_to?(:rewind)
+              raw.rewind
+              content = raw.read
+              raw.rewind
+              content
+            else
+              raw.gets(nil).to_s
+            end
+          rescue
+            ''
+          end
+
+          # 如果 raw body 为空（Grape 已消费），从 params 获取
+          if callback_body.blank?
+            callback_body = params.except(:route_info, :version, :format).to_json
+          end
+
           callback_headers = {
             'Wechatpay-Timestamp' => headers['Wechatpay-Timestamp'],
             'Wechatpay-Nonce' => headers['Wechatpay-Nonce'],
