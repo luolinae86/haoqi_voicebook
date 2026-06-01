@@ -46,20 +46,20 @@ RSpec.describe "API Books Search", type: :request do
       expect(book_names).to contain_exactly("草房子", "青铜葵花")
     end
 
-    # -- 按 content_type 过滤 --
-    it "按内容类型过滤搜索结果" do
+    # -- 搜索所有类型资源 --
+    it "搜索结果包含所有类型的资源（ebook/audio/video）" do
       author = create(:author)
       create(:book, name: "有声西游记", author: author, content_type: :audio, play_count: 100)
       create(:book, name: "视频西游记", author: author, content_type: :video, play_count: 200)
       create(:book, name: "图书西游记", author: author, content_type: :ebook, play_count: 300)
 
-      get "/api/books/search", params: { keyword: "西游记", content_type: "audio", uuid: user.uuid }
+      get "/api/books/search", params: { keyword: "西游记", uuid: user.uuid }
 
       expect(response).to have_http_status(200)
       data = json_response[:response][:data]
-      expect(data[:books].size).to eq(1)
-      expect(data[:books].first[:name]).to eq("有声西游记")
-      expect(data[:books].first[:content_type]).to eq("audio")
+      expect(data[:books].size).to eq(3)
+      book_names = data[:books].map { |b| b[:name] }
+      expect(book_names).to include("有声西游记", "视频西游记", "图书西游记")
     end
 
     # -- 按热度排序 --

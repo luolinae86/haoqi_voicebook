@@ -11,16 +11,15 @@ module Api
 
       namespace :books do
         # ==================== 搜索图书 ====================
-        desc '搜索图书（按书名或作者名，支持内容类型过滤）'
+        desc '搜索资源（按书名或作者名，搜索所有类型资源）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
           requires :keyword, type: String, desc: '搜索关键词'
-          optional :content_type, type: String, desc: '内容类型过滤', values: %w[ebook audio video picture_book]
         end
         get :search do
           auth_user
 
-          books = search_books(keyword: params[:keyword], content_type: params[:content_type])
+          books = search_books(keyword: params[:keyword])
 
           present response: success_response(
             books: serialize_collection(books, Entities::SearchBookEntity),
