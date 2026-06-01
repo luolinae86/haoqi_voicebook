@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_29_180100) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_01_112131) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -535,6 +535,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_29_180100) do
     t.index ["app_user_id", "stat_date"], name: "index_user_reading_daily_stats_on_app_user_id_and_stat_date", unique: true
   end
 
+  create_table "user_searches", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "app_user_id", null: false
+    t.string "keyword", null: false, comment: "搜索关键词"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_user_id", "created_at"], name: "index_user_searches_on_app_user_id_and_created_at"
+    t.index ["app_user_id"], name: "index_user_searches_on_app_user_id"
+  end
+
   add_foreign_key "book_grades", "books"
   add_foreign_key "book_grades", "grades"
   add_foreign_key "books", "suppliers"
@@ -553,4 +562,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_29_180100) do
   add_foreign_key "devices", "app_users"
   add_foreign_key "ebook_pages", "books"
   add_foreign_key "recommends", "grades"
+  add_foreign_key "user_searches", "app_users"
 end

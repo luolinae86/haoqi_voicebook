@@ -95,6 +95,45 @@ RSpec.describe "API Memberships", type: :request do
         expect(json_response[:response][:data][:payment_params][:prepayid]).to eq("wx_mock_prepay_id")
       end
 
+      it "支付宝支付返回 payment_params 支付字符串" do
+        # 配置支付宝测试密钥
+        private_key = OpenSSL::PKey::RSA.generate(2048)
+        ENV["ALIPAY_PRIVATE_KEY"] = private_key.to_pem
+
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "alipay" },
+             as: :json
+
+        expect(response).to have_http_status(200).or have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+
+        data = json_response[:response][:data]
+        expect(data[:payment_params]).to be_a(String)
+        expect(data[:payment_params]).to include("sign=")
+        expect(data[:payment_params]).to include("biz_content")
+        expect(data[:order][:payment_method]).to eq("alipay")
+      end
+
+      it "微信支付返回 payment_params Hash" do
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
+             as: :json
+
+        data = json_response[:response][:data]
+        expect(data[:payment_params]).to be_a(Hash)
+        expect(data[:payment_params]).to have_key(:appid)
+        expect(data[:payment_params]).to have_key(:prepayid)
+        expect(data[:payment_params]).to have_key(:sign)
+      end
+
+      it "返回 msg 提示消息" do
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
+             as: :json
+
+        expect(json_response[:response][:msg]).to include("支付")
+      end
+
       it "生成订单记录和会员记录" do
         expect do
           post "/api/memberships/create_order",
@@ -237,6 +276,7 @@ RSpec.describe "API Memberships", type: :request do
     it "返回 success 当签名验证成功且支付成功" do
       private_key = OpenSSL::PKey::RSA.generate(2048)
       ENV["ALIPAY_PUBLIC_KEY"] = private_key.public_key.to_pem
+      ENV["ALIPAY_RESPONSE_PUBLIC_KEY"] = private_key.public_key.to_pem
 
       order = create(:order, status: :pending, membership: create(:membership, status: :pending))
 
@@ -257,6 +297,9 @@ RSpec.describe "API Memberships", type: :request do
     end
 
     it "返回 failure 当签名验证失败" do
+      private_key = OpenSSL::PKey::RSA.generate(2048)
+      ENV["ALIPAY_RESPONSE_PUBLIC_KEY"] = private_key.public_key.to_pem
+
       post "/api/memberships/alipay_callback",
            params: { out_trade_no: "test", trade_status: "TRADE_SUCCESS", sign: "bad", sign_type: "RSA2" }
 
