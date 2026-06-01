@@ -21,10 +21,28 @@ module Api
 
           books = search_books(keyword: params[:keyword])
 
+          # 记录用户搜索关键词
+          UserSearch.create!(app_user: current_user, keyword: params[:keyword])
+
           present response: success_response(
             books: serialize_collection(books, Entities::SearchBookEntity),
             total_count: books.count('DISTINCT books.id')
           )
+        end
+
+        # ==================== 热门搜索关键词 ====================
+        desc '获取热门搜索关键词列表（按搜索次数降序）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          optional :limit, type: Integer, desc: '返回数量', default: 10
+        end
+        get :hot_keywords do
+          auth_user
+
+          keywords = UserSearch.top_keywords(params[:limit] || 10)
+            .map { |r| { keyword: r.keyword } }
+
+          present response: success_response(keywords: keywords)
         end
 
         # ==================== 按作者查询图书 ====================
