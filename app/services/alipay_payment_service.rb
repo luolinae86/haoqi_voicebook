@@ -35,17 +35,24 @@ class AlipayPaymentService
     sign = params.delete("sign")
     sign_type = params.delete("sign_type")
 
+    Rails.logger.info("[AlipayCallback] sign_type=#{sign_type}, sign=#{sign&.to_s&.[](0..20)}, params_keys=#{params.keys.inspect}")
+
     sorted_params = params.sort.to_h
     string_to_sign = sorted_params.map { |k, v| "#{k}=#{v}" }.join("&")
 
+    Rails.logger.info("[AlipayCallback] string_to_sign=#{string_to_sign[0..200]}")
+
     if sign_type == "RSA2"
       public_key = OpenSSL::PKey::RSA.new(alipay_response_public_key)
-      public_key.verify(
+      result = public_key.verify(
         OpenSSL::Digest.new("SHA256"),
         Base64.decode64(sign),
         string_to_sign
       )
+      Rails.logger.info("[AlipayCallback] verify_result=#{result}")
+      result
     else
+      Rails.logger.info("[AlipayCallback] unsupported sign_type=#{sign_type}")
       false
     end
   end
