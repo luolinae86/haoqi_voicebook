@@ -34,36 +34,6 @@ module Api
           package = Package.find_by(id: params[:package_id])
           raise ArgumentError, '无效的套餐' unless package
 
-          # 防止重复点击创建多个待支付订单
-          pending_membership = Membership.find_by(app_user: current_user, status: :pending)
-          if pending_membership && pending_membership.orders.pending.exists?
-            order = pending_membership.orders.pending.first
-
-            # 重新生成支付参数，方便前端继续完成支付
-            subject = "#{package.name} - #{package.price}元"
-            payment_params = case order.payment_method
-                             when 'alipay'
-                               AlipayPaymentService.new.create_order(
-                                 order_no: order.order_no,
-                                 amount: order.amount,
-                                 subject: subject
-                               )
-                             when 'wechat'
-                               WechatPaymentService.new.create_prepay(
-                                 order_no: order.order_no,
-                                 amount: order.amount,
-                                 subject: subject
-                               )
-                             end
-
-            present response: success_response(
-              order: Entities::Order.represent(order).as_json,
-              payment_params: payment_params,
-              msg: '已有待支付订单，请完成支付'
-            )
-            next
-          end
-
           # 创建待支付会员记录
           membership = Membership.create!(
             app_user: current_user,

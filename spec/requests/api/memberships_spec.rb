@@ -168,7 +168,7 @@ RSpec.describe "API Memberships", type: :request do
         expect(json_response[:response][:code]).not_to eq(0)
       end
 
-      it "重复点击时返回已有待支付订单及支付参数而非创建新订单" do
+      it "每次调用都创建新订单，不记住待支付订单" do
         post "/api/memberships/create_order",
              params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
              as: :json
@@ -181,32 +181,9 @@ RSpec.describe "API Memberships", type: :request do
 
         expect(response).to have_http_status(200).or have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
-        expect(json_response[:response][:data][:order][:order_no]).to eq(first_order_no)
-        expect(json_response[:response][:msg]).to include("待支付")
-        # 返回 payment_params 以便前端继续支付
+        # 每次都创建新订单，order_no 不同
+        expect(json_response[:response][:data][:order][:order_no]).not_to eq(first_order_no)
         expect(json_response[:response][:data][:payment_params]).to be_a(Hash)
-        expect(json_response[:response][:data][:payment_params][:prepayid]).to eq("wx_mock_prepay_id")
-      end
-
-      it "重复点击时支付宝返回 payment_params 支付字符串" do
-        private_key = OpenSSL::PKey::RSA.generate(2048)
-        ENV["ALIPAY_PRIVATE_KEY"] = private_key.to_pem
-
-        post "/api/memberships/create_order",
-             params: { uuid: user.uuid, package_id: package.id, payment_method: "alipay" },
-             as: :json
-
-        first_order_no = json_response[:response][:data][:order][:order_no]
-
-        post "/api/memberships/create_order",
-             params: { uuid: user.uuid, package_id: package.id, payment_method: "alipay" },
-             as: :json
-
-        expect(response).to have_http_status(200).or have_http_status(201)
-        expect(json_response[:response][:data][:order][:order_no]).to eq(first_order_no)
-        expect(json_response[:response][:data][:payment_params]).to be_a(String)
-        expect(json_response[:response][:data][:payment_params]).to include("sign=")
-        expect(json_response[:response][:data][:payment_params]).to include("biz_content")
       end
     end
 
