@@ -59,21 +59,31 @@ class Order < ApplicationRecord
   end
 
   # 激活会员（订单支付成功后调用）
+  # 如果用户已是 VIP 且会员未过期，则在现有过期时间基础上延长
   def activate_membership!
     return unless membership
+
+    new_end_date = calculate_end_date(membership.plan_type)
+
+    # 如果用户当前是有效 VIP，在现有过期时间基础上延长
+    if app_user.is_vip? && app_user.vip_expires_at.present? && app_user.vip_expires_at > Time.current
+      base_date = app_user.vip_expires_at.to_date
+      days = (new_end_date - Date.current).to_i
+      new_end_date = base_date + days
+    end
 
     membership.update!(
       status: :active,
       start_date: Date.current,
-      end_date: calculate_end_date(membership.plan_type)
+      end_date: new_end_date
     )
 
     app_user.update!(
       is_vip: true,
-      vip_expires_at: calculate_end_date(membership.plan_type).end_of_day
+      vip_expires_at: new_end_date.end_of_day
     )
 
-    Rails.logger.info("[Order] Activated #{membership.plan_type} membership for user ##{app_user_id}")
+    Rails.logger.info("[Order] Activated #{membership.plan_type} membership for user ##{app_user_id}, ends at #{new_end_date}")
   end
 
   private
