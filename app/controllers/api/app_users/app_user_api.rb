@@ -97,13 +97,16 @@ module Api
 
           openid = WechatAuthService.new.get_openid(params[:code])
 
-          existing_user = AppUser.find_by(wechat_openid: openid)
-          if existing_user
-            user = existing_user
-          else
-            user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}") unless user.wechat_openid.present?
-            expire_user_cache(params[:uuid])
-          end
+          # 如果 openid 已被其他用户占用，先清空其绑定
+          other_user = AppUser.find_by(wechat_openid: openid)
+          other_user&.update!(wechat_openid: nil) if other_user && other_user != user
+
+          # 总是覆盖更新当前用户的 openid
+          user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}")
+          expire_user_cache(params[:uuid])
+
+          # 如果用户没有手机号，返回绑定手机提示
+          error_pop_resp('请绑定手机号') if user.phone.blank?
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         end
