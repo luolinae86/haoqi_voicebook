@@ -31,28 +31,29 @@ class AlipayPaymentService
   # @param raw_body [String] 原始 URL-encoded 请求体
   # @return [Boolean]
   def verify_callback_with_raw_body?(_params, raw_body)
-    # 从原始 body 解析所有参数（保持 URL-encoded 值）
     pairs = raw_body.split('&').map { |p| p.split('=', 2) }
 
-    # 提取 sign（URL-decoded）
     sign_pair = pairs.find { |k, _| k == 'sign' }
     return false if sign_pair.nil?
 
     sign = CGI.unescape(sign_pair.last)
 
-    # 去掉 sign 参数，按 key 排序，URL-decode 每个值后重建签名串
-    # 支付宝签名时包含 sign_type 在内的所有参数（仅排除 sign 本身）
     string_to_sign = pairs.to_h.tap { _1.delete('sign') }
-                               .sort
-                               .map { |k, v| "#{k}=#{CGI.unescape(v)}" }
-                               .join('&')
+                          .sort
+                          .map { |k, v| "#{k}=#{CGI.unescape(v)}" }
+                          .join('&')
+
+    Rails.logger.info("[AlipayDebug] raw_body=#{raw_body}")
+    Rails.logger.info("[AlipayDebug] string_to_sign=#{string_to_sign}")
 
     public_key = OpenSSL::PKey::RSA.new(alipay_response_public_key)
-    public_key.verify(
+    result = public_key.verify(
       OpenSSL::Digest.new('SHA256'),
       Base64.decode64(sign),
       string_to_sign
     )
+    Rails.logger.info("[AlipayDebug] verify_result=#{result}")
+    result
   end
 
   # 验证支付宝异步回调签名（旧方法，保留兼容）
