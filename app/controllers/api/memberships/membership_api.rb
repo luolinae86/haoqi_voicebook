@@ -109,10 +109,25 @@ module Api
         # ==================== 支付宝异步回调 ====================
         desc '支付宝支付异步通知回调（无需鉴权）'
         post :alipay_callback do
+          # 支付宝回调签名基于原始 URL-encoded body，必须读取原始 body
+          raw_body = begin
+            raw = env['rack.input']
+            if raw.respond_to?(:rewind)
+              raw.rewind
+              content = raw.read
+              raw.rewind
+              content
+            else
+              raw.to_s
+            end
+          rescue
+            ''
+          end
+
           callback_params = params.except(:route_info)
           alipay_service = AlipayPaymentService.new
 
-          if alipay_service.verify_callback?(callback_params)
+          if alipay_service.verify_callback_with_raw_body?(callback_params, raw_body)
             trade_status = callback_params['trade_status']
 
             if %w[TRADE_SUCCESS TRADE_FINISHED].include?(trade_status)

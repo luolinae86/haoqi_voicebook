@@ -25,7 +25,41 @@ class AlipayPaymentService
     all_params.map { |k, v| "#{k}=#{CGI.escape(v.to_s)}" }.join("&")
   end
 
-  # 验证支付宝异步回调签名
+  # 验证支付宝异步回调签名（使用原始 URL-encoded body）
+  # 支付宝对原始 body 签名，Grape 会 URL-decode 参数导致验签失败
+  # @param _params [Hash] Grape 解码后的参数（未使用，仅保留接口兼容）
+  # @param raw_body [String] 原始 URL-encoded 请求体
+  # @return [Boolean]
+  def verify_callback_with_raw_body?(_params, raw_body)
+    # 从原始 body 解析所有参数
+    pairs = raw_body.split("&")
+      .map { |p| p.split("=", 2) }
+
+    # 提取 sign 和 sign_type（URL-decoded）
+    sign_pair = pairs.find { |k, _| k == "sign" }
+    sign_type_pair = pairs.find { |k, _| k == "sign_type" }
+    return false if sign_pair.nil? || sign_type_pair.nil?
+
+    sign = CGI.unescape(sign_pair.last)
+    sign_type = CGI.unescape(sign_type_pair.last)
+    return false if sign_type != "RSA2"
+
+    # 去掉 sign 和 sign_type，按 key 排序，重建签名串（保持原始 URL-encoded 值）
+    string_to_sign = pairs
+      .reject { |k, _| %w[sign sign_type].include?(k) }
+      .sort_by { |k, _| k }
+      .map { |k, v| "#{k}=#{v}" }
+      .join("&")
+
+    public_key = OpenSSL::PKey::RSA.new(alipay_response_public_key)
+    public_key.verify(
+      OpenSSL::Digest.new("SHA256"),
+      Base64.decode64(sign),
+      string_to_sign
+    )
+  end
+
+  # 验证支付宝异步回调签名（旧方法，保留兼容）
   # @param params [Hash] 支付宝回调参数
   # @return [Boolean]
   def verify_callback?(params)
