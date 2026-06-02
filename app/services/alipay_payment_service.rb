@@ -29,6 +29,9 @@ class AlipayPaymentService
   # @param params [Hash] 支付宝回调参数
   # @return [Boolean]
   def verify_callback?(params)
+    # 兼容 Grape 返回的 symbol keys，统一转为 string keys
+    params = params.transform_keys(&:to_s)
+
     sign = params.delete("sign")
     sign_type = params.delete("sign_type")
 
