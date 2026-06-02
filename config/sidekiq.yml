@@ -1,5 +1,6 @@
 :concurrency: 2
 :queues:
+  - payment
   - default
   - import
   - export
