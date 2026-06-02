@@ -8,6 +8,50 @@ module Api
       helpers Api::Concerns::CommonHelpers
 
       namespace :memberships do
+        # ==================== 支付宝异步回调（单独 namespace，提前捕获 raw body） ====================
+        # Grape 会消费 rack.input 解析 params，但支付宝回调签名基于原始 URL-encoded body
+        # 使用 separate namespace + before 块在 Grape 解析前读取原始 body
+        namespace :alipay_callback do
+          before do
+            raw = env['rack.input']
+            if raw.respond_to?(:rewind)
+              raw.rewind
+              @alipay_raw_body = raw.read
+              raw.rewind
+            else
+              @alipay_raw_body = raw.to_s
+            end
+          rescue StandardError
+            @alipay_raw_body = ''
+          end
+
+          route :post do
+            callback_params = params.except(:route_info)
+            alipay_service = AlipayPaymentService.new
+
+            if alipay_service.verify_callback_with_raw_body?(callback_params, @alipay_raw_body)
+              trade_status = callback_params['trade_status']
+
+              if %w[TRADE_SUCCESS TRADE_FINISHED].include?(trade_status)
+                order_no = callback_params['out_trade_no']
+                PaymentCallbackWorker.perform_async({
+                                                      'order_no' => order_no,
+                                                      'payment_method' => 'alipay',
+                                                      'result' => callback_params.to_h
+                                                    })
+              end
+
+              content_type 'text/plain'
+              'success'
+            else
+              Rails.logger.warn("[AlipayCallback] Signature verification failed for order: #{callback_params['out_trade_no']}, raw_body_len=#{@alipay_raw_body.length}, raw_body=#{@alipay_raw_body[0..200]}")
+              content_type 'text/plain'
+              'failure'
+            end
+          end
+        end
+
+        # 其他接口
         # ==================== 获取会员套餐列表 ====================
         desc '获取会员套餐列表'
         params do
@@ -104,49 +148,6 @@ module Api
           end
 
           present response: success_response(items: items)
-        end
-
-        # ==================== 支付宝异步回调 ====================
-        desc '支付宝支付异步通知回调（无需鉴权）'
-        post :alipay_callback do
-          # 支付宝回调签名基于原始 URL-encoded body，必须读取原始 body
-          raw_body = begin
-            raw = env['rack.input']
-            if raw.respond_to?(:rewind)
-              raw.rewind
-              content = raw.read
-              raw.rewind
-              content
-            else
-              raw.to_s
-            end
-          rescue
-            ''
-          end
-
-          callback_params = params.except(:route_info)
-          alipay_service = AlipayPaymentService.new
-
-          if alipay_service.verify_callback_with_raw_body?(callback_params, raw_body)
-            trade_status = callback_params['trade_status']
-
-            if %w[TRADE_SUCCESS TRADE_FINISHED].include?(trade_status)
-              order_no = callback_params['out_trade_no']
-              PaymentCallbackWorker.perform_async({
-                                                    'order_no' => order_no,
-                                                    'payment_method' => 'alipay',
-                                                    'result' => callback_params.to_h
-                                                  })
-            end
-
-            # 返回 success 给支付宝
-            content_type 'text/plain'
-            'success'
-          else
-            Rails.logger.warn("[AlipayCallback] Signature verification failed for order: #{callback_params['out_trade_no']}")
-            content_type 'text/plain'
-            'failure'
-          end
         end
 
         # ==================== 微信异步回调 ====================
