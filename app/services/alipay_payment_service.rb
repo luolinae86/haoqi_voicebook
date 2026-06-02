@@ -15,13 +15,14 @@ class AlipayPaymentService
   # @return [String] 支付宝支付订单字符串（直接返回给 APP）
   def create_order(order_no:, amount:, subject:)
     sign_params = build_sign_params(order_no, amount, subject)
-    encoded_params = encode_params(sign_params)
 
-    # 对 sign_params 进行签名
-    sign = rsa_sign(encoded_params)
+    # 支付宝要求：对原始参数字符串签名，而不是编码后的
+    raw_string = sign_params.sort.map { |k, v| "#{k}=#{v}" }.join("&")
+    sign = rsa_sign(raw_string)
 
-    # 完整的支付参数串
-    "#{encoded_params}&sign=#{CGI.escape(sign)}"
+    # 所有参数值（含 sign）统一 URL 编码后拼接
+    all_params = sign_params.merge(sign: sign)
+    all_params.map { |k, v| "#{k}=#{CGI.escape(v.to_s)}" }.join("&")
   end
 
   # 验证支付宝异步回调签名
@@ -86,11 +87,7 @@ class AlipayPaymentService
     }
   end
 
-  def encode_params(params)
-    params.map { |k, v| "#{k}=#{CGI.escape(v.to_s)}" }.join("&")
-  end
-
-  def rsa_sign(encoded_string)
-    Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new("SHA256"), encoded_string))
+  def rsa_sign(string_to_sign)
+    Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new("SHA256"), string_to_sign))
   end
 end
