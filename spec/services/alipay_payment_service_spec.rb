@@ -42,8 +42,8 @@ RSpec.describe AlipayPaymentService do
         'total_amount' => '19.90'
       }
 
-      # Alipay signs the URL-decoded string (sorted, k=v joined by &)
-      string_to_sign = params.sort.map { |k, v| "#{k}=#{v}" }.join('&')
+      # Alipay signs without sign_type in the string_to_sign
+      string_to_sign = params.except('sign_type').sort.map { |k, v| "#{k}=#{v}" }.join('&')
       signature = Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new('SHA256'), string_to_sign))
 
       # Build URL-encoded raw body (simulating what Alipay POSTs)

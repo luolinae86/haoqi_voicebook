@@ -38,10 +38,10 @@ class AlipayPaymentService
 
     sign = CGI.unescape(sign_pair.last)
 
-    string_to_sign = pairs.to_h.tap { _1.delete('sign') }
-                          .sort
-                          .map { |k, v| "#{k}=#{CGI.unescape(v)}" }
-                          .join('&')
+    string_to_sign = pairs.to_h.tap do |h|
+      h.delete('sign')
+      h.delete('sign_type')
+    end.sort.map { |k, v| "#{k}=#{CGI.unescape(v)}" }.join('&')
 
     Rails.logger.info("[AlipayDebug] raw_body=#{raw_body}")
     Rails.logger.info("[AlipayDebug] string_to_sign=#{string_to_sign}")
