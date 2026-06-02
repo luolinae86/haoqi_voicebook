@@ -1014,7 +1014,7 @@ RSpec.describe 'API AppUsers', type: :request do
       user_b = device_b.app_user
       post '/api/app_users/login_by_code', params: { uuid: user_b.uuid, phone: phone, code: '5555' }
 
-      expect(json_response[:response][:data][:user][:vip_expires_at]).to be_present
+      expect(json_response[:response][:data][:user][:is_vip]).to be true
     end
   end
 end

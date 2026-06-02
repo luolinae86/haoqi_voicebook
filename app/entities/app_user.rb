@@ -20,6 +20,9 @@ module Entities
     expose :reading_minutes
     expose :books_read
 
+    expose :is_vip do |instance, _|
+      instance.is_vip?
+    end
     expose :vip_expires_at do |instance, _|
       instance.vip_expires_at&.strftime('%Y-%m-%d %H:%M:%S')
     end
