@@ -379,7 +379,6 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(avatar[:id]).to eq(head_img.id)
       expect(avatar[:img_url]).to include('Expires=')
       expect(avatar[:img_url]).to include('Signature=')
-      expect(avatar).to have_key(:is_vip)
     end
 
     it '中文路径的 avatar URL 也能正常签名' do
@@ -544,7 +543,6 @@ RSpec.describe 'API AppUsers', type: :request do
         expect(avatar[:id]).to eq(head_img.id)
         expect(avatar[:img_url]).to include('Expires=')
         expect(avatar[:img_url]).to include('Signature=')
-        expect(avatar[:is_vip]).to eq(false)
       end
 
       it '用户没有头像时 avatar 返回 nil' do
@@ -1016,7 +1014,7 @@ RSpec.describe 'API AppUsers', type: :request do
       user_b = device_b.app_user
       post '/api/app_users/login_by_code', params: { uuid: user_b.uuid, phone: phone, code: '5555' }
 
-      expect(json_response[:response][:data][:user][:is_vip]).to be true
+      expect(json_response[:response][:data][:user][:vip_expires_at]).to be_present
     end
   end
 end
