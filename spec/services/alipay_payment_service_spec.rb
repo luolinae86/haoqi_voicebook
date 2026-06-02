@@ -30,7 +30,7 @@ RSpec.describe AlipayPaymentService do
       private_key = OpenSSL::PKey::RSA.generate(2048)
       public_key = private_key.public_key
 
-      allow(ENV).to receive(:fetch).with("ALIPAY_PUBLIC_KEY").and_return(public_key.to_pem)
+      allow(ENV).to receive(:fetch).with("ALIPAY_RESPONSE_PUBLIC_KEY").and_return(public_key.to_pem)
 
       params = {
         "out_trade_no" => "VB20260101TEST",
@@ -49,7 +49,7 @@ RSpec.describe AlipayPaymentService do
 
     it "returns false when signature is invalid" do
       public_key = OpenSSL::PKey::RSA.generate(2048)
-      allow(ENV).to receive(:fetch).with("ALIPAY_PUBLIC_KEY").and_return(public_key.to_pem)
+      allow(ENV).to receive(:fetch).with("ALIPAY_RESPONSE_PUBLIC_KEY").and_return(public_key.to_pem)
 
       params = {
         "out_trade_no" => "VB20260101TEST",

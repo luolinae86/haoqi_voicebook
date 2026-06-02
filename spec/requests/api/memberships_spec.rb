@@ -114,6 +114,32 @@ RSpec.describe "API Memberships", type: :request do
         expect(data[:order][:payment_method]).to eq("alipay")
       end
 
+      it "支付宝 payment_params 包含所有必填字段" do
+        private_key = OpenSSL::PKey::RSA.generate(2048)
+        ENV["ALIPAY_PRIVATE_KEY"] = private_key.to_pem
+
+        post "/api/memberships/create_order",
+             params: { uuid: user.uuid, package_id: package.id, payment_method: "alipay" },
+             as: :json
+
+        data = json_response[:response][:data]
+        params_hash = CGI.parse(data[:payment_params]).to_h { |k, v| [k, v.first] }
+
+        expect(params_hash["app_id"]).to be_present
+        expect(params_hash["method"]).to eq("alipay.trade.app.pay")
+        expect(params_hash["charset"]).to eq("utf-8")
+        expect(params_hash["sign_type"]).to eq("RSA2")
+        expect(params_hash["version"]).to eq("1.0")
+        expect(params_hash["notify_url"]).to be_present
+        expect(params_hash["timestamp"]).to be_present
+        expect(params_hash["sign"]).to be_present
+
+        biz = JSON.parse(CGI.unescape(params_hash["biz_content"]))
+        expect(biz["out_trade_no"]).to eq(data[:order][:order_no])
+        expect(biz["total_amount"]).to eq("19.90")
+        expect(biz["product_code"]).to eq("QUICK_MSECURITY_PAY")
+      end
+
       it "微信支付返回 payment_params Hash 且包含所有必要字段" do
         post "/api/memberships/create_order",
              params: { uuid: user.uuid, package_id: package.id, payment_method: "wechat" },
