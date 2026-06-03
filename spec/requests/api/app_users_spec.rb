@@ -213,6 +213,59 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:code]).to eq(1001)
       expect(json_response[:response][:msg]).to eq('验证码无效或已过期')
     end
+
+    it '绑定新手机号时直接绑定到当前用户' do
+      user.update!(phone: nil)
+      create(:sms_verification, phone: '13900139000', code: '5555', expires_at: 5.minutes.from_now)
+
+      post '/api/app_users/login_by_code', params: { uuid: user.uuid, phone: '13900139000', code: '5555' }
+
+      expect(response).to have_http_status(:success)
+      expect(user.reload.phone).to eq('13900139000')
+      expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
+    end
+
+    it '绑定已存在的手机号时，将 openid 转移到已存在用户' do
+      # 创建一个已有手机号的正式用户
+      existing_user = create(:app_user, phone: '13900139001')
+      # 当前用户是微信登录后没有手机号的匿名用户
+      user.update!(phone: nil, wechat_openid: 'oABC123456')
+      create(:sms_verification, phone: '13900139001', code: '6666', expires_at: 5.minutes.from_now)
+
+      post '/api/app_users/login_by_code', params: { uuid: user.uuid, phone: '13900139001', code: '6666' }
+
+      expect(response).to have_http_status(:success)
+      # 返回的是已存在的用户
+      expect(json_response[:response][:data][:user][:uuid]).to eq(existing_user.uuid)
+      # 微信 openid 已转移到已存在用户
+      expect(existing_user.reload.wechat_openid).to eq('oABC123456')
+      # 当前用户的 openid 被清空
+      expect(user.reload.wechat_openid).to be_nil
+    end
+
+    it '绑定时已存在用户已有 openid，会被覆盖为新 openid' do
+      existing_user = create(:app_user, phone: '13900139002', wechat_openid: 'oOLD_OPENID')
+      user.update!(phone: nil, wechat_openid: 'oNEW_OPENID')
+      create(:sms_verification, phone: '13900139002', code: '7777', expires_at: 5.minutes.from_now)
+
+      post '/api/app_users/login_by_code', params: { uuid: user.uuid, phone: '13900139002', code: '7777' }
+
+      expect(response).to have_http_status(:success)
+      expect(existing_user.reload.wechat_openid).to eq('oNEW_OPENID')
+      expect(user.reload.wechat_openid).to be_nil
+    end
+
+    it '绑定已存在手机号时，QQ openid 也会转移' do
+      existing_user = create(:app_user, phone: '13900139003')
+      user.update!(phone: nil, qq_openid: 'QQ_ABC123')
+      create(:sms_verification, phone: '13900139003', code: '8888', expires_at: 5.minutes.from_now)
+
+      post '/api/app_users/login_by_code', params: { uuid: user.uuid, phone: '13900139003', code: '8888' }
+
+      expect(response).to have_http_status(:success)
+      expect(existing_user.reload.qq_openid).to eq('QQ_ABC123')
+      expect(user.reload.qq_openid).to be_nil
+    end
   end
 
   # ==================== 密码登录 ====================
