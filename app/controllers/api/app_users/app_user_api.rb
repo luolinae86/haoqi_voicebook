@@ -56,24 +56,13 @@ module Api
 
           find_and_consume_verification(params[:phone], params[:code])
 
-          # 如果手机号已绑定其他用户，将当前用户的 openid 转移过去
+          # 如果手机号已绑定其他用户，将当前设备重新绑定到主账户
           existing_user = AppUser.find_by(phone: params[:phone])
           if existing_user
-            # 转移微信 openid 到已存在的用户
-            if user.wechat_openid.present?
-              # 如果已存在用户已有微信 openid，先清空
-              existing_user.update!(wechat_openid: nil) if existing_user.wechat_openid.present?
-              wechat_openid = user.wechat_openid
-              user.update!(wechat_openid: nil)
-              existing_user.update!(wechat_openid: wechat_openid)
-            end
-            # 转移 QQ openid 到已存在的用户
-            if user.qq_openid.present?
-              existing_user.update!(qq_openid: nil) if existing_user.qq_openid.present?
-              qq_openid = user.qq_openid
-              user.update!(qq_openid: nil)
-              existing_user.update!(qq_openid: qq_openid)
-            end
+            # 将当前用户的设备全部转移绑定到已存在的主账户
+            user.devices.update_all(app_user_id: existing_user.id)
+            # 删除当前用户（设备已转移，原用户不再需要）
+            user.destroy
             expire_user_cache(existing_user.uuid)
             user = existing_user
           else
