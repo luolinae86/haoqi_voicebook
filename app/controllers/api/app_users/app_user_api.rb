@@ -117,7 +117,7 @@ module Api
             other_user = AppUser.find_by(wechat_openid: openid)
             other_user&.update!(wechat_openid: nil) if other_user && other_user != user
 
-            user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}")
+            user.update!(wechat_openid: openid)
             expire_user_cache(params[:uuid])
 
             # 更新后仍无手机号，提示绑定
