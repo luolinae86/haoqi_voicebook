@@ -6,5 +6,6 @@ module Entities
     expose :img_url do |instance, _|
       Book.sign_oss_url(instance.img_url, expires: 5 * 365 * 24 * 3600)
     end
+    expose :is_vip
   end
 end

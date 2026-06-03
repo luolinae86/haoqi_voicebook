@@ -5,6 +5,7 @@ module Entities
     expose :id
     expose :phone
     expose :nickname
+    expose :wechat_nickname
     expose :avatar do |instance, _|
       instance.head_img ? Entities::HeadImg.represent(instance.head_img).as_json : nil
     end

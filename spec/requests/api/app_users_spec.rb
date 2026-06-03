@@ -227,19 +227,22 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '绑定已存在的手机号时，设备转移到主账户，原用户被删除' do
       existing_user = create(:app_user, phone: '13900139001')
-      user.update!(phone: nil, wechat_openid: 'oABC123456')
-      old_user_id = user.id
+      # 创建一个没有手机号的匿名用户来登录
+      anon_user = create(:app_user, phone: nil)
+      anon_user.update!(wechat_openid: 'oABC123456', wechat_nickname: '微信小用户')
+      create(:device, app_user: anon_user)
+      old_user_id = anon_user.id
       create(:sms_verification, phone: '13900139001', code: '6666', expires_at: 5.minutes.from_now)
 
-      post '/api/app_users/login_by_code', params: { uuid: user.uuid, phone: '13900139001', code: '6666' }
+      post '/api/app_users/login_by_code', params: { uuid: anon_user.uuid, phone: '13900139001', code: '6666' }
 
-      expect(response).to have_http_status(:success)
       # 返回的是主账户
       expect(json_response[:response][:data][:user][:uuid]).to eq(existing_user.uuid)
       # 原用户被删除
       expect(AppUser.find_by(id: old_user_id)).to be_nil
-      # 主账户的 openid 不变
-      expect(existing_user.reload.wechat_openid).to be_nil
+      # 主账户的 openid 和昵称已被同步
+      expect(existing_user.reload.wechat_openid).to eq('oABC123456')
+      expect(existing_user.wechat_nickname).to eq('微信小用户')
     end
 
     it '绑定已存在手机号时，设备从原用户转移到主账户' do
@@ -255,16 +258,20 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(Device.find_by(device_id: device_id).app_user_id).to eq(existing_user.id)
     end
 
-    it '主账户已有 openid 时不受影响' do
-      existing_user = create(:app_user, phone: '13900139003', wechat_openid: 'oMAIN_ACCOUNT')
-      user.update!(phone: nil, wechat_openid: 'oDEVICE_USER')
+    it '绑定已存在手机号时，主账户的openid被同步为当前用户的openid' do
+      # 创建一个没有 openid 的匿名用户
+      anon_user = create(:app_user, phone: nil)
+      anon_user.update!(wechat_openid: 'oDEVICE_USER')
+      create(:device, app_user: anon_user)
+
+      existing_user = create(:app_user, phone: '13900139003', wechat_openid: 'oOLD_OPENID')
       create(:sms_verification, phone: '13900139003', code: '8888', expires_at: 5.minutes.from_now)
 
-      post '/api/app_users/login_by_code', params: { uuid: user.uuid, phone: '13900139003', code: '8888' }
+      post '/api/app_users/login_by_code', params: { uuid: anon_user.uuid, phone: '13900139003', code: '8888' }
 
       expect(response).to have_http_status(:success)
-      # 主账户的 openid 保持不变
-      expect(existing_user.reload.wechat_openid).to eq('oMAIN_ACCOUNT')
+      # 主账户的 openid 被同步为当前用户的 openid
+      expect(existing_user.reload.wechat_openid).to eq('oDEVICE_USER')
     end
   end
 
@@ -410,6 +417,15 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(1001)
       expect(json_response[:response][:msg]).to eq('授权已过期，请重新授权登录')
+    end
+
+    it '微信登录时保存微信昵称' do
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code, wechat_nickname: '小太阳' }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(user.reload.wechat_nickname).to eq('小太阳')
+      expect(json_response[:response][:data][:user][:wechat_nickname]).to eq('小太阳')
     end
   end
 
@@ -790,24 +806,34 @@ RSpec.describe 'API AppUsers', type: :request do
       user.devices.where.not(device_id: device.device_id).destroy_all
     end
 
-    it '清除用户缓存并返回当前用户信息，不创建新用户' do
+    it '解绑旧设备并返回新用户的 uuid' do
       old_uuid = user.uuid
-      user_count = AppUser.count
 
       post '/api/app_users/logout', params: { uuid: old_uuid }
 
       expect(response).to have_http_status(201)
       expect(json_response[:response][:code]).to eq(0)
-      # 返回的是同一个用户的 uuid
-      expect(json_response[:response][:data][:user][:uuid]).to eq(old_uuid)
-      # 没有创建新用户
-      expect(AppUser.count).to eq(user_count)
+      new_uuid = json_response[:response][:data][:user][:uuid]
+      expect(new_uuid).to be_present
+      expect(new_uuid).not_to eq(old_uuid)
     end
 
-    it '设备仍然绑定到原用户' do
+    it '解绑旧设备后设备重新绑定到新用户' do
+      device.device_id
+
       post '/api/app_users/logout', params: { uuid: user.uuid }
 
-      expect(device.reload.app_user_id).to eq(user.id)
+      new_user = AppUser.last
+      expect(device.reload.app_user_id).to eq(new_user.id)
+      expect(device.reload.app_user_id).not_to eq(user.id)
+    end
+
+    it '旧用户账户仍然存在' do
+      user_id = user.id
+
+      post '/api/app_users/logout', params: { uuid: user.uuid }
+
+      expect(AppUser.find_by(id: user_id)).to be_present
     end
 
     it '无效 uuid 返回未授权' do
@@ -818,24 +844,24 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:msg]).to eq('未授权访问')
     end
 
-    it '用户没有设备也能正常退出' do
+    it '用户没有设备也能正常创建新用户' do
       user.devices.destroy_all
 
       post '/api/app_users/logout', params: { uuid: user.uuid }
 
       expect(response).to have_http_status(201)
-      expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
+      expect(json_response[:response][:data][:user][:uuid]).to be_present
     end
 
-    it '退出后仍然可以再次退出（同一用户）' do
+    it '退出后新用户可以继续使用该设备' do
       post '/api/app_users/logout', params: { uuid: user.uuid }
 
-      expect(response).to have_http_status(201)
-      # 再次使用同一个 uuid 退出
-      post '/api/app_users/logout', params: { uuid: user.uuid }
+      new_uuid = json_response[:response][:data][:user][:uuid]
+      # 用新 uuid 再次退出
+      post '/api/app_users/logout', params: { uuid: new_uuid }
 
       expect(response).to have_http_status(201)
-      expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
+      expect(json_response[:response][:data][:user][:uuid]).not_to eq(new_uuid)
     end
   end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_01_112131) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_03_120000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -38,6 +38,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_01_112131) do
     t.string "qq_openid", comment: "QQ openid"
     t.string "uuid", null: false
     t.bigint "head_img_id", comment: "用户头像ID"
+    t.string "wechat_nickname", comment: "微信昵称"
     t.index ["device_id"], name: "index_app_users_on_device_id", unique: true
     t.index ["grade_id"], name: "index_app_users_on_grade_id"
     t.index ["is_vip"], name: "index_app_users_on_is_vip"

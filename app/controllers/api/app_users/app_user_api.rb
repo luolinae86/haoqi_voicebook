@@ -59,6 +59,14 @@ module Api
           # 如果手机号已绑定其他用户，将当前设备重新绑定到主账户
           existing_user = AppUser.find_by(phone: params[:phone])
           if existing_user
+            # 将当前用户的 wechat_openid 同步到主账户（先清空当前用户的 openid 避免唯一索引冲突）
+            if user.wechat_openid.present?
+              openid_val = user.wechat_openid
+              nickname_val = user.wechat_nickname
+              user.update_column(:wechat_openid, nil)
+              existing_user.update_columns(wechat_openid: openid_val, wechat_nickname: nickname_val)
+            end
+
             # 将当前用户的设备全部转移绑定到已存在的主账户
             user.devices.update_all(app_user_id: existing_user.id)
             # 删除当前用户（设备已转移，原用户不再需要）
@@ -117,7 +125,9 @@ module Api
             other_user = AppUser.find_by(wechat_openid: openid)
             other_user&.update!(wechat_openid: nil) if other_user && other_user != user
 
-            user.update!(wechat_openid: openid)
+            attrs = { wechat_openid: openid }
+            attrs[:wechat_nickname] = params[:wechat_nickname] if params[:wechat_nickname].present?
+            user.update!(attrs)
             expire_user_cache(params[:uuid])
 
             # 更新后仍无手机号，提示绑定
@@ -270,16 +280,21 @@ module Api
         end
 
         # ==================== 退出登录 ====================
-        desc '退出登录（不解绑设备，前端清除登录态即可，下次登录时可找回原账户）'
+        desc '退出登录（解绑当前设备，返回新用户）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
         end
         post :logout do
           auth_user
 
-          expire_user_cache(current_user.uuid)
+          device = current_user.devices.first
+          if device
+            Device.unbind!(device.device_id)
+            expire_user_cache(current_user.uuid)
+          end
 
-          present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
+          new_user = create_new_app_user(device&.device_id)
+          present response: success_response(user: Entities::AppUser.represent(new_user).as_json)
         end
       end
     end
