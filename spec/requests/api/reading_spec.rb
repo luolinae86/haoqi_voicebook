@@ -26,7 +26,7 @@ RSpec.describe 'API Reading', type: :request do
     it '图书不存在时返回错误' do
       post '/api/reading/track', params: {
         uuid: user.uuid,
-        book_id: 999999,
+        book_id: 999_999,
         page_number: 3
       }
 
@@ -95,22 +95,22 @@ RSpec.describe 'API Reading', type: :request do
     end
 
     it '有阅读记录时返回正确时长（week）' do
-      create(:user_reading_daily_stats, app_user: user, stat_date: Date.today.to_s, total_duration_seconds: 900)
+      create(:user_reading_daily_stats, app_user: user, stat_date: Time.zone.today.to_s, total_duration_seconds: 900)
 
       get '/api/reading/chart', params: { uuid: user.uuid, period: 'week' }
 
       daily = json_response[:response][:data][:daily]
-      today_entry = daily.find { |d| d[:date] == Date.today.to_s }
+      today_entry = daily.find { |d| d[:date] == Time.zone.today.to_s }
       expect(today_entry[:minutes]).to eq(15)
     end
 
     it '有阅读记录时返回正确时长（month）' do
-      create(:user_reading_daily_stats, app_user: user, stat_date: Date.today.to_s, total_duration_seconds: 1800)
+      create(:user_reading_daily_stats, app_user: user, stat_date: Time.zone.today.to_s, total_duration_seconds: 1800)
 
       get '/api/reading/chart', params: { uuid: user.uuid, period: 'month' }
 
       weekly = json_response[:response][:data][:weekly]
-      this_week = weekly.last  # 最后一周是本周（数组按时间升序）
+      this_week = weekly.last # 最后一周是本周（数组按时间升序）
       expect(this_week[:minutes]).to eq(30)
     end
 
@@ -137,7 +137,7 @@ RSpec.describe 'API Reading', type: :request do
     end
 
     it '返回已有的阅读进度' do
-      book = create(:book, name: '测试图书')
+      book = create(:book, name: '测试图书', category_id: 5)
       create(:reading_progress, app_user: user, book: book, last_page_number: 5)
 
       get '/api/reading/my_progress', params: { uuid: user.uuid }
@@ -146,6 +146,7 @@ RSpec.describe 'API Reading', type: :request do
       progress = json_response[:response][:data][:reading_progress]
       expect(progress.size).to eq(1)
       expect(progress.first[:book_name]).to eq('测试图书')
+      expect(progress.first[:category_id]).to eq(5)
     end
 
     it '未提供 uuid 时返回参数错误' do
@@ -160,6 +161,7 @@ RSpec.describe 'API Reading', type: :request do
     let(:book) { create(:book, name: '指定图书') }
 
     it '返回某本书的阅读进度' do
+      book = create(:book, name: '指定图书', category_id: 3)
       create(:reading_progress, app_user: user, book: book, last_page_number: 8, session_count: 3)
 
       get "/api/reading/my_progress/#{book.id}", params: { uuid: user.uuid }
@@ -168,6 +170,7 @@ RSpec.describe 'API Reading', type: :request do
       progress = json_response[:response][:data][:reading_progress]
       expect(progress[:last_page_number]).to eq(8)
       expect(progress[:session_count]).to eq(3)
+      expect(progress[:category_id]).to eq(3)
     end
 
     it '暂无阅读进度时返回错误' do

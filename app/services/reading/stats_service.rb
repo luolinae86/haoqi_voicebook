@@ -56,6 +56,7 @@ module Reading
     def self.user_book_progress(app_user, book_id)
       progress = app_user.reading_progresses.find_by(book_id: book_id)
       return nil if progress.blank?
+
       progress_to_hash(progress)
     end
 
@@ -67,13 +68,13 @@ module Reading
         weekly_data = []
         4.times do |i|
           # 非重叠的周范围：本周 = today-6d..today，上周 = today-13d..today-7d，以此类推
-          week_start = (7 * i + 6).days.ago.to_date
+          week_start = ((7 * i) + 6).days.ago.to_date
           week_end = (7 * i).days.ago.to_date
           stat_date_range = (week_start.to_s..week_end.to_s)
 
           total_seconds = app_user.user_reading_daily_stats
-            .where(stat_date: stat_date_range)
-            .sum(:total_duration_seconds)
+                                  .where(stat_date: stat_date_range)
+                                  .sum(:total_duration_seconds)
 
           weekly_data << {
             date: week_start.to_s,
@@ -88,8 +89,8 @@ module Reading
       else
         days = 7
         stats = app_user.user_reading_daily_stats
-          .last_n_days(days)
-          .pluck(:stat_date, :total_duration_seconds)
+                        .last_n_days(days)
+                        .pluck(:stat_date, :total_duration_seconds)
 
         # 补齐缺失的日期（没有阅读记录的日期时长为 0）
         result = {}
@@ -108,8 +109,6 @@ module Reading
       end
     end
 
-    private
-
     def self.default_book_stats
       {
         total_readers: 0,
@@ -127,6 +126,7 @@ module Reading
         book_id: progress.book_id,
         book_name: progress.book&.name,
         cover_image_url: Book.sign_oss_url(progress.book&.cover_image_url),
+        category_id: progress.book&.category_id,
         last_page_number: progress.last_page_number,
         total_pages: progress.book&.page_count,
         total_words_read: progress.total_words_read,
