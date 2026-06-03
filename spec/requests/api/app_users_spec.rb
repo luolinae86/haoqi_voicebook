@@ -379,6 +379,17 @@ RSpec.describe 'API AppUsers', type: :request do
       # 其他用户的 openid 被清空
       expect(other_user.reload.wechat_openid).to be_nil
     end
+
+    it '微信授权码已被使用时返回友好提示而非500' do
+      # 模拟微信返回 code been used 错误
+      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_raise(StandardError, 'code been used')
+
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq('授权已过期，请重新授权登录')
+    end
   end
 
   # ==================== QQ登录 ====================

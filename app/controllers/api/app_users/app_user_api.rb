@@ -114,6 +114,9 @@ module Api
           error_pop_resp('请绑定手机号') if user.phone.blank?
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
+        rescue StandardError
+          # 微信授权码已被使用或其他异常，返回友好提示
+          error_pop_resp('授权已过期，请重新授权登录')
         end
 
         # ==================== QQ登录 ====================
