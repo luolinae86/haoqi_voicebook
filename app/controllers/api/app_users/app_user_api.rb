@@ -102,16 +102,27 @@ module Api
 
           openid = WechatAuthService.new.get_openid(params[:code])
 
-          # 如果 openid 已被其他用户占用，先清空其绑定
-          other_user = AppUser.find_by(wechat_openid: openid)
-          other_user&.update!(wechat_openid: nil) if other_user && other_user != user
+          # 检查该 openid 下是否已有绑定了手机号的主账户
+          main_user = AppUser.where(wechat_openid: openid).where.not(phone: nil).where.not(id: user.id).first
 
-          # 总是覆盖更新当前用户的 openid
-          user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}")
-          expire_user_cache(params[:uuid])
+          if main_user && user.phone.blank?
+            # 当前用户无手机号且存在主账户，直接转移到主账户
+            user.devices.update_all(app_user_id: main_user.id)
+            user.destroy
+            expire_user_cache(main_user.uuid)
+            user = main_user
+          else
+            # 正常流程：更新当前用户的 openid
+            # 如果 openid 被其他用户占用，先清空其绑定
+            other_user = AppUser.find_by(wechat_openid: openid)
+            other_user&.update!(wechat_openid: nil) if other_user && other_user != user
 
-          # 如果用户没有手机号，返回绑定手机提示
-          error_pop_resp('请绑定手机号') if user.phone.blank?
+            user.update!(wechat_openid: openid, nickname: "微信用户#{openid[-4..]}")
+            expire_user_cache(params[:uuid])
+
+            # 更新后仍无手机号，提示绑定
+            error_pop_resp('请绑定手机号') if user.phone.blank?
+          end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
         rescue StandardError

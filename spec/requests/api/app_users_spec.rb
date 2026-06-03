@@ -337,7 +337,7 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:msg]).to eq('用户未注册，请先调用 create_by_device')
     end
 
-    it '用户无手机号时返回绑定手机提示' do
+    it '用户无手机号且无主账户时返回绑定手机提示' do
       user.update!(phone: nil, wechat_openid: nil)
       allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return('new_openid_123')
 
@@ -348,6 +348,27 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:msg]).to eq('请绑定手机号')
       # openid 已被更新
       expect(user.reload.wechat_openid).to eq('new_openid_123')
+    end
+
+    it '用户无手机号但同一openid下已有带手机号的主账户时，自动切换到主账户' do
+      # 先创建一个已有手机号的主账户，使用相同的 openid
+      main_user = create(:app_user, phone: '13900139000', wechat_openid: 'shared_openid')
+      # 当前用户没有手机号，openid 为空
+      user.update!(phone: nil, wechat_openid: nil)
+      user_device_id = user.devices.first.device_id
+      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return('shared_openid')
+
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      # 返回的是主账户的信息
+      expect(json_response[:response][:data][:user][:uuid]).to eq(main_user.uuid)
+      expect(json_response[:response][:data][:user][:phone]).to eq('13900139000')
+      # 当前用户的设备已转移到主账户
+      expect(main_user.reload.devices.pluck(:device_id)).to include(user_device_id)
+      # 当前用户已被删除
+      expect(AppUser.find_by(id: user.id)).to be_nil
     end
 
     it '再次微信登录时覆盖更新 openid' do
