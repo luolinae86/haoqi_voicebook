@@ -270,21 +270,16 @@ module Api
         end
 
         # ==================== 退出登录 ====================
-        desc '退出登录（解绑当前设备，返回新用户）'
+        desc '退出登录（不解绑设备，前端清除登录态即可，下次登录时可找回原账户）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
         end
         post :logout do
           auth_user
 
-          device = current_user.devices.first
-          if device
-            Device.unbind!(device.device_id)
-            expire_user_cache(current_user.uuid)
-          end
+          expire_user_cache(current_user.uuid)
 
-          new_user = create_new_app_user(device&.device_id)
-          present response: success_response(user: Entities::AppUser.represent(new_user).as_json)
+          present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
         end
       end
     end

@@ -790,34 +790,24 @@ RSpec.describe 'API AppUsers', type: :request do
       user.devices.where.not(device_id: device.device_id).destroy_all
     end
 
-    it '解绑旧设备并返回新用户的 uuid' do
+    it '清除用户缓存并返回当前用户信息，不创建新用户' do
       old_uuid = user.uuid
+      user_count = AppUser.count
 
       post '/api/app_users/logout', params: { uuid: old_uuid }
 
       expect(response).to have_http_status(201)
       expect(json_response[:response][:code]).to eq(0)
-      new_uuid = json_response[:response][:data][:user][:uuid]
-      expect(new_uuid).to be_present
-      expect(new_uuid).not_to eq(old_uuid)
+      # 返回的是同一个用户的 uuid
+      expect(json_response[:response][:data][:user][:uuid]).to eq(old_uuid)
+      # 没有创建新用户
+      expect(AppUser.count).to eq(user_count)
     end
 
-    it '解绑旧设备后设备重新绑定到新用户' do
-      device.device_id
-
+    it '设备仍然绑定到原用户' do
       post '/api/app_users/logout', params: { uuid: user.uuid }
 
-      new_user = AppUser.last
-      expect(device.reload.app_user_id).to eq(new_user.id)
-      expect(device.reload.app_user_id).not_to eq(user.id)
-    end
-
-    it '旧用户账户仍然存在' do
-      user_id = user.id
-
-      post '/api/app_users/logout', params: { uuid: user.uuid }
-
-      expect(AppUser.find_by(id: user_id)).to be_present
+      expect(device.reload.app_user_id).to eq(user.id)
     end
 
     it '无效 uuid 返回未授权' do
@@ -828,24 +818,24 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:msg]).to eq('未授权访问')
     end
 
-    it '用户没有设备也能正常创建新用户' do
+    it '用户没有设备也能正常退出' do
       user.devices.destroy_all
 
       post '/api/app_users/logout', params: { uuid: user.uuid }
 
       expect(response).to have_http_status(201)
-      expect(json_response[:response][:data][:user][:uuid]).to be_present
+      expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
     end
 
-    it '退出后新用户可以继续使用该设备' do
+    it '退出后仍然可以再次退出（同一用户）' do
       post '/api/app_users/logout', params: { uuid: user.uuid }
 
-      new_uuid = json_response[:response][:data][:user][:uuid]
-      # 用新 uuid 再次退出
-      post '/api/app_users/logout', params: { uuid: new_uuid }
+      expect(response).to have_http_status(201)
+      # 再次使用同一个 uuid 退出
+      post '/api/app_users/logout', params: { uuid: user.uuid }
 
       expect(response).to have_http_status(201)
-      expect(json_response[:response][:data][:user][:uuid]).not_to eq(new_uuid)
+      expect(json_response[:response][:data][:user][:uuid]).to eq(user.uuid)
     end
   end
 
