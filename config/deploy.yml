@@ -95,10 +95,8 @@ drain_timeout: 30
 retain_containers: 3
 
 # ==================== 构建配置 ====================
-# 使用原生 docker 驱动，本地有基础镜像缓存时不需要联网
 builder:
   arch: amd64
-  driver: docker
 
 # ==================== 数据卷挂载 ====================
 volumes:
