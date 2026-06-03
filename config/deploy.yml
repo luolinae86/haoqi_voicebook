@@ -95,9 +95,10 @@ drain_timeout: 30
 retain_containers: 3
 
 # ==================== 构建配置 ====================
-# 远端构建：在阿里云服务器上 build，解决国内拉取 Docker Hub 镜像慢的问题
+# 使用原生 docker 驱动，本地有基础镜像缓存时不需要联网
 builder:
   arch: amd64
+  driver: docker
 
 # ==================== 数据卷挂载 ====================
 volumes:
