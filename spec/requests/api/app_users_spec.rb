@@ -324,7 +324,10 @@ RSpec.describe 'API AppUsers', type: :request do
     end
 
     before do
-      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return(wechat_openid)
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
+                                                                           .and_return({ access_token: 'mock_access_token', openid: wechat_openid })
+      allow_any_instance_of(WechatAuthService).to receive(:get_userinfo)
+        .and_return({ nickname: nil, headimgurl: nil, sex: 1 })
     end
 
     it '首次微信登录绑定微信 openid（有手机号）' do
@@ -346,7 +349,8 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '用户无手机号且无主账户时返回绑定手机提示' do
       user.update!(phone: nil, wechat_openid: nil)
-      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return('new_openid_123')
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
+                                                                           .and_return({ access_token: 'mock_token', openid: 'new_openid_123' })
 
       post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
 
@@ -358,12 +362,11 @@ RSpec.describe 'API AppUsers', type: :request do
     end
 
     it '用户无手机号但同一openid下已有带手机号的主账户时，自动切换到主账户' do
-      # 先创建一个已有手机号的主账户，使用相同的 openid
       main_user = create(:app_user, phone: '13900139000', wechat_openid: 'shared_openid')
-      # 当前用户没有手机号，openid 为空
       user.update!(phone: nil, wechat_openid: nil)
       user_device_id = user.devices.first.device_id
-      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return('shared_openid')
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
+                                                                           .and_return({ access_token: 'mock_token', openid: 'shared_openid' })
 
       post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
 
@@ -385,7 +388,8 @@ RSpec.describe 'API AppUsers', type: :request do
 
       # 第二次登录，使用新的 openid
       new_openid = 'oNEW9999999999abc'
-      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_return(new_openid)
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
+                                                                           .and_return({ access_token: 'mock_token', openid: new_openid })
 
       post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
 
@@ -410,7 +414,8 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '微信授权码已被使用时返回友好提示而非500' do
       # 模拟微信返回 code been used 错误
-      allow_any_instance_of(WechatAuthService).to receive(:get_openid).with(wechat_code).and_raise(StandardError, 'code been used')
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
+                                                                           .and_raise(StandardError, 'code been used')
 
       post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
 
@@ -419,13 +424,44 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:msg]).to eq('授权已过期，请重新授权登录')
     end
 
-    it '微信登录时保存微信昵称' do
-      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code, wechat_nickname: '小太阳' }
+    it '微信登录时从微信接口获取并保存昵称' do
+      allow_any_instance_of(WechatAuthService).to receive(:get_userinfo)
+        .and_return({ nickname: '小太阳', headimgurl: 'http://wx.qlogo.cn/mmopen/abc', sex: 1 })
+
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
 
       expect(response).to have_http_status(:success)
       expect(json_response[:response][:code]).to eq(0)
       expect(user.reload.wechat_nickname).to eq('小太阳')
       expect(json_response[:response][:data][:user][:wechat_nickname]).to eq('小太阳')
+    end
+
+    it '微信登录时转移到主账户，同时更新主账户的昵称' do
+      main_user = create(:app_user, phone: '13900139005', wechat_openid: 'transfer_openid')
+      user.update!(phone: nil, wechat_openid: nil)
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
+                                                                           .and_return({ access_token: 'mock_token', openid: 'transfer_openid' })
+      allow_any_instance_of(WechatAuthService).to receive(:get_userinfo)
+        .and_return({ nickname: '新昵称', headimgurl: nil, sex: 1 })
+
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:data][:user][:uuid]).to eq(main_user.uuid)
+      expect(main_user.reload.wechat_nickname).to eq('新昵称')
+    end
+
+    it '用户已有 openid 但昵称为 nil，再次微信登录后昵称被补上' do
+      user.update!(wechat_openid: wechat_openid, wechat_nickname: nil)
+      allow_any_instance_of(WechatAuthService).to receive(:get_userinfo)
+        .and_return({ nickname: '微信昵称', headimgurl: nil, sex: 1 })
+
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(user.reload.wechat_nickname).to eq('微信昵称')
+      expect(json_response[:response][:data][:user][:wechat_nickname]).to eq('微信昵称')
     end
   end
 

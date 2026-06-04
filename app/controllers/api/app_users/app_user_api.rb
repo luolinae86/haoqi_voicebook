@@ -108,25 +108,31 @@ module Api
           user = AppUser.find_by(uuid: params[:uuid])
           error_pop_resp('用户未注册，请先调用 create_by_device') unless user
 
-          openid = WechatAuthService.new.get_openid(params[:code])
+          credentials = WechatAuthService.new.get_credentials(params[:code])
+          access_token = credentials[:access_token]
+          openid = credentials[:openid]
+
+          # 通过 access_token 获取微信用户信息（昵称、头像）
+          wechat_info = WechatAuthService.new.get_userinfo(access_token, openid)
 
           # 检查该 openid 下是否已有绑定了手机号的主账户
           main_user = AppUser.where(wechat_openid: openid).where.not(phone: nil).where.not(id: user.id).first
 
           if main_user && user.phone.blank?
-            # 当前用户无手机号且存在主账户，直接转移到主账户
+            # 当前用户无手机号且存在主账户，直接转移到主账户，同时更新主账户的微信昵称
             user.devices.update_all(app_user_id: main_user.id)
+            main_user.update_column(:wechat_nickname, wechat_info[:nickname]) if wechat_info[:nickname].present?
             user.destroy
             expire_user_cache(main_user.uuid)
             user = main_user
           else
-            # 正常流程：更新当前用户的 openid
+            # 正常流程：更新当前用户的 openid 和昵称
             # 如果 openid 被其他用户占用，先清空其绑定
             other_user = AppUser.find_by(wechat_openid: openid)
             other_user&.update!(wechat_openid: nil) if other_user && other_user != user
 
             attrs = { wechat_openid: openid }
-            attrs[:wechat_nickname] = params[:wechat_nickname] if params[:wechat_nickname].present?
+            attrs[:wechat_nickname] = wechat_info[:nickname] if wechat_info[:nickname].present?
             user.update!(attrs)
             expire_user_cache(params[:uuid])
 
