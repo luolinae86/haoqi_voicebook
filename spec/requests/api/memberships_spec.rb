@@ -251,30 +251,18 @@ RSpec.describe "API Memberships", type: :request do
       expect(item[:plan_label]).to eq("年度会员")
       expect(item[:price].to_f).to eq(168.00)
       expect(item[:paid_at]).to eq("2026-05-01 10:30:00")
-      expect(item).to have_key(:days_left)
-      expect(item).to have_key(:expired)
+      expect(item).to have_key(:duration_days)
     end
 
-    it "已过期会员显示已过期" do
-      membership = create(:membership, :expired, app_user: user)
-      create(:order, :paid, app_user: user, membership: membership)
 
-      get "/api/memberships/subscriptions", params: { uuid: user.uuid }
-
-      item = json_response[:response][:data][:items].first
-      expect(item[:expired]).to be true
-      expect(item[:days_left]).to eq(0)
-    end
-
-    it "有效会员显示剩余天数" do
+    it "返回套餐包的天数" do
       membership = create(:membership, :annual, app_user: user, status: :active)
       create(:order, :paid, app_user: user, membership: membership)
 
       get "/api/memberships/subscriptions", params: { uuid: user.uuid }
 
       item = json_response[:response][:data][:items].first
-      expect(item[:expired]).to be false
-      expect(item[:days_left]).to be >= 360
+      expect(item[:duration_days]).to be >= 360
     end
 
     it "无订阅用户返回空数组" do

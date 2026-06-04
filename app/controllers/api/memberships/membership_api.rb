@@ -133,17 +133,13 @@ module Api
 
           items = orders.map do |order|
             membership = order.membership
-            end_date = membership.end_date
-            days_left = [0, (end_date - Date.current).to_i].max
-            expired = end_date < Date.current
 
             {
               order_no: order.order_no,
               plan_label: membership.plan_label,
               price: order.amount,
               paid_at: order.paid_at&.strftime('%Y-%m-%d %H:%M:%S') || '',
-              days_left: days_left,
-              expired: expired
+              duration_days: membership.duration_days
             }
           end
 
@@ -164,14 +160,12 @@ module Api
             else
               raw.gets(nil).to_s
             end
-          rescue
+          rescue StandardError
             ''
           end
 
           # 如果 raw body 为空（Grape 已消费），从 params 获取
-          if callback_body.blank?
-            callback_body = params.except(:route_info, :version, :format).to_json
-          end
+          callback_body = params.except(:route_info, :version, :format).to_json if callback_body.blank?
 
           callback_headers = {
             'Wechatpay-Timestamp' => headers['Wechatpay-Timestamp'],
