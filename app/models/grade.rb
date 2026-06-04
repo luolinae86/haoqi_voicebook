@@ -15,4 +15,9 @@ class Grade < ApplicationRecord
 
   has_many :recommends, dependent: :destroy
 
+  GROUP_ORDER = %w[学龄前 小学 初中 高中].freeze
+
+  scope :by_group_order, lambda {
+    order(Arel.sql("FIELD(group_name, #{GROUP_ORDER.map { |g| "'#{g}'" }.join(', ')})"))
+  }
 end

@@ -10,12 +10,12 @@ module Api
           auth_user
         end
 
-        desc "获取所有年级列表"
+        desc '获取所有年级列表'
         params do
-          requires :uuid, type: String, desc: "用户uuid"
+          requires :uuid, type: String, desc: '用户uuid'
         end
         get do
-          grades = Grade.order(:id)
+          grades = Grade.by_group_order
           present response: success_response(grades: grades.map { |g| Entities::Grade.represent(g).as_json })
         end
       end

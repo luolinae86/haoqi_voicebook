@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_03_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_04_074802) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -319,7 +319,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_03_120000) do
     t.bigint "book_id", null: false, comment: "图书ID"
     t.integer "page_number", null: false, comment: "页码"
     t.integer "word_count", default: 0, null: false, comment: "字数"
-    t.text "xhtml_content", comment: "页面 XHTML 内容"
+    t.text "xhtml_content", size: :medium, comment: "页面 XHTML 内容"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "image_url", comment: "页面图片URL（PDF导入）"
