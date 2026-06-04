@@ -113,7 +113,13 @@ module Api
           openid = credentials[:openid]
 
           # 通过 access_token 获取微信用户信息（昵称、头像）
-          wechat_info = WechatAuthService.new.get_userinfo(access_token, openid)
+          # 注意：如果授权 scope 是 snsapi_base 或 token 过期，可能无法获取，此时仅登录不保存昵称
+          begin
+            wechat_info = WechatAuthService.new.get_userinfo(access_token, openid)
+          rescue StandardError => e
+            Rails.logger.warn("[WechatLogin] Failed to get userinfo: #{e.message}")
+            wechat_info = { nickname: nil, headimgurl: nil, sex: nil }
+          end
 
           # 检查该 openid 下是否已有绑定了手机号的主账户
           main_user = AppUser.where(wechat_openid: openid).where.not(phone: nil).where.not(id: user.id).first

@@ -463,6 +463,19 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(user.reload.wechat_nickname).to eq('微信昵称')
       expect(json_response[:response][:data][:user][:wechat_nickname]).to eq('微信昵称')
     end
+
+    it '微信 userinfo 获取失败时（如 scope 不足），仍可完成登录但不保存昵称' do
+      allow_any_instance_of(WechatAuthService).to receive(:get_userinfo)
+        .and_raise(StandardError, 'check signature checkSignature = false')
+
+      post '/api/app_users/login_by_wechat', params: { uuid: user.uuid, code: wechat_code }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      user.reload
+      expect(user.wechat_openid).to eq(wechat_openid)
+      expect(user.wechat_nickname).to be_nil
+    end
   end
 
   # ==================== QQ登录 ====================
