@@ -102,6 +102,45 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:code]).to eq(1001)
       expect(json_response[:response][:msg]).to eq('手机号格式不正确')
     end
+
+    it '60 秒内重复发送返回频率限制错误' do
+      phone = '13800138002'
+      post '/api/app_users/send_code', params: { uuid: user.uuid, phone: phone }
+      expect(response).to have_http_status(201)
+
+      post '/api/app_users/send_code', params: { uuid: user.uuid, phone: phone }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq('验证码已发送，请 60 秒后再试')
+    end
+
+    it '同一手机号一天内发送超过 8 次返回次数上限错误' do
+      phone = '13800138003'
+      8.times do |i|
+        SmsVerification.create!(phone: phone, code: '0000', expires_at: 5.minutes.from_now, created_at: Time.current.beginning_of_day + i.minutes)
+      end
+
+      post '/api/app_users/send_code', params: { uuid: user.uuid, phone: phone }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq('今日发送次数已达上限，请明日再试')
+    end
+
+    it '跨天发送不受限制' do
+      phone = '13800138004'
+      # 创建 8 条昨天的记录
+      8.times do |i|
+        SmsVerification.create!(phone: phone, code: '0000', expires_at: 5.minutes.from_now, created_at: 1.day.ago.beginning_of_day + i.minutes)
+      end
+
+      # 今天仍然可以发送
+      post '/api/app_users/send_code', params: { uuid: user.uuid, phone: phone }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+    end
   end
 
   # ==================== 用户配置 ====================

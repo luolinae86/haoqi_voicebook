@@ -13,12 +13,12 @@ module Api
 
       # 验证手机号格式
       def validate_phone!(phone)
-        error_pop_resp("手机号格式不正确") unless phone.match?(PHONE_REGEXP)
+        error_pop_resp('手机号格式不正确') unless phone.match?(PHONE_REGEXP)
       end
 
       # 生成随机验证码
       def generate_code
-        rand(10**CODE_LENGTH).to_s.rjust(CODE_LENGTH, "0")
+        rand(10**CODE_LENGTH).to_s.rjust(CODE_LENGTH, '0')
       end
 
       # 创建并发送验证码
@@ -32,7 +32,11 @@ module Api
       # @param cooldown [ActiveSupport::Duration] 冷却时间，默认 60 秒
       def check_send_rate_limit!(phone, cooldown: 60.seconds)
         sent_recently = SmsVerification.sent_recently_for(phone, cooldown).exists?
-        error_pop_resp("验证码已发送，请 60 秒后再试") if sent_recently
+        error_pop_resp('验证码已发送，请 60 秒后再试') if sent_recently
+
+        # 每日最多发送 8 次
+        sent_today = SmsVerification.sent_today_for(phone).count
+        error_pop_resp('今日发送次数已达上限，请明日再试') if sent_today >= 8
       end
 
       # 查找并验证短信验证码（消费型，验证后标记为已使用）
@@ -42,7 +46,7 @@ module Api
                                       .by_code(code)
                                       .order(created_at: :desc)
                                       .first
-        error_pop_resp("验证码无效或已过期") unless verification
+        error_pop_resp('验证码无效或已过期') unless verification
 
         verification.mark_verified!
         verification

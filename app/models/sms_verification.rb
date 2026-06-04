@@ -22,13 +22,14 @@
 class SmsVerification < ApplicationRecord
   # 验证规则
   validates :phone, presence: true,
-                    format: { with: /\A1[3-9]\d{9}\z/, message: "手机号格式不正确" }
+                    format: { with: /\A1[3-9]\d{9}\z/, message: '手机号格式不正确' }
   validates :code, presence: true, length: { is: 4 } # 4位验证码
   validates :expires_at, presence: true
 
   # 作用域
-  scope :valid_codes, -> { where(verified: false).where("expires_at > ?", Time.current) }
-  scope :sent_recently_for, ->(phone, cooldown = 60.seconds) { where(phone: phone).where("created_at > ?", cooldown.ago) }
+  scope :valid_codes, -> { where(verified: false).where('expires_at > ?', Time.current) }
+  scope :sent_recently_for, ->(phone, cooldown = 60.seconds) { where(phone: phone).where('created_at > ?', cooldown.ago) }
+  scope :sent_today_for, ->(phone) { where(phone: phone).where('created_at >= ?', Time.current.beginning_of_day) }
   scope :for_phone, ->(phone) { where(phone: phone) }
   scope :by_code, ->(code) { where(code: code) }
 
