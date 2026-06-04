@@ -308,6 +308,22 @@ module Api
           new_user = create_new_app_user(device&.device_id)
           present response: success_response(user: Entities::AppUser.represent(new_user).as_json)
         end
+
+        # ==================== 解绑微信 ====================
+        desc '解绑微信授权（清除用户的 wechat_openid 和 wechat_nickname，下次微信登录需重新绑定）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+        end
+        post :unbind_wechat do
+          auth_user
+
+          error_pop_resp('当前账号未绑定微信') if current_user.wechat_openid.blank?
+
+          current_user.update!(wechat_openid: nil, wechat_nickname: nil)
+          expire_user_cache(params[:uuid])
+
+          present response: success_response(msg: '微信已解绑')
+        end
       end
     end
   end

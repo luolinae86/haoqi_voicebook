@@ -914,6 +914,74 @@ RSpec.describe 'API AppUsers', type: :request do
     end
   end
 
+  # ==================== 解绑微信 ====================
+  describe 'POST /api/app_users/unbind_wechat' do
+    it '已绑定微信的用户，解绑成功' do
+      user.update!(wechat_openid: 'oWX_OPENID_123', wechat_nickname: '微信用户')
+
+      post '/api/app_users/unbind_wechat', params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:msg]).to eq('微信已解绑')
+      user.reload
+      expect(user.wechat_openid).to be_nil
+      expect(user.wechat_nickname).to be_nil
+    end
+
+    it '未绑定微信的用户，解绑返回错误' do
+      user.update!(wechat_openid: nil, wechat_nickname: nil)
+
+      post '/api/app_users/unbind_wechat', params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq('当前账号未绑定微信')
+    end
+
+    it '解绑后再次用微信登录，不会匹配到原账户' do
+      user.update!(wechat_openid: 'oWX_OPENID_456', wechat_nickname: '原昵称')
+      user.id
+
+      # 解绑
+      post '/api/app_users/unbind_wechat', params: { uuid: user.uuid }
+      expect(user.reload.wechat_openid).to be_nil
+
+      # 再次用微信登录（创建新匿名用户再登录，新用户有手机号）
+      post '/api/app_users/create_by_device', params: { device_id: 'new-device-unbind' }, as: :json
+      new_user = AppUser.last
+      new_user.update!(phone: '13800000001')
+
+      ENV['WECHAT_APP_ID'] = 'wx_test_id'
+      ENV['WECHAT_APP_SECRET'] = 'wx_test_secret'
+      allow_any_instance_of(WechatAuthService).to receive(:get_credentials)
+        .and_return({ access_token: 'mock_token', openid: 'oWX_OPENID_456' })
+      allow_any_instance_of(WechatAuthService).to receive(:get_userinfo)
+        .and_return({ nickname: '新昵称', headimgurl: nil, sex: 1 })
+
+      post '/api/app_users/login_by_wechat', params: { uuid: new_user.uuid, code: 'wechat_code' }
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      # openid 绑定到了新匿名用户，不是原来的 user
+      expect(json_response[:response][:data][:user][:uuid]).to eq(new_user.uuid)
+      expect(new_user.reload.wechat_openid).to eq('oWX_OPENID_456')
+      # 原用户仍然存在（未被删除），且 openid 为空
+      expect(user.reload.wechat_openid).to be_nil
+    ensure
+      ENV.delete('WECHAT_APP_ID')
+      ENV.delete('WECHAT_APP_SECRET')
+    end
+
+    it '无效 uuid 返回未授权' do
+      post '/api/app_users/unbind_wechat', params: { uuid: 'invalid_uuid_00000' }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:msg]).to eq('未授权访问')
+    end
+  end
+
   # ==================== 注销账户 ====================
   describe 'POST /api/app_users/delete_account' do
     it '成功注销账户，用户记录被删除' do
