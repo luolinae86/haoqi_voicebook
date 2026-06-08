@@ -215,7 +215,7 @@ module Api
         desc '根据book_id数组批量获取图书封面图片URL'
         params do
           requires :uuid, type: String, desc: '用户uuid'
-          requires :book_ids, type: Array[Integer], desc: '图书ID数组'
+          requires :book_ids, type: [Integer], desc: '图书ID数组'
         end
         get 'covers' do
           auth_user
