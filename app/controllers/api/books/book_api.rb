@@ -68,7 +68,7 @@ module Api
           chapter = Chapter.find_by(id: params[:chapter_id])
           error_pop_resp('章节不存在') unless chapter
 
-          signed_url = chapter.content_file_url.present? ? Book.sign_oss_url(chapter.content_file_url, expires: 86400) : nil
+          signed_url = chapter.content_file_url.present? ? Book.sign_oss_url(chapter.content_file_url, expires: 86_400) : nil
 
           present response: success_response(
             chapter_id: chapter.id,
@@ -209,6 +209,31 @@ module Api
           else
             error!({ response: { code: 1, msg: '样式表尚未导出', data: nil } }, 200)
           end
+        end
+
+        # ==================== 批量获取封面 ====================
+        desc '根据book_id数组批量获取图书封面图片URL'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :book_ids, type: [Integer], desc: '图书ID数组'
+        end
+        get 'covers' do
+          auth_user
+
+          book_ids = params[:book_ids]
+          error_pop_resp('book_ids不能为空') if book_ids.nil?
+
+          books = Book.where(id: book_ids).not_in_blacklist(current_user.id)
+
+          covers = books.map do |book|
+            {
+              book_id: book.id,
+              name: book.name,
+              cover_image_url: book.cover_image_url.present? ? signed_oss_url(book.cover_image_url) : nil
+            }
+          end
+
+          present response: success_response(covers: covers)
         end
       end
     end
