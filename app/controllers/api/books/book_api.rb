@@ -215,13 +215,15 @@ module Api
         desc '根据book_id数组批量获取图书封面图片URL'
         params do
           requires :uuid, type: String, desc: '用户uuid'
-          requires :book_ids, type: [Integer], desc: '图书ID数组'
+          optional :book_ids, type: [Integer], desc: '图书ID数组'
         end
         get 'covers' do
           auth_user
 
-          book_ids = params[:book_ids]
-          error_pop_resp('book_ids不能为空') if book_ids.nil?
+          book_ids_raw = params[:book_ids]
+          book_ids_raw = JSON.parse(book_ids_raw) if book_ids_raw.is_a?(String) && book_ids_raw.start_with?('[')
+          book_ids = Array(book_ids_raw).map(&:to_i)
+          error_pop_resp('book_ids不能为空') if book_ids.empty?
 
           books = Book.where(id: book_ids).not_in_blacklist(current_user.id)
 
