@@ -35,7 +35,7 @@ class GetuiService
         notification: {
           title: title,
           body: body,
-          click_type: 'startapp'
+          click_type: 'intent'
         }
       }
     }
@@ -59,7 +59,7 @@ class GetuiService
         notification: {
           title: title,
           body: body,
-          click_type: 'startapp'
+          click_type: 'intent'
         }
       },
       cid: cid_list
@@ -82,7 +82,7 @@ class GetuiService
         notification: {
           title: title,
           body: body,
-          click_type: 'startapp'
+          click_type: 'intent'
         }
       }
     }
@@ -110,10 +110,11 @@ class GetuiService
 
   private
 
-  # 构建 payload URL：将 payload Hash 编码为 URL query 参数
+  # 构建 payload URL：将 payload Hash 编码为 intent scheme URI
+  # 格式：intent://host?params#Intent;scheme=scheme_name;end
   def build_payload_url(payload)
     query = payload.map { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
-    "app://payload?#{query}"
+    "intent://payload?#{query}#Intent;scheme=https;end"
   end
 
   # 发送 API 请求
