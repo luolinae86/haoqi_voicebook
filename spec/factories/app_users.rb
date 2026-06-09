@@ -35,10 +35,10 @@
 #  index_app_users_on_wechat_openid  (wechat_openid) UNIQUE
 #
 FactoryBot.define do
-  factory :app_user, class: "AppUser" do
+  factory :app_user, class: 'AppUser' do
     phone { "1#{rand(3..9)}#{Faker::Number.number(digits: 9)}" }
     nickname { Faker::Internet.username }
-    password { "password123" }
+    password { 'password123' }
     role { :child }
     is_vip { false }
     vip_expires_at { nil }
@@ -78,6 +78,7 @@ FactoryBot.define do
 
   factory :device do
     sequence(:device_id) { |n| "device_#{n}_#{SecureRandom.hex(16)}" }
+    sequence(:push_cid) { |n| "push_cid_#{n}" }
     app_user
   end
 end

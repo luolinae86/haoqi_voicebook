@@ -36,6 +36,7 @@ module Api
     mount Api::Categories::Mount
     mount Api::HeadImgs::Mount
     mount Api::Report::Mount
+    mount Api::Push::Mount
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(
