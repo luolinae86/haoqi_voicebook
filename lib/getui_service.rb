@@ -7,13 +7,13 @@ require 'cgi'
 # 个推推送服务封装（基于个推 V2 API）
 # 使用方式：
 #   service = GetuiService.new
-#   service.push_to_single(cid, title, body, push_type: :notification)  # 单推
-#   service.push_to_batch(cid_list, title, body)                        # 批量单推
-#   service.push_to_all(title, body)                                     # 群推/全推
+#   service.push_to_single(cid, title, body, payload: {type: 'msg'})  # 单推
+#   service.push_to_batch(cid_list, title, body, payload: {type: 'msg'})  # 批量单推
+#   service.push_to_all(title, body, payload: {type: 'msg'})           # 群推/全推
 #
 # push_type 可选值：
-#   :notification - 通知消息（默认），在通知栏显示，支持离线推送
-#   :transmission - 透传消息，不在通知栏显示，需要 App 在线才能收到
+#   :notification - 通知消息（默认），在通知栏显示，payload 通过 intent 传递
+#   :transmission - 透传消息，个推后台自动判断：在线走透传，离线走厂商通道转通知
 class GetuiService
   class PushError < StandardError; end
 
@@ -25,8 +25,8 @@ class GetuiService
 
   # 单推：推给指定一个 CID
   # @param cid [String] 客户端 CID
-  # @param title [String] 通知标题（透传模式下可选）
-  # @param body [String] 通知内容（透传模式下可选）
+  # @param title [String] 通知标题（透传模式下由个推厂商通道决定展示）
+  # @param body [String] 通知内容（透传模式下由个推厂商通道决定展示）
   # @param payload [Hash] 附加数据
   # @param push_type [Symbol] :notification（通知消息，默认）或 :transmission（透传消息）
   # @return [Hash] 个推返回结果
@@ -61,7 +61,7 @@ class GetuiService
     api_request('push/list/cid', request_body)
   end
 
-  # 群推：推给所有在线用户
+  # 群推：推给所有用户
   # @param title [String] 通知标题
   # @param body [String] 通知内容
   # @param payload [Hash] 附加数据
@@ -96,7 +96,7 @@ class GetuiService
 
   private
 
-  # 构建通知消息（在通知栏显示，支持离线推送）
+  # 构建通知消息（在通知栏显示，payload 通过 intent URI 传递）
   def build_notification(title, body, payload)
     notification = {
       title: title,
@@ -107,21 +107,14 @@ class GetuiService
     { notification: notification }
   end
 
-  # 构建透传消息（不在通知栏显示，需 App 在线）
-  # V2 API 不支持纯透传，用极简短标题 + intent 方式传递 payload
+  # 构建透传消息（JSON 字符串）
+  # 个推后台自动处理：用户在线直接透传，离线通过厂商通道转为通知
   def build_transmission(payload)
-    {
-      notification: {
-        title: '.',
-        body: '.',
-        click_type: 'intent',
-        intent: build_payload_intent(payload)
-      }
-    }
+    { transmission: payload.to_json }
   end
 
   # 构建 payload intent URI
-  # 格式：intent://push?payload=JSON#Intent;scheme=zheliapp;package=com.zheli.zheliapp;component=com.zheli.zheliapp/.MainActivity;action=android.intent.action.VIEW;end
+  # 格式：intent://push?payload=ENCODED_JSON#Intent;scheme=zheliapp;package=com.zheli.zheliapp;component=com.zheli.zheliapp/.MainActivity;action=android.intent.action.VIEW;end
   def build_payload_intent(payload)
     payload_json = payload.to_json
     encoded_payload = CGI.escape(payload_json)
