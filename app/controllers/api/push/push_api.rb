@@ -16,7 +16,7 @@ module Api
           requires :title, type: String, desc: '消息标题'
           requires :body, type: String, desc: '消息内容'
           optional :type, type: String, desc: '消息类型'
-          optional :content, type: String, desc: '消息内容详情'
+          optional :content, type: Hash, desc: '消息内容详情（JSON对象）'
         end
         post :send do
           auth_user
@@ -56,7 +56,7 @@ module Api
           requires :title, type: String, desc: '消息标题'
           requires :body, type: String, desc: '消息内容'
           optional :type, type: String, desc: '消息类型'
-          optional :content, type: String, desc: '消息内容详情'
+          optional :content, type: Hash, desc: '消息内容详情（JSON对象）'
         end
         post :test do
           payload = {
