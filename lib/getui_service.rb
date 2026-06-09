@@ -39,7 +39,7 @@ class GetuiService
         }
       }
     }
-    request_body[:push_message][:notification][:url] = build_payload_url(payload) if payload.any?
+    request_body[:push_message][:notification][:intent] = build_payload_intent(payload) if payload.any?
 
     api_request('push/single/cid', request_body)
   end
@@ -64,7 +64,7 @@ class GetuiService
       },
       cid: cid_list
     }
-    request_body[:push_message][:notification][:url] = build_payload_url(payload) if payload.any?
+    request_body[:push_message][:notification][:intent] = build_payload_intent(payload) if payload.any?
 
     api_request('push/list/cid', request_body)
   end
@@ -86,7 +86,7 @@ class GetuiService
         }
       }
     }
-    request_body[:push_message][:notification][:url] = build_payload_url(payload) if payload.any?
+    request_body[:push_message][:notification][:intent] = build_payload_intent(payload) if payload.any?
 
     api_request('push/app', request_body)
   end
@@ -110,11 +110,11 @@ class GetuiService
 
   private
 
-  # 构建 payload URL：将 payload Hash 编码为 intent scheme URI
-  # 格式：intent://host?params#Intent;scheme=scheme_name;end
-  def build_payload_url(payload)
+  # 构建 payload intent URI：将 payload Hash 编码为 intent scheme URI
+  # 格式：intent://host?params#Intent;scheme=scheme_name;package=package_name;end
+  def build_payload_intent(payload)
     query = payload.map { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
-    "intent://payload?#{query}#Intent;scheme=https;end"
+    "intent://payload?#{query}#Intent;scheme=https;package=cn.izhihu.horn;end"
   end
 
   # 发送 API 请求
