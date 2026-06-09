@@ -2,6 +2,7 @@
 
 require 'securerandom'
 require 'net/http'
+require 'cgi'
 
 # 个推推送服务封装（基于个推 V2 API）
 # 使用方式：
@@ -22,7 +23,7 @@ class GetuiService
   # @param cid [String] 客户端 CID
   # @param title [String] 通知标题
   # @param body [String] 通知内容
-  # @param payload [Hash] 附加数据（可选）
+  # @param payload [Hash] 附加数据（可选），会通过 url 参数传递给客户端
   # @return [Hash] 个推返回结果
   def push_to_single(cid, title, body, payload: {})
     raise ArgumentError, 'cid 不能为空' if cid.blank?
@@ -34,11 +35,11 @@ class GetuiService
         notification: {
           title: title,
           body: body,
-          click_type: 'startapp',
-          payload: payload.to_json
+          click_type: 'startapp'
         }
       }
     }
+    request_body[:push_message][:notification][:url] = build_payload_url(payload) if payload.any?
 
     api_request('push/single/cid', request_body)
   end
@@ -52,21 +53,20 @@ class GetuiService
   def push_to_batch(cid_list, title, body, payload: {})
     return {} if cid_list.blank?
 
-    # 先创建任务
-    task_body = {
+    request_body = {
       request_id: SecureRandom.uuid,
       push_message: {
         notification: {
           title: title,
           body: body,
-          click_type: 'startapp',
-          payload: payload.to_json
+          click_type: 'startapp'
         }
       },
       cid: cid_list
     }
+    request_body[:push_message][:notification][:url] = build_payload_url(payload) if payload.any?
 
-    api_request('push/list/cid', task_body)
+    api_request('push/list/cid', request_body)
   end
 
   # 群推：推给所有在线用户
@@ -82,11 +82,11 @@ class GetuiService
         notification: {
           title: title,
           body: body,
-          click_type: 'startapp',
-          payload: payload.to_json
+          click_type: 'startapp'
         }
       }
     }
+    request_body[:push_message][:notification][:url] = build_payload_url(payload) if payload.any?
 
     api_request('push/app', request_body)
   end
@@ -109,6 +109,12 @@ class GetuiService
   end
 
   private
+
+  # 构建 payload URL：将 payload Hash 编码为 URL query 参数
+  def build_payload_url(payload)
+    query = payload.map { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
+    "app://payload?#{query}"
+  end
 
   # 发送 API 请求
   def api_request(endpoint, body)
