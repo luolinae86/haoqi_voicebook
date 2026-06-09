@@ -26,8 +26,8 @@ class GetuiService
   # @param cid [String] 客户端 CID
   # @param title [String] 通知标题
   # @param body [String] 通知内容
-  # @param payload [Hash] 附加数据（JSON 格式）
-  # @param push_type [Symbol] :notification（通知消息，默认）或 :transmission（透传消息）
+  # @param payload [Hash] 附加数据
+  # @param push_type [Symbol] :notification（默认，在线透传+离线通知）或 :transmission（仅在线透传）
   # @return [Hash] 个推返回结果
   def push_to_single(cid, title = nil, body = nil, payload: {}, push_type: :notification)
     raise ArgumentError, 'cid 不能为空' if cid.blank?
@@ -35,8 +35,12 @@ class GetuiService
     request_body = {
       request_id: SecureRandom.uuid,
       audience: { cid: [cid] },
-      push_message: push_type == :transmission ? build_transmission(payload) : build_notification(title, body, payload)
+      push_message: build_push_message(payload, title, body),
+      push_channel: build_push_channel(title, body)
     }
+
+    # 仅透传模式不加 push_channel（个推后台不会自动转通知）
+    request_body.delete(:push_channel) if push_type == :transmission
 
     api_request('push/single/cid', request_body)
   end
@@ -53,11 +57,14 @@ class GetuiService
 
     request_body = {
       request_id: SecureRandom.uuid,
-      push_message: push_type == :transmission ? build_transmission(payload) : build_notification(title, body, payload),
+      push_message: build_push_message(payload, title, body),
+      push_channel: build_push_channel(title, body),
       cid: cid_list
     }
 
-    api_request('push/list/cid', request_body)
+    request_body.delete(:push_channel) if push_type == :transmission
+
+    api_request('push/single/batch/cid', request_body)
   end
 
   # 群推：推给所有用户
@@ -70,8 +77,11 @@ class GetuiService
     request_body = {
       request_id: SecureRandom.uuid,
       audience: { all: 'all' },
-      push_message: push_type == :transmission ? build_transmission(payload) : build_notification(title, body, payload)
+      push_message: build_push_message(payload, title, body),
+      push_channel: build_push_channel(title, body)
     }
+
+    request_body.delete(:push_channel) if push_type == :transmission
 
     api_request('push/app', request_body)
   end
@@ -95,21 +105,27 @@ class GetuiService
 
   private
 
-  # 构建通知消息（在通知栏显示，click_type=startapp + payload JSON 字符串）
-  def build_notification(title, body, payload)
-    notification = {
-      title: title,
-      body: body,
-      click_type: 'startapp'
-    }
-    notification[:payload] = payload.to_json if payload.any?
-    { notification: notification }
+  # 构建推送消息（透传消息，在线时直接送达）
+  # 所有参数（title/body/payload）统一打包成 transmission JSON
+  def build_push_message(payload, title = nil, body = nil)
+    data = payload.dup
+    data[:title] = title if title
+    data[:body] = body if body
+    { transmission: data.to_json }
   end
 
-  # 构建透传消息（JSON 字符串）
-  # 个推后台自动处理：用户在线直接透传，离线通过厂商通道转为通知
-  def build_transmission(payload)
-    { transmission: payload.to_json }
+  # 构建厂商通道离线通知（用户离线时通过华为/小米/OPPO/vivo 等显示通知）
+  def build_push_channel(title, body)
+    return nil if title.blank? && body.blank?
+
+    {
+      ups: {
+        notification: {
+          title: title,
+          body: body
+        }
+      }
+    }
   end
 
   # 发送 API 请求
