@@ -73,19 +73,13 @@ class GetuiService
 
   private
 
-  # 构建通知消息（透传 + APNs 兼容 Android/iOS）
+  # 构建通知消息（Android 通知栏推送）
   def build_notification_message(title, body, payload)
     message = Getui::Message::Transmission.new(
       payload.to_json,
       is_offline: true,
-      offline_expire_time: 24 * 60 * 60 # 24 小时离线缓存
+      offline_expire_time: 24 * 60 * 60
     )
-    message.transmission_type = 1
-
-    # iOS APNs 通知（备用，当前以 Android 为主）
-    # apns = Getui::Apns.new(body, title: title)
-    # message.apns = apns
-
     message
   end
 end
