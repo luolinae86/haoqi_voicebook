@@ -2,7 +2,6 @@
 
 require 'securerandom'
 require 'net/http'
-require 'cgi'
 
 # 个推推送服务封装（基于个推 V2 API）
 # 使用方式：
@@ -12,7 +11,7 @@ require 'cgi'
 #   service.push_to_all(title, body, payload: {type: 'msg'})           # 群推/全推
 #
 # push_type 可选值：
-#   :notification - 通知消息（默认），在通知栏显示，payload 通过 intent 传递
+#   :notification - 通知消息（默认），在通知栏显示，payload 以 JSON 字符串传递
 #   :transmission - 透传消息，个推后台自动判断：在线走透传，离线走厂商通道转通知
 class GetuiService
   class PushError < StandardError; end
@@ -25,9 +24,9 @@ class GetuiService
 
   # 单推：推给指定一个 CID
   # @param cid [String] 客户端 CID
-  # @param title [String] 通知标题（透传模式下由个推厂商通道决定展示）
-  # @param body [String] 通知内容（透传模式下由个推厂商通道决定展示）
-  # @param payload [Hash] 附加数据
+  # @param title [String] 通知标题
+  # @param body [String] 通知内容
+  # @param payload [Hash] 附加数据（JSON 格式）
   # @param push_type [Symbol] :notification（通知消息，默认）或 :transmission（透传消息）
   # @return [Hash] 个推返回结果
   def push_to_single(cid, title = nil, body = nil, payload: {}, push_type: :notification)
@@ -96,14 +95,14 @@ class GetuiService
 
   private
 
-  # 构建通知消息（在通知栏显示，payload 通过 intent URI 传递）
+  # 构建通知消息（在通知栏显示，click_type=startapp + payload JSON 字符串）
   def build_notification(title, body, payload)
     notification = {
       title: title,
       body: body,
-      click_type: 'intent'
+      click_type: 'startapp'
     }
-    notification[:intent] = build_payload_intent(payload) if payload.any?
+    notification[:payload] = payload.to_json if payload.any?
     { notification: notification }
   end
 
@@ -111,14 +110,6 @@ class GetuiService
   # 个推后台自动处理：用户在线直接透传，离线通过厂商通道转为通知
   def build_transmission(payload)
     { transmission: payload.to_json }
-  end
-
-  # 构建 payload intent URI
-  # 格式：intent://push?payload=ENCODED_JSON#Intent;scheme=zheliapp;package=com.zheli.zheliapp;component=com.zheli.zheliapp/.MainActivity;action=android.intent.action.VIEW;end
-  def build_payload_intent(payload)
-    payload_json = payload.to_json
-    encoded_payload = CGI.escape(payload_json)
-    "intent://push?payload=#{encoded_payload}#Intent;scheme=zheliapp;package=com.zheli.zheliapp;component=com.zheli.zheliapp/.MainActivity;action=android.intent.action.VIEW;end"
   end
 
   # 发送 API 请求
