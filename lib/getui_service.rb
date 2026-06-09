@@ -108,10 +108,14 @@ class GetuiService
   end
 
   # 构建透传消息（不在通知栏显示，需 App 在线）
+  # V2 API 不支持纯透传，用极简短标题 + intent 方式传递 payload
   def build_transmission(payload)
     {
-      transmission: {
-        transmission_content: payload.to_json
+      notification: {
+        title: '.',
+        body: '.',
+        click_type: 'intent',
+        intent: build_payload_intent(payload)
       }
     }
   end
