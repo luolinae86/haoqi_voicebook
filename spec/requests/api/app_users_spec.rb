@@ -1021,6 +1021,49 @@ RSpec.describe 'API AppUsers', type: :request do
     end
   end
 
+  # ==================== 更新推送 CID ====================
+  describe 'POST /api/app_users/update_push_cid' do
+    let!(:device) { create(:device, app_user: user) }
+
+    it '更新设备的 push_cid 成功' do
+      post '/api/app_users/update_push_cid',
+           params: { uuid: user.uuid, push_cid: 'test_push_cid_123' }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(json_response[:response][:msg]).to eq('推送 CID 已更新')
+      expect(device.reload.push_cid).to eq('test_push_cid_123')
+    end
+
+    it 'push_cid 重复写入覆盖旧值' do
+      device.update!(push_cid: 'old_cid')
+
+      post '/api/app_users/update_push_cid',
+           params: { uuid: user.uuid, push_cid: 'new_cid' }
+
+      expect(response).to have_http_status(201)
+      expect(device.reload.push_cid).to eq('new_cid')
+    end
+
+    it '无效 uuid 返回未授权' do
+      post '/api/app_users/update_push_cid',
+           params: { uuid: 'invalid_uuid', push_cid: 'some_cid' }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:msg]).to eq('未授权访问')
+    end
+
+    it '缺少 push_cid 参数返回 Grape 验证错误' do
+      post '/api/app_users/update_push_cid',
+           params: { uuid: user.uuid }
+
+      # Grape 返回 required 参数缺失时返回 400
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+    end
+  end
+
   # ==================== 注销账户 ====================
   describe 'POST /api/app_users/delete_account' do
     it '成功注销账户，用户记录被删除' do

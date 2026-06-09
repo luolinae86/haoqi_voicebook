@@ -7,6 +7,7 @@
 # Table name: devices
 #
 #  id          :bigint           not null, primary key
+#  push_cid    :string(64)
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
 #  app_user_id :bigint           not null
@@ -22,7 +23,7 @@
 #  fk_rails_...  (app_user_id => app_users.id)
 #
 class Device < ApplicationRecord
-  belongs_to :app_user, class_name: "AppUser", optional: true
+  belongs_to :app_user, class_name: 'AppUser', optional: true
 
   validates :device_id, presence: true, uniqueness: true
 

@@ -265,6 +265,27 @@ module Api
           present response: success_response
         end
 
+        # ==================== 更新推送 CID ====================
+        desc '更新个推推送 CID（客户端获取到个推 CID 后调用）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :push_cid, type: String, desc: '个推客户端 CID'
+        end
+        post :update_push_cid do
+          auth_user
+
+          # 查找当前设备（按最新设备优先）
+          device = current_user.devices.order(created_at: :desc).first
+          if device
+            device.update!(push_cid: params[:push_cid])
+          else
+            # 兼容旧用户可能没有 devices 记录
+            Device.create!(app_user: current_user, device_id: current_user.device_id, push_cid: params[:push_cid])
+          end
+
+          present response: success_response(msg: '推送 CID 已更新')
+        end
+
         # ==================== 注销账户 ====================
         desc '注销账户（删除用户及其所有资源，解绑所有设备并创建新匿名账户）'
         params do

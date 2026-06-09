@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_04_074802) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -188,6 +188,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_074802) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "icon"
+    t.string "description"
     t.index ["level"], name: "index_categories_on_level"
   end
 
@@ -311,8 +313,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_074802) do
     t.string "device_id", limit: 64, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "push_cid", limit: 64
     t.index ["app_user_id"], name: "index_devices_on_app_user_id"
     t.index ["device_id"], name: "index_devices_on_device_id", unique: true
+    t.index ["push_cid"], name: "index_devices_on_push_cid"
   end
 
   create_table "ebook_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "电子书页面表", force: :cascade do |t|
@@ -333,6 +337,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_074802) do
     t.string "description", limit: 32
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "level", default: 0, null: false
+    t.integer "sort_order", default: 0, null: false
+    t.index ["level"], name: "index_grades_on_level", unique: true
+    t.index ["sort_order"], name: "index_grades_on_sort_order"
   end
 
   create_table "head_imgs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
