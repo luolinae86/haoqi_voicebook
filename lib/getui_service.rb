@@ -110,11 +110,12 @@ class GetuiService
 
   private
 
-  # 构建 payload intent URI：将 payload Hash 编码为 intent scheme URI
-  # 格式：intent://host?params#Intent;scheme=scheme_name;package=package_name;end
+  # 构建 payload intent URI
+  # 格式：intent://push?payload=JSON#Intent;scheme=zheliapp;package=com.zheli.zheliapp;component=com.zheli.zheliapp/.MainActivity;action=android.intent.action.VIEW;end
   def build_payload_intent(payload)
-    query = payload.map { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
-    "intent://payload?#{query}#Intent;scheme=https;package=cn.izhihu.horn;end"
+    payload_json = payload.to_json
+    encoded_payload = CGI.escape(payload_json)
+    "intent://push?payload=#{encoded_payload}#Intent;scheme=zheliapp;package=com.zheli.zheliapp;component=com.zheli.zheliapp/.MainActivity;action=android.intent.action.VIEW;end"
   end
 
   # 发送 API 请求
