@@ -22,5 +22,9 @@ for host in "${HOSTS[@]}"; do
   fi
 
   echo "[$host] 清理已停止的容器..."
-  ssh "root@$host" "docker container prune -f --filter 'until=1h' && docker image prune -f"
+  ssh "root@$host" "docker container prune -f"
+  echo "[$host] 清理未使用的镜像..."
+  ssh "root@$host" "docker image prune -af"
+  echo "[$host] 清理 Docker 系统缓存..."
+  ssh "root@$host" "docker system prune -af"
 done
