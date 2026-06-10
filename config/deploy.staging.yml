@@ -51,9 +51,17 @@ ssh:
   keys:
     - /Users/luolin/.ssh/id_rsa
 
+# ==================== 部署超时与优雅下线 ====================
+deploy_timeout: 90
+drain_timeout: 30
+# 与 production 保持一致，防止小服务器资源累积
+retain_containers: 2
+
 # ==================== 构建配置 ====================
 builder:
   arch: amd64
+  cache:
+    type: registry
 
 # ==================== 数据卷挂载 ====================
 volumes:
@@ -67,7 +75,3 @@ proxy:
     path: /up
     interval: 5
     timeout: 5
-
-# ==================== 启动超时配置 ====================
-# 数据库迁移时间较长，增加到 90 秒
-deploy_timeout: 90

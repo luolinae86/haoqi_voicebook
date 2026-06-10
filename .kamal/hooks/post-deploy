@@ -1,8 +1,40 @@
 #!/usr/bin/env bash
 # 部署后验证服务健康，再清理冗余容器和镜像
-IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
-for host in "${HOSTS[@]}"; do
-  echo "[$host] 验证服务健康..."
+
+echo "===== 服务器资源状态（部署前） ====="
+for host in ${KAMAL_HOSTS//,/ }; do
+  echo "
+[$host] === 磁盘使用 ==="
+  ssh "root@$host" "df -h / | tail -1"
+  echo "[$host] === 内存使用 ==="
+  ssh "root@$host" "free -h | grep Mem"
+  echo "[$host] === CPU 负载 ==="
+  ssh "root@$host" "uptime"
+done
+
+echo "===== 清理旧容器和镜像 ====="
+for host in ${KAMAL_HOSTS//,/ }; do
+  # 清理 voicebook staging 容器和镜像
+  echo "[$host] 停止并移除 voicebook-staging 容器..."
+  ssh "root@$host" "docker ps -aq --filter 'name=voicebook-staging' | xargs -r docker rm -f 2>/dev/null || true"
+  ssh "root@$host" "docker images --filter 'reference=*voicebook-staging*' --format '{{.ID}}' | xargs -r docker rmi -f 2>/dev/null || true"
+  # 清理 zheli_read staging 容器和镜像（同服务器共用）
+  echo "[$host] 停止并移除 zheli_read-staging 容器..."
+  ssh "root@$host" "docker ps -aq --filter 'name=zheli_read-staging' | xargs -r docker rm -f 2>/dev/null || true"
+  ssh "root@$host" "docker images --filter 'reference=*zheli_read-staging*' --format '{{.ID}}' | xargs -r docker rmi -f 2>/dev/null || true"
+  # 清理所有已停止的容器
+  echo "[$host] 清理已停止的容器..."
+  ssh "root@$host" "docker container prune -f"
+  # 清理所有未使用的镜像
+  echo "[$host] 清理未使用的镜像..."
+  ssh "root@$host" "docker image prune -af --filter 'until=24h'"
+  # 清理 Docker 系统缓存
+  echo "[$host] 清理 Docker 系统缓存..."
+  ssh "root@$host" "docker system prune -af --filter 'until=24h' && docker volume prune -af --filter 'until=24h'"
+done
+
+echo "===== 健康检查 ====="
+for host in ${KAMAL_HOSTS//,/ }; do
   HEALTH_OK=false
   for i in $(seq 1 10); do
     STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.zheliyuedu.cn/up 2>/dev/null)
@@ -20,11 +52,19 @@ for host in "${HOSTS[@]}"; do
     echo "[$host] 回滚命令: kamal app rollback"
     exit 1
   fi
-
-  echo "[$host] 清理已停止的容器..."
-  ssh "root@$host" "docker container prune -f"
-  echo "[$host] 清理未使用的镜像..."
-  ssh "root@$host" "docker image prune -af"
-  echo "[$host] 清理 Docker 系统缓存..."
-  ssh "root@$host" "docker system prune -af"
 done
+
+echo "===== 服务器资源状态（部署后） ====="
+for host in ${KAMAL_HOSTS//,/ }; do
+  echo "
+[$host] === 磁盘使用 ==="
+  ssh "root@$host" "df -h / | tail -1"
+  echo "[$host] === 内存使用 ==="
+  ssh "root@$host" "free -h | grep Mem"
+  echo "[$host] === Docker 磁盘使用 ==="
+  ssh "root@$host" "docker system df"
+  echo "[$host] === CPU 负载 ==="
+  ssh "root@$host" "uptime"
+done
+
+echo "===== 部署完成 ====="

@@ -67,6 +67,10 @@ env:
     - WECHAT_API_CERT_SERIAL
     - WECHAT_NOTIFY_URL
     - WECHAT_PLATFORM_CERT
+    # 个推推送
+    - GE_TUI_APP_ID
+    - GE_TUI_APP_KEY
+    - GE_TUI_MASTER_SECRET
 
 # ==================== SSH 配置 ====================
 ssh:
@@ -91,12 +95,14 @@ proxy:
 deploy_timeout: 90
 # 旧容器停止前等待的时间，确保在途请求完成
 drain_timeout: 30
-# 保留最近 3 个版本，便于快速回滚
-retain_containers: 3
+# 保留最近 2 个版本，便于快速回滚
+retain_containers: 2
 
 # ==================== 构建配置 ====================
 builder:
   arch: amd64
+  cache:
+    type: registry
 
 # ==================== 数据卷挂载 ====================
 volumes:
