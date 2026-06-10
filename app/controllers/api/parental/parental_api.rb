@@ -67,7 +67,10 @@ module Api
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          present response: success_response(parental_control: Entities::ParentalControl.represent(parental).as_json)
+          present response: success_response(
+            parental_control: Entities::ParentalControl.represent(parental).as_json,
+            blacklisted_books_count: parental.blacklisted_books.count
+          )
         end
 
         # ==================== 设置时间限制 ====================
