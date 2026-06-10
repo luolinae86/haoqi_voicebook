@@ -8,11 +8,10 @@ module Api
       helpers Api::Concerns::CommonHelpers
 
       namespace :push do
-        # ==================== 推送消息 ====================
-        desc '推送消息（同时推送给用户所有登录设备）'
+        # ==================== 按年级推送 ====================
+        desc '按年级推送消息（推送给指定年级的所有用户）'
         params do
-          requires :uuid, type: String, desc: '用户UUID'
-          optional :cid, type: String, desc: '指定单个CID（不传则推送给用户所有设备）'
+          requires :grade_ids, type: [Integer], desc: '年级ID列表'
           requires :title, type: String, desc: '消息标题'
           requires :body, type: String, desc: '消息内容'
           optional :type, type: String, desc: '消息类型'
@@ -21,6 +20,9 @@ module Api
         post :send do
           auth_user
 
+          grade_ids = params[:grade_ids]
+          raise ArgumentError, 'grade_ids 不能为空' if grade_ids.blank?
+
           payload = {
             title: params[:title],
             body: params[:body]
@@ -28,53 +30,37 @@ module Api
           payload[:type] = params[:type] if params[:type].present?
           payload[:content] = params[:content] if params[:content].present?
 
-          # 如果指定了cid，只推送到该cid
-          if params[:cid].present?
-            cid = params[:cid]
-            raise ArgumentError, '未找到推送CID' unless cid.present?
+          # 查找指定年级的所有用户的有效 push_cid
+          cid_list = Device.joins(:app_user)
+                           .where(app_users: { grade_id: grade_ids })
+                           .where.not(push_cid: [nil, ''])
+                           .pluck(:push_cid)
+                           .uniq
 
-            service = GetuiService.new
-            result = service.push_to_single(cid, params[:title], params[:body], payload: payload)
+          raise ArgumentError, '未找到推送CID，指定年级下没有有效设备' if cid_list.empty?
 
-            present response: success_response(
-              msg: '推送到 1 个设备成功',
-              data: {
-                devices: [{ cid: cid, result: result }],
-                title: params[:title],
-                body: params[:body],
-                payload: payload
-              }
-            )
+          service = GetuiService.new
+
+          if cid_list.size == 1
+            result = service.push_to_single(cid_list.first, params[:title], params[:body], payload: payload)
+            push_result = [{ cid: cid_list.first, result: result }]
           else
-            # 获取用户所有设备的push_cid
-            cid_list = current_user.devices.where.not(push_cid: [nil, '']).pluck(:push_cid).uniq
-
-            raise ArgumentError, '未找到推送CID，请先更新个推CID' if cid_list.empty?
-
-            service = GetuiService.new
-
-            if cid_list.size == 1
-              # 单设备，用单推
-              result = service.push_to_single(cid_list.first, params[:title], params[:body], payload: payload)
-              devices_result = [{ cid: cid_list.first, result: result }]
-            else
-              # 多设备，批量推
-              results = service.push_to_batch(cid_list, params[:title], params[:body], payload: payload)
-              devices_result = cid_list.map.with_index do |cid, idx|
-                { cid: cid, result: results[idx] }
-              end
+            results = service.push_to_batch(cid_list, params[:title], params[:body], payload: payload)
+            push_result = cid_list.map.with_index do |cid, idx|
+              { cid: cid, result: results[idx] }
             end
-
-            present response: success_response(
-              msg: "推送到 #{devices_result.size} 个设备成功",
-              data: {
-                devices: devices_result,
-                title: params[:title],
-                body: params[:body],
-                payload: payload
-              }
-            )
           end
+
+          present response: success_response(
+            msg: "推送到 #{push_result.size} 个设备成功",
+            data: {
+              devices: push_result,
+              grade_ids: grade_ids,
+              title: params[:title],
+              body: params[:body],
+              payload: payload
+            }
+          )
         rescue GetuiService::PushError => e
           error!({ code: 1, msg: "推送失败: #{e.message}" }, 400)
         rescue ArgumentError => e

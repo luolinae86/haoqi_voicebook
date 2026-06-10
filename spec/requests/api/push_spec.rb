@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe 'API Push', type: :request do
+  let(:admin) { create(:app_user, :admin) }
+
   # Stub GetuiService HTTP calls for all tests
   before do
     stub_request(:any, /restapi\.getui\.com/).to_return(
@@ -13,9 +15,13 @@ RSpec.describe 'API Push', type: :request do
   end
 
   # Helper to extract the inner data from present response: success_response(...)
+  # Grape wraps present response: X with an extra layer, so:
+  # success response: { response: { code: 0, msg: ..., data: { data: {...} } } }
+  # error response:   { response: { code: 1, msg: "...", data: nil } }
   def push_response_data
     json = json_response
-    json[:response][:data][:data] || json[:response][:data]
+    inner = json[:response][:data]
+    inner[:data] || inner
   end
 
   describe 'POST /api/push/test' do
@@ -46,69 +52,56 @@ RSpec.describe 'API Push', type: :request do
   end
 
   describe 'POST /api/push/send' do
-    it 'sends push to user device cid when single device exists' do
-      # app_user factory auto-creates 1 device, so this user has exactly 1 device
-      user = create(:app_user)
-
-      post '/api/push/send',
-           params: {
-             uuid: user.uuid,
-             title: '新订单',
-             body: '你有新订单'
-           },
-           as: :json
-
-      expect([200, 201]).to include(response.status)
-      data = push_response_data
-      expect(data[:devices].size).to eq(1)
+    let(:send_params) do
+      {
+        uuid: admin.uuid,
+        grade_ids: [],
+        title: '年级通知',
+        body: '这是年级通知'
+      }
     end
 
-    it 'sends push to all user devices when multiple exist' do
-      user = create(:app_user)
-      # factory already created 1 device, add 2 more = 3 total
-      create(:device, app_user: user, push_cid: 'cid_b')
-      create(:device, app_user: user, push_cid: 'cid_c')
+    it 'sends push to all devices of users in specified grades' do
+      grade = create(:grade)
+      user1 = create(:app_user, grade_id: grade.id)
+      create(:app_user, grade_id: grade.id)
+      # Each user has 1 device from factory, plus add another for user1
+      create(:device, app_user: user1, push_cid: 'cid_extra')
 
       post '/api/push/send',
-           params: {
-             uuid: user.uuid,
-             title: '新订单',
-             body: '你有新订单'
-           },
+           params: send_params.merge(grade_ids: [grade.id]),
            as: :json
 
       expect([200, 201]).to include(response.status)
       data = push_response_data
       expect(data[:devices].size).to eq(3)
+      expect(data[:grade_ids]).to eq([grade.id])
     end
 
-    it 'sends push to specified cid only' do
-      user = create(:app_user)
-      device = user.devices.first
+    it 'sends push to users across multiple grades' do
+      grade1 = create(:grade)
+      grade2 = create(:grade)
+      create(:app_user, grade_id: grade1.id)
+      create(:app_user, grade_id: grade2.id)
 
       post '/api/push/send',
-           params: {
-             uuid: user.uuid,
-             cid: device.push_cid,
-             title: '测试',
-             body: '测试内容'
-           },
+           params: send_params.merge(grade_ids: [grade1.id, grade2.id]),
            as: :json
 
       expect([200, 201]).to include(response.status)
       data = push_response_data
-      expect(data[:devices].size).to eq(1)
-      expect(data[:devices].first[:cid]).to eq(device.push_cid)
+      expect(data[:devices].size).to eq(2)
+      expect(data[:grade_ids]).to contain_exactly(grade1.id, grade2.id)
     end
 
     it 'ignores devices with empty push_cid' do
-      user = create(:app_user)
-      # factory already created 1 device with push_cid, add 2 without
+      grade = create(:grade)
+      user = create(:app_user, grade_id: grade.id)
       create(:device, app_user: user, push_cid: nil)
       create(:device, app_user: user, push_cid: '')
 
       post '/api/push/send',
-           params: { uuid: user.uuid, title: '测试', body: '测试内容' },
+           params: send_params.merge(grade_ids: [grade.id]),
            as: :json
 
       expect([200, 201]).to include(response.status)
@@ -118,31 +111,52 @@ RSpec.describe 'API Push', type: :request do
     end
 
     it 'deduplicates same push_cid across devices' do
-      user = create(:app_user)
-      # Update the factory-created device to have the same cid as the new one
+      grade = create(:grade)
+      user = create(:app_user, grade_id: grade.id)
       user.devices.first.update!(push_cid: 'same_cid')
       create(:device, app_user: user, push_cid: 'same_cid')
 
       post '/api/push/send',
-           params: { uuid: user.uuid, title: '测试', body: '测试内容' },
+           params: send_params.merge(grade_ids: [grade.id]),
            as: :json
 
       expect([200, 201]).to include(response.status)
       data = push_response_data
-      # Both devices have same cid, should only push once
       expect(data[:devices].size).to eq(1)
     end
 
-    it 'returns error when no cid found' do
-      # Create user normally but remove all devices
-      user_no_device = create(:app_user)
-      user_no_device.devices.destroy_all
+    it 'returns error when no users in specified grades' do
+      grade = create(:grade)
 
       post '/api/push/send',
-           params: { uuid: user_no_device.uuid, title: 'test', body: 'test' },
+           params: send_params.merge(grade_ids: [grade.id]),
            as: :json
 
       expect(response.status).to eq(400)
+    end
+
+    it 'returns error when grade_ids is empty' do
+      post '/api/push/send',
+           params: send_params,
+           as: :json
+
+      expect(response.status).to eq(400)
+    end
+
+    it 'only pushes to users with matching grade_id' do
+      grade1 = create(:grade)
+      grade2 = create(:grade)
+      create(:app_user, grade_id: grade1.id)
+      create(:app_user, grade_id: grade2.id)
+
+      post '/api/push/send',
+           params: send_params.merge(grade_ids: [grade1.id]),
+           as: :json
+
+      expect([200, 201]).to include(response.status)
+      data = push_response_data
+      # Only 1 device from grade1 user
+      expect(data[:devices].size).to eq(1)
     end
   end
 end
