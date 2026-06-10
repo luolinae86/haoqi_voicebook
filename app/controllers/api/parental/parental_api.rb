@@ -160,11 +160,12 @@ module Api
           requires :uuid, type: String, desc: '用户uuid'
           requires :book_id, type: Integer, desc: '图书ID'
         end
-        delete 'blacklist/:book_id' do
+        post :remove_blacklist do
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          blacklisted = parental.blacklisted_books.find_by!(book_id: params[:book_id])
+          blacklisted = parental.blacklisted_books.find_by(book_id: params[:book_id])
+          error_pop_resp('该图书不在黑名单中') unless blacklisted
           blacklisted.destroy!
 
           present response: success_response
