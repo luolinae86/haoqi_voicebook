@@ -14,13 +14,14 @@ module Api
         desc '按设备ID创建匿名用户（新用户注册，未绑定手机号前）'
         params do
           requires :device_id, type: String, desc: '设备ID'
+          optional :channel, type: String, desc: '注册渠道（app_store/tablet/community/koc）'
         end
         post :create_by_device do
           device = Device.find_by(device_id: params[:device_id])
           user = if device&.app_user
                    device.app_user
                  else
-                   create_new_app_user(params[:device_id])
+                   create_new_app_user(params[:device_id], channel: params[:channel])
                  end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)
@@ -250,15 +251,15 @@ module Api
           user = AppUser.find_by(uuid: params[:uuid])
           error_pop_resp('用户未注册，请先调用 create_by_device') if user.blank?
 
-          if user.password_digest.present?
-            # 已有密码，修改时必须验证手机号和验证码
-            error_pop_resp('修改密码需要提供手机号和验证码') if params[:phone].blank? || params[:code].blank?
-            find_and_consume_verification(params[:phone], params[:code])
-          end
-
-          error_pop_resp('修改密码需要提供手机号') if params[:phone].blank?
+          error_pop_resp('设置密码需要提供手机号') if params[:phone].blank?
           target_user = AppUser.find_by(phone: params[:phone])
           error_pop_resp('该手机号未绑定账户') if target_user.blank?
+
+          if target_user.password_digest.present?
+            # 已有密码，修改时必须验证手机号和验证码
+            error_pop_resp('修改密码需要提供验证码') if params[:code].blank?
+            find_and_consume_verification(params[:phone], params[:code])
+          end
 
           target_user.update!(password: params[:password])
 
