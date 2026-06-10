@@ -11,6 +11,7 @@ module Api
         # ==================== 按年级推送 ====================
         desc '按年级推送消息（推送给指定年级的所有用户）'
         params do
+          requires :uuid, type: String, desc: '用户UUID（鉴权用）'
           requires :grade_ids, type: [Integer], desc: '年级ID列表'
           requires :title, type: String, desc: '消息标题'
           requires :body, type: String, desc: '消息内容'
