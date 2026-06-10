@@ -37,7 +37,7 @@ module Entities
       instance.password_digest.present?
     end
     expose :splash_ad do |_, _|
-      splash_ad = SplashAd.active_now.first
+      splash_ad = ::SplashAd.active_now.first
       splash_ad ? Entities::SplashAd.represent(splash_ad).as_json : nil
     end
   end
