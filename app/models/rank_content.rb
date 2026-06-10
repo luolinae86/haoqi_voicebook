@@ -4,17 +4,18 @@
 #
 # Table name: rank_contents
 #
-#  id              :bigint           not null, primary key
-#  content_type    :string           not null
-#  sn              :integer          default(0)
-#  created_at      :datetime         not null
-#  updated_at      :datetime         not null
-#  book_id         :bigint
-#  compilation_id  :bigint
-#  rank_id         :bigint           not null
+#  id             :bigint           not null, primary key
+#  content_type   :string(255)      default("book"), not null
+#  sn             :integer          default(0)
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  book_id        :bigint
+#  compilation_id :bigint
+#  rank_id        :bigint           not null
 #
 # Indexes
 #
+#  index_rank_contents_on_book_id         (book_id)
 #  index_rank_contents_on_compilation_id  (compilation_id)
 #  index_rank_contents_on_rank_id         (rank_id)
 #

@@ -1,6 +1,27 @@
 # frozen_string_literal: true
 
 # 用户分析每日预聚合模型
+# == Schema Information
+#
+# Table name: user_analytics_daily
+#
+#  id                             :bigint           not null, primary key
+#  channel(渠道（NULL=全部）)     :string(32)
+#  dau(日活)                      :integer          default(0)
+#  mau(月活)                      :integer          default(0)
+#  new_users(新注册用户)          :integer          default(0)
+#  registered_users(累计注册用户) :integer          default(0)
+#  retention_day_1(次日留存率)    :float(24)        default(0.0)
+#  retention_day_30(30日留存率)   :float(24)        default(0.0)
+#  retention_day_7(7日留存率)     :float(24)        default(0.0)
+#  stat_date(日期 YYYY-MM-DD)     :string(255)      not null
+#  total_sessions(总打开次数)     :integer          default(0)
+#  wau(周活)                      :integer          default(0)
+#
+# Indexes
+#
+#  index_user_analytics_daily_on_stat_date_and_channel  (stat_date,channel) UNIQUE
+#
 class UserAnalyticsDaily < ApplicationRecord
   self.table_name = 'user_analytics_daily'
   scope :by_date, ->(date) { where(stat_date: date.to_s) }

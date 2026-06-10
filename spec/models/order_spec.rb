@@ -6,6 +6,7 @@
 #
 #  id                                              :bigint           not null, primary key
 #  amount(金额)                                    :decimal(10, 2)   not null
+#  channel(支付渠道（继承自用户）)                 :string(32)
 #  order_no(订单号)                                :string(255)      not null
 #  paid_at(支付时间)                               :datetime
 #  payment_method(支付方式：0-支付宝 1-微信)       :integer          default("alipay"), not null

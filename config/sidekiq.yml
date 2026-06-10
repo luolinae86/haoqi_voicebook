@@ -5,4 +5,10 @@
   - import
   - export
   - mailers
+  - push
 :timeout: 25
+:schedule:
+  analytics_daily_aggregation:
+    cron: '0 2 * * *'
+    class: AnalyticsDailyAggregationWorker
+    queue: default

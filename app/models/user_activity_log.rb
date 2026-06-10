@@ -1,6 +1,23 @@
 # frozen_string_literal: true
 
 # 用户活跃日志模型 — 记录用户打开 APP 的行为
+# == Schema Information
+#
+# Table name: user_activity_logs
+#
+#  id                                       :bigint           not null, primary key
+#  activity_type(类型：app_open（打开APP）) :string(32)       not null
+#  channel(渠道（冗余，便于按渠道查）)      :string(32)
+#  stat_date(日期 YYYY-MM-DD)               :string(255)      not null
+#  created_at                               :datetime         not null
+#  app_user_id(用户ID)                      :bigint           not null
+#
+# Indexes
+#
+#  idx_on_app_user_id_stat_date_activity_type_16ce7f2edf  (app_user_id,stat_date,activity_type) UNIQUE
+#  index_user_activity_logs_on_channel                    (channel)
+#  index_user_activity_logs_on_stat_date                  (stat_date)
+#
 class UserActivityLog < ApplicationRecord
   belongs_to :app_user
 

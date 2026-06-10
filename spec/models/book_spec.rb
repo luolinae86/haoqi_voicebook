@@ -6,6 +6,10 @@
 #
 #  id                                                                   :bigint           not null, primary key
 #  compilations                                                         :bigint
+#  content_description                                                  :text(65535)
+#  content_file_name(内容文件名)                                        :string(255)
+#  content_file_type(内容文件类型 (epub/pdf))                           :string(255)
+#  content_file_url(电子书内容文件URL)                                  :string(255)
 #  content_type(类型：0-电子书 1-有声 2-视频 3-绘本)                    :integer          default("ebook"), not null
 #  cover_image_url(绘本封面URL)                                         :string(255)
 #  ebook_checksum(源 PDF 校验值)                                        :string(255)

@@ -5,6 +5,7 @@
 # Table name: recommends
 #
 #  id                               :bigint           not null, primary key
+#  color                            :string(255)      default("")
 #  name(推荐内容名称)               :string(255)      not null
 #  sn(排序)                         :integer          default(0)
 #  status(状态: true发布/false草稿) :boolean          default(TRUE)

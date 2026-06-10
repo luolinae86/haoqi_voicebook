@@ -2,14 +2,21 @@
 
 # == Schema Information
 #
-# Table name: user_reading_daily_stats
+# Table name: user_reading_daily_stats(用户阅读日统计表)
 #
-#  app_user_id         :bigint           not null, comment: '用户ID'
-#  stat_date           :string           not null, comment: '统计日期 YYYY-MM-DD'
-#  session_count       :integer          not null, default(0), comment: '当日阅读次数'
-#  total_duration_seconds:integer       not null, default(0), comment: '当日总阅读时长(秒)'
-#  total_words_read    :integer          not null, default(0), comment: '当日总阅读字数'
-#  books_read_count    :integer          not null, default(0), comment: '当日阅读书籍数'
+#  id                                         :bigint           not null, primary key
+#  books_read_count(当日阅读书籍数)           :integer          default(0), not null
+#  session_count(当日阅读次数)                :integer          default(0), not null
+#  stat_date(统计日期 YYYY-MM-DD)             :string(255)      not null
+#  total_duration_seconds(当日总阅读时长(秒)) :integer          default(0), not null
+#  total_words_read(当日总阅读字数)           :integer          default(0), not null
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#  app_user_id(用户ID)                        :bigint           not null
+#
+# Indexes
+#
+#  index_user_reading_daily_stats_on_app_user_id_and_stat_date  (app_user_id,stat_date) UNIQUE
 #
 class UserReadingDailyStats < ApplicationRecord
   self.table_name = 'user_reading_daily_stats'

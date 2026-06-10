@@ -4,14 +4,14 @@
 #
 # Table name: ebook_pages(电子书页面表)
 #
-#  id                             :bigint           not null, primary key
-#  page_number(页码)              :integer          not null
-#  image_url(页面图片URL)         :string(255)
-#  xhtml_content(页面 XHTML 内容) :text(65535)
-#  word_count(字数)               :integer          default(0), not null
-#  created_at                     :datetime         not null
-#  updated_at                     :datetime         not null
-#  book_id(图书ID)                :bigint           not null
+#  id                                :bigint           not null, primary key
+#  image_url(页面图片URL（PDF导入）) :string(255)
+#  page_number(页码)                 :integer          not null
+#  word_count(字数)                  :integer          default(0), not null
+#  xhtml_content(页面 XHTML 内容)    :text(16777215)
+#  created_at                        :datetime         not null
+#  updated_at                        :datetime         not null
+#  book_id(图书ID)                   :bigint           not null
 #
 # Indexes
 #

@@ -17,10 +17,12 @@ module Api
 
       # 创建新用户（默认三年级、昵称、头像）
       # @param device_id [String, nil] 设备ID，传入时会自动绑定
-      def create_new_app_user(device_id = nil)
+      # @param channel [String, nil] 注册渠道
+      def create_new_app_user(device_id = nil, channel: nil)
         user = AppUser.create!(
           grade_id: Grade.find_by(name: '三年级')&.id,
-          nickname: '少年越读者'
+          nickname: '少年越读者',
+          channel: channel.presence
         )
         Device.bind!(device_id, user) if device_id
 

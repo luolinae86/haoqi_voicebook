@@ -10,13 +10,14 @@
 #  push_cid    :string(64)
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
-#  app_user_id :bigint           not null
+#  app_user_id :bigint
 #  device_id   :string(64)       not null
 #
 # Indexes
 #
 #  index_devices_on_app_user_id  (app_user_id)
 #  index_devices_on_device_id    (device_id) UNIQUE
+#  index_devices_on_push_cid     (push_cid)
 #
 # Foreign Keys
 #

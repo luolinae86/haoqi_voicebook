@@ -2,12 +2,21 @@
 
 # == Schema Information
 #
-# Table name: leaderboard_items
+# Table name: leaderboard_items(排行榜项表)
 #
-#  leaderboard_id :bigint           not null, comment: '排行榜ID'
-#  book_id        :bigint           not null, comment: '图书ID'
-#  rank           :integer          not null, comment: '排名'
-#  score          :decimal          default(0.0), comment: '得分'
+#  id                       :bigint           not null, primary key
+#  rank(排名)               :integer          not null
+#  score(得分)              :decimal(10, 2)   default(0.0)
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  book_id(图书ID)          :bigint           not null
+#  leaderboard_id(排行榜ID) :bigint           not null
+#
+# Indexes
+#
+#  index_leaderboard_items_on_leaderboard_id              (leaderboard_id)
+#  index_leaderboard_items_on_leaderboard_id_and_book_id  (leaderboard_id,book_id) UNIQUE
+#  index_leaderboard_items_on_leaderboard_id_and_rank     (leaderboard_id,rank)
 #
 class LeaderboardItem < ApplicationRecord
   belongs_to :leaderboard

@@ -4,24 +4,26 @@
 #
 # Table name: app_users(用户表)
 #
-#  id                                 :bigint           not null, primary key
-#  avatar(头像URL)                    :string(255)
-#  books_read(读过的书(本))           :integer          default(0), not null
-#  is_vip(是否VIP)                    :boolean          default(FALSE), not null
-#  nickname(昵称)                     :string(255)
-#  password_digest(加密密码)          :string(255)
-#  phone(手机号)                      :string(255)
-#  qq_openid(QQ openid)               :string(255)
-#  reading_minutes(阅读时长(分钟))    :integer          default(0), not null
-#  reading_words(阅读字数)            :integer          default(0), not null
-#  role(角色：0-孩子 1-家长 2-管理员) :integer          default("child"), not null
-#  uuid                               :string(255)      not null
-#  vip_expires_at(VIP过期时间)        :datetime
-#  wechat_openid(微信openid)          :string(255)
-#  created_at                         :datetime         not null
-#  updated_at                         :datetime         not null
-#  device_id                          :string(64)
-#  grade_id(年级ID)                   :bigint
+#  id                                                :bigint           not null, primary key
+#  books_read(读过的书(本))                          :integer          default(0), not null
+#  channel(注册渠道：app_store/tablet/community/koc) :string(32)
+#  is_vip(是否VIP)                                   :boolean          default(FALSE), not null
+#  nickname(昵称)                                    :string(255)
+#  password_digest(加密密码)                         :string(255)
+#  phone(手机号)                                     :string(255)
+#  qq_openid(QQ openid)                              :string(255)
+#  reading_minutes(阅读时长(分钟))                   :integer          default(0), not null
+#  reading_words(阅读字数)                           :integer          default(0), not null
+#  role(角色：0-孩子 1-家长 2-管理员)                :integer          default("child"), not null
+#  uuid                                              :string(255)      not null
+#  vip_expires_at(VIP过期时间)                       :datetime
+#  wechat_nickname(微信昵称)                         :string(255)
+#  wechat_openid(微信openid)                         :string(255)
+#  created_at                                        :datetime         not null
+#  updated_at                                        :datetime         not null
+#  device_id                                         :string(64)
+#  grade_id(年级ID)                                  :bigint
+#  head_img_id(用户头像ID)                           :bigint
 #
 # Indexes
 #
