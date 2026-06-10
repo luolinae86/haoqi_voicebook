@@ -36,8 +36,8 @@ module Entities
     expose :has_password do |instance, _|
       instance.password_digest.present?
     end
-    expose :splash_ad do |_, _|
-      splash_ad = ::SplashAd.active_now.first
+    expose :splash_ad do |instance, _|
+      splash_ad = ::SplashAd.active_now.for_user_grade(instance.grade_id).first
       splash_ad ? Entities::SplashAd.represent(splash_ad).as_json : nil
     end
   end

@@ -9,6 +9,7 @@
 #  deleted_at                                               :datetime
 #  delivery_rate(送达率)                                    :decimal(5, 4)    default(0.0)
 #  end_time(结束时间)                                       :datetime         not null
+#  grade_ids(按年级推送时的目标年级ID列表)                   :json
 #  image_url(图片URL)                                       :string(255)      not null
 #  link_type(链接类型: single_book/category)                :string(255)      not null
 #  max_age(最大年龄)                                        :integer
@@ -98,6 +99,20 @@ class SplashAd < ApplicationRecord
   scope :by_push_scope, ->(push_scope) { where(push_scope: push_scope) if push_scope.present? }
   scope :active_now, -> { where(status: :active) }
   scope :ordered, -> { order(created_at: :desc) }
+
+  # 根据用户年级匹配广告
+  # push_scope = all_users: 所有用户可见
+  # push_scope = age_range: 仅 grade_ids 中包含用户 grade_id 的可见
+  scope :for_user_grade, lambda { |grade_id|
+    if grade_id.present?
+      where(<<~SQL.squish, grade_id: grade_id)
+        push_scope = 'all_users'
+        OR (push_scope = 'age_range' AND JSON_CONTAINS(grade_ids, CAST(:grade_id AS JSON)))
+      SQL
+    else
+      where(push_scope: 'all_users')
+    end
+  }
 
   def link_type_name
     LINK_TYPES[link_type.to_sym] || link_type
