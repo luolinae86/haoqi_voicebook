@@ -1231,6 +1231,72 @@ RSpec.describe 'API AppUsers', type: :request do
     end
   end
 
+  # ==================== 开屏广告点击统计 ====================
+  describe 'POST /api/app_users/splash_ad_click' do
+    let!(:splash_ad) { create(:splash_ad, send_count: 10, click_count: 5) }
+
+    it '传入 send_count 时 send_count 加 1' do
+      post '/api/app_users/splash_ad_click',
+           params: { uuid: user.uuid, splash_ad_id: splash_ad.id, send_count: 1 }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(splash_ad.reload.send_count).to eq(11)
+      expect(splash_ad.reload.click_count).to eq(5)
+      expect(json_response[:response][:data][:send_count]).to eq(11)
+      expect(json_response[:response][:data][:click_count]).to eq(5)
+    end
+
+    it '传入 click_count 时 click_count 加 1' do
+      post '/api/app_users/splash_ad_click',
+           params: { uuid: user.uuid, splash_ad_id: splash_ad.id, click_count: 1 }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(splash_ad.reload.send_count).to eq(10)
+      expect(splash_ad.reload.click_count).to eq(6)
+      expect(json_response[:response][:data][:send_count]).to eq(10)
+      expect(json_response[:response][:data][:click_count]).to eq(6)
+    end
+
+    it '同时传入 send_count 和 click_count 时都累加' do
+      post '/api/app_users/splash_ad_click',
+           params: { uuid: user.uuid, splash_ad_id: splash_ad.id, send_count: 1, click_count: 1 }
+
+      expect(response).to have_http_status(201)
+      expect(splash_ad.reload.send_count).to eq(11)
+      expect(splash_ad.reload.click_count).to eq(6)
+    end
+
+    it '不传入 send_count 和 click_count 时不更新' do
+      post '/api/app_users/splash_ad_click',
+           params: { uuid: user.uuid, splash_ad_id: splash_ad.id }
+
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      expect(splash_ad.reload.send_count).to eq(10)
+      expect(splash_ad.reload.click_count).to eq(5)
+    end
+
+    it '广告不存在返回错误' do
+      post '/api/app_users/splash_ad_click',
+           params: { uuid: user.uuid, splash_ad_id: 99_999, click_count: 1 }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+      expect(json_response[:response][:msg]).to include('广告不存在')
+    end
+
+    it '无效 uuid 返回未授权' do
+      post '/api/app_users/splash_ad_click',
+           params: { uuid: 'invalid_uuid', splash_ad_id: splash_ad.id, click_count: 1 }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1002)
+      expect(json_response[:response][:msg]).to eq('未授权访问')
+    end
+  end
+
   # ==================== 多设备共享 ====================
   describe '多设备共享同一账户' do
     it '新设备创建新账户' do

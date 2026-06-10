@@ -332,6 +332,32 @@ module Api
           present response: success_response(user: Entities::AppUser.represent(new_user).as_json)
         end
 
+        # ==================== 开屏广告点击统计 ====================
+        desc '记录开屏广告点击（客户端点击广告后调用）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :splash_ad_id, type: Integer, desc: '开屏广告ID'
+          optional :send_count, type: Integer, desc: '发送数（传入则 send_count 加 1）'
+          optional :click_count, type: Integer, desc: '点击数（传入则 click_count 加 1）'
+        end
+        post :splash_ad_click do
+          auth_user
+
+          ad = SplashAd.find_by(id: params[:splash_ad_id])
+          error_pop_resp('广告不存在') unless ad
+
+          updates = {}
+          updates[:send_count] = ad.send_count + params[:send_count] if params[:send_count].present?
+          updates[:click_count] = ad.click_count + params[:click_count] if params[:click_count].present?
+
+          ad.update!(updates) unless updates.empty?
+
+          present response: success_response(
+            send_count: ad.send_count,
+            click_count: ad.click_count
+          )
+        end
+
         # ==================== 解绑微信 ====================
         desc '解绑微信授权（清除用户的 wechat_openid 和 wechat_nickname，下次微信登录需重新绑定）'
         params do
