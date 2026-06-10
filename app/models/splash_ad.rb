@@ -102,15 +102,15 @@ class SplashAd < ApplicationRecord
 
   # 根据用户年级匹配广告
   # push_scope = all_users: 所有用户可见
-  # push_scope = age_range: 仅 grade_ids 中包含用户 grade_id 的可见
+  # push_scope = age_range: 仅 grade_ids 中包含用户 grade_id 的可见；grade_ids 为空时降级为所有用户可见
   scope :for_user_grade, lambda { |grade_id|
     if grade_id.present?
       where(<<~SQL.squish, grade_id: grade_id)
         push_scope = 'all_users'
-        OR (push_scope = 'age_range' AND JSON_CONTAINS(grade_ids, CAST(:grade_id AS JSON)))
+        OR (push_scope = 'age_range' AND (grade_ids IS NULL OR JSON_LENGTH(grade_ids) = 0 OR JSON_CONTAINS(grade_ids, CAST(:grade_id AS JSON))))
       SQL
     else
-      where(push_scope: 'all_users')
+      where("push_scope = 'all_users' OR (push_scope = 'age_range' AND (grade_ids IS NULL OR JSON_LENGTH(grade_ids) = 0))")
     end
   }
 
