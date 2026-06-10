@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_10_120000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -39,6 +39,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
     t.string "uuid", null: false
     t.bigint "head_img_id", comment: "用户头像ID"
     t.string "wechat_nickname", comment: "微信昵称"
+    t.string "channel", limit: 32, comment: "注册渠道：app_store/tablet/community/koc"
     t.index ["device_id"], name: "index_app_users_on_device_id", unique: true
     t.index ["grade_id"], name: "index_app_users_on_grade_id"
     t.index ["is_vip"], name: "index_app_users_on_is_vip"
@@ -284,6 +285,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
     t.index ["name"], name: "index_compilations_on_name", unique: true
   end
 
+  create_table "content_click_events", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.bigint "book_id", comment: "图书ID"
+    t.bigint "chapter_id", comment: "章节ID（有声/视频专用）"
+    t.string "content_type", limit: 16, default: "book", null: false, comment: "类型：book/chapter"
+    t.string "click_type", limit: 32, null: false, comment: "click/read/play_start"
+    t.integer "duration_seconds", default: 0, comment: "本次停留/播放时长"
+    t.string "stat_date", null: false, comment: "日期 YYYY-MM-DD"
+    t.datetime "created_at", null: false
+    t.index ["app_user_id", "stat_date"], name: "index_content_click_events_on_app_user_id_and_stat_date"
+    t.index ["book_id", "stat_date"], name: "index_content_click_events_on_book_id_and_stat_date"
+    t.index ["content_type", "click_type", "stat_date"], name: "idx_on_content_type_click_type_stat_date_3cca833442"
+  end
+
   create_table "content_groups", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "recommend_id", null: false, comment: "关联年级"
     t.string "name", null: false, comment: "小组名称"
@@ -390,6 +405,23 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
     t.index ["slug"], name: "index_leaderboards_on_slug", unique: true
   end
 
+  create_table "media_play_events", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.bigint "chapter_id", null: false, comment: "章节ID"
+    t.string "media_type", limit: 8, null: false, comment: "audio/video"
+    t.string "event_type", limit: 16, null: false, comment: "play_start/play_resume/play_pause/play_complete"
+    t.integer "play_seconds", default: 0, comment: "本次播放时长"
+    t.integer "total_duration", default: 0, comment: "章节总时长"
+    t.boolean "is_valid_play", default: false, comment: "是否有效播放（>=10秒）"
+    t.string "stat_date", null: false, comment: "日期 YYYY-MM-DD"
+    t.datetime "created_at", null: false
+    t.index ["app_user_id", "stat_date"], name: "index_media_play_events_on_app_user_id_and_stat_date"
+    t.index ["book_id", "stat_date"], name: "index_media_play_events_on_book_id_and_stat_date"
+    t.index ["chapter_id"], name: "index_media_play_events_on_chapter_id"
+    t.index ["media_type", "event_type", "stat_date"], name: "idx_on_media_type_event_type_stat_date_516ccc8787"
+  end
+
   create_table "memberships", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "会员表", force: :cascade do |t|
     t.integer "app_user_id", null: false, comment: "用户ID"
     t.integer "plan_type", default: 0, null: false, comment: "套餐：0-月度 1-季度 2-年度"
@@ -415,6 +447,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
     t.integer "membership_id", comment: "会员ID"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "channel", limit: 32, comment: "支付渠道（继承自用户）"
     t.index ["app_user_id"], name: "index_orders_on_app_user_id"
     t.index ["membership_id"], name: "index_orders_on_membership_id"
     t.index ["order_no"], name: "index_orders_on_order_no", unique: true
@@ -525,11 +558,62 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_09_000000) do
     t.index ["phone", "code"], name: "index_sms_verifications_on_phone_and_code"
   end
 
+  create_table "splash_ads", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "image_url", null: false, comment: "图片URL"
+    t.string "link_type", null: false, comment: "链接类型: single_book/category"
+    t.bigint "book_id", comment: "关联图书ID"
+    t.bigint "category_id", comment: "关联分类ID"
+    t.string "push_scope", default: "all_users", null: false, comment: "推送范围: all_users/age_range/specific_users"
+    t.integer "min_age", comment: "最小年龄"
+    t.integer "max_age", comment: "最大年龄"
+    t.json "user_group", comment: "指定用户群体"
+    t.string "push_mode", default: "immediate", null: false, comment: "推送方式: immediate/first_open_daily"
+    t.datetime "scheduled_at", comment: "定时推送时间"
+    t.string "status", default: "draft", null: false, comment: "状态: draft/active/expired/disabled"
+    t.datetime "start_time", null: false, comment: "开始时间"
+    t.datetime "end_time", null: false, comment: "结束时间"
+    t.integer "send_count", default: 0, comment: "发送数"
+    t.integer "click_count", default: 0, comment: "点击数"
+    t.decimal "delivery_rate", precision: 5, scale: 4, default: "0.0", comment: "送达率"
+    t.datetime "deleted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_splash_ads_on_book_id"
+    t.index ["category_id"], name: "index_splash_ads_on_category_id"
+    t.index ["deleted_at"], name: "index_splash_ads_on_deleted_at"
+  end
+
   create_table "suppliers", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false, comment: "供应商名称"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_suppliers_on_name"
+  end
+
+  create_table "user_activity_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.string "channel", limit: 32, comment: "渠道（冗余，便于按渠道查）"
+    t.string "activity_type", limit: 32, null: false, comment: "类型：app_open（打开APP）"
+    t.string "stat_date", null: false, comment: "日期 YYYY-MM-DD"
+    t.datetime "created_at", null: false
+    t.index ["app_user_id", "stat_date", "activity_type"], name: "idx_on_app_user_id_stat_date_activity_type_16ce7f2edf", unique: true
+    t.index ["channel"], name: "index_user_activity_logs_on_channel"
+    t.index ["stat_date"], name: "index_user_activity_logs_on_stat_date"
+  end
+
+  create_table "user_analytics_daily", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "stat_date", null: false, comment: "日期 YYYY-MM-DD"
+    t.string "channel", limit: 32, comment: "渠道（NULL=全部）"
+    t.integer "dau", default: 0, comment: "日活"
+    t.integer "wau", default: 0, comment: "周活"
+    t.integer "mau", default: 0, comment: "月活"
+    t.integer "new_users", default: 0, comment: "新注册用户"
+    t.integer "registered_users", default: 0, comment: "累计注册用户"
+    t.float "retention_day_1", default: 0.0, comment: "次日留存率"
+    t.float "retention_day_7", default: 0.0, comment: "7日留存率"
+    t.float "retention_day_30", default: 0.0, comment: "30日留存率"
+    t.integer "total_sessions", default: 0, comment: "总打开次数"
+    t.index ["stat_date", "channel"], name: "index_user_analytics_daily_on_stat_date_and_channel", unique: true
   end
 
   create_table "user_reading_daily_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "用户阅读日统计表", force: :cascade do |t|
