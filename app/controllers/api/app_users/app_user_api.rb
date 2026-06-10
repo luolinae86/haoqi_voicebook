@@ -251,17 +251,18 @@ module Api
           user = AppUser.find_by(uuid: params[:uuid])
           error_pop_resp('用户未注册，请先调用 create_by_device') if user.blank?
 
-          error_pop_resp('设置密码需要提供手机号') if params[:phone].blank?
-          target_user = AppUser.find_by(phone: params[:phone])
-          error_pop_resp('该手机号未绑定账户') if target_user.blank?
-
-          if target_user.password_digest.present?
+          if user.password_digest.present?
             # 已有密码，修改时必须验证手机号和验证码
+            error_pop_resp('修改密码需要提供手机号') if params[:phone].blank?
+            target_user = AppUser.find_by(phone: params[:phone])
+            error_pop_resp('该手机号未绑定账户') if target_user.blank?
             error_pop_resp('修改密码需要提供验证码') if params[:code].blank?
             find_and_consume_verification(params[:phone], params[:code])
+            target_user.update!(password: params[:password])
+          else
+            # 首次设置密码，直接给当前用户设置
+            user.update!(password: params[:password])
           end
-
-          target_user.update!(password: params[:password])
 
           present response: success_response
         end
