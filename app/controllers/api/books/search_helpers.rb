@@ -11,12 +11,12 @@ module Api
       # @return [ActiveRecord::Relation] 搜索结果
       def search_books(keyword:)
         Book.all
-          .not_in_blacklist(current_user.id)
-          .left_joins(:author, :book_stats)
-          .where("books.name LIKE :kw OR authors.name LIKE :kw", kw: "%#{keyword}%")
-          .select("books.*", Arel.sql("COALESCE(book_stats.weekly_readers, 0) AS weekly_readers_count"))
-          .order(Arel.sql("COALESCE(book_stats.weekly_readers, 0) DESC, books.play_count DESC"))
-          .distinct
+            .not_in_blacklist(current_user.id)
+            .left_joins(:author, :book_stats)
+            .where('books.name LIKE :kw OR authors.name LIKE :kw', kw: "%#{keyword}%")
+            .select('books.*', Arel.sql('COALESCE(book_stats.weekly_readers, 0) AS weekly_readers_count'))
+            .order(Arel.sql('COALESCE(book_stats.weekly_readers, 0) DESC, books.play_count DESC'))
+            .distinct
       end
 
       # 获取热搜榜单图书
@@ -24,15 +24,15 @@ module Api
       # @param ranking_type [String] hot/rating/new/award/classic
       # @param grade_id [Integer, nil] 年级ID
       def hot_search_books(category_id:, ranking_type:, grade_id:)
-        scope = Book.published_books
-          .not_in_blacklist(current_user.id)
-          .includes(:author, :category, :book_stats)
-          .where(category_id: category_id)
+        scope = Book
+                .not_in_blacklist(current_user.id)
+                .includes(:author, :category, :book_stats)
+                .where(category_id: category_id)
 
         # 按用户年级过滤
         if grade_id.present? && grade_id != 0
           scope = scope.where(
-            "EXISTS (SELECT 1 FROM book_grades WHERE book_grades.book_id = books.id AND book_grades.grade_id = ?)",
+            'EXISTS (SELECT 1 FROM book_grades WHERE book_grades.book_id = books.id AND book_grades.grade_id = ?)',
             grade_id
           )
         end
@@ -40,8 +40,8 @@ module Api
         case ranking_type
         when 'hot'
           scope = scope.left_joins(:book_stats)
-            .select('books.*', Arel.sql('COALESCE(book_stats.weekly_readers, 0) AS hot_score'))
-            .order(Arel.sql('hot_score DESC'))
+                       .select('books.*', Arel.sql('COALESCE(book_stats.weekly_readers, 0) AS hot_score'))
+                       .order(Arel.sql('hot_score DESC'))
         when 'rating'
           scope = scope.where('rating > 0').order(rating: :desc)
         when 'new'
@@ -49,10 +49,10 @@ module Api
         when 'award', 'classic'
           sub_name = ranking_type == 'award' ? '大奖版' : '名著榜'
           scope = scope.joins(:category_subs)
-            .where(category_subs: { name: sub_name })
-            .left_joins(:book_stats)
-            .select('books.*', Arel.sql('COALESCE(book_stats.weekly_readers, 0) AS hot_score'))
-            .order(Arel.sql('hot_score DESC'))
+                       .where(category_subs: { name: sub_name })
+                       .left_joins(:book_stats)
+                       .select('books.*', Arel.sql('COALESCE(book_stats.weekly_readers, 0) AS hot_score'))
+                       .order(Arel.sql('hot_score DESC'))
         end
 
         scope.limit(params[:limit] || 20).distinct

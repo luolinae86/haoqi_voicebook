@@ -8,7 +8,7 @@ module Api
 
       # 查询图书：按 grade_id + content_type + category_id + category_sub_id 筛选，按热度排序
       def find_books(grade_id, content_type, category_id, category_sub_id)
-        scope = Book.published_books
+        scope = Book
         scope = scope.joins(:grades).where(grades: { id: grade_id }) if grade_id.present?
         scope = scope.where(content_type: content_type) if content_type.present?
         scope = scope.where(category_id: category_id) if category_id.present?
@@ -31,16 +31,12 @@ module Api
         end
 
         # category_id 筛选：合集通过 compilation_categories 关联一级分类
-        if category_id.present?
-          scope = scope.joins(:categories).where(categories: { id: category_id })
-        end
+        scope = scope.joins(:categories).where(categories: { id: category_id }) if category_id.present?
 
         # category_sub_id 筛选：合集没有直接的 category_sub 关联，但可以通过二级分类关联的一级分类
         if category_sub_id.present?
           category_sub = CategorySub.find_by(id: category_sub_id)
-          if category_sub
-            scope = scope.joins(:categories).where(categories: { id: category_sub.category_id })
-          end
+          scope = scope.joins(:categories).where(categories: { id: category_sub.category_id }) if category_sub
         end
 
         scope.distinct.order(created_at: :desc, id: :desc)
@@ -78,13 +74,11 @@ module Api
       def find_category_subs(grade_id, category_id)
         scope = CategorySub
 
-        if category_id.present?
-          scope = scope.where(category_id: category_id)
-        end
+        scope = scope.where(category_id: category_id) if category_id.present?
 
         if grade_id.present?
           # 只返回该年级下有内容关联的二级分类
-          scope = scope.joins(:books).where(books: { id: Book.joins(:grades).where(grades: { id: grade_id }).published_books })
+          scope = scope.joins(:books).where(books: { id: Book.joins(:grades).where(grades: { id: grade_id }) })
         end
 
         scope.distinct.sorted
@@ -131,6 +125,7 @@ module Api
 
       def signed_oss_url(url)
         return nil if url.blank?
+
         Book.sign_oss_url(url)
       end
     end

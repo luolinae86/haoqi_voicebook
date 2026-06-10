@@ -27,7 +27,7 @@ class Leaderboard < ApplicationRecord
   def calculate!
     return if manual? || auto_rule.blank?
 
-    books_query = Book.published_books
+    books_query = Book.all
     books_query = books_query.where(category_id: category_filter) if category_filter.present?
 
     book_stats = case auto_rule

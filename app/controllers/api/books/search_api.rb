@@ -40,7 +40,7 @@ module Api
           auth_user
 
           keywords = UserSearch.top_keywords(params[:limit] || 10)
-            .map { |r| { keyword: r.keyword } }
+                               .map { |r| { keyword: r.keyword } }
 
           present response: success_response(keywords: keywords)
         end
@@ -55,17 +55,17 @@ module Api
         get :by_author do
           auth_user
 
-          books = Book.published_books
-            .not_in_blacklist(current_user.id)
-            .by_author(params[:author_id])
-            .left_joins(:book_stats)
-            .includes(:category, :supplier, :category_subs)
+          books = Book
+                  .not_in_blacklist(current_user.id)
+                  .by_author(params[:author_id])
+                  .left_joins(:book_stats)
+                  .includes(:category, :supplier, :category_subs)
 
           books = books.where(category_id: params[:category_id]) if params[:category_id].present?
 
           books = books.order(
-            Arel.sql("COALESCE(book_stats.monthly_readers, 0) DESC"),
-            Arel.sql("books.play_count DESC")
+            Arel.sql('COALESCE(book_stats.monthly_readers, 0) DESC'),
+            Arel.sql('books.play_count DESC')
           )
 
           present response: success_response(
