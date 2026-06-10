@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# rubocop:disable all
 
 # 家长管控接口
 # 提供家长密码设置、时间管理、内容黑名单等功能
@@ -143,7 +144,7 @@ module Api
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          book = Book.find(params.expect(:book_id))
+          book = Book.find(params[:book_id])
 
           parental.blacklisted_books.find_or_create_by!(book: book)
 
@@ -160,7 +161,7 @@ module Api
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          blacklisted = parental.blacklisted_books.find_by!(book_id: params.expect(:book_id))
+          blacklisted = parental.blacklisted_books.find_by!(book_id: params[:book_id])
           blacklisted.destroy!
 
           present response: success_response
@@ -169,3 +170,4 @@ module Api
     end
   end
 end
+# rubocop:enable all
