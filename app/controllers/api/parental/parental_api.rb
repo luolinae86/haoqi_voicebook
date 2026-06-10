@@ -127,12 +127,7 @@ module Api
                           .page(params[:page]).per(params[:per_page])
 
           books = items.map do |item|
-            {
-              id: item.book.id,
-              name: item.book.name,
-              cover_image_url: signed_oss_url(item.book.cover_image_url),
-              content_type: item.book.content_type
-            }
+            Entities::Book.represent(item.book).as_json
           end
 
           present response: success_response(books: books, pagination: pagination_info(items))
@@ -148,7 +143,7 @@ module Api
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          book = Book.find(params[:book_id])
+          book = Book.find(params.expect(:book_id))
 
           parental.blacklisted_books.find_or_create_by!(book: book)
 
@@ -165,7 +160,7 @@ module Api
           parental = current_user.parental_control
           error_pop_resp('未设置家长管控') unless parental
 
-          blacklisted = parental.blacklisted_books.find_by!(book_id: params[:book_id])
+          blacklisted = parental.blacklisted_books.find_by!(book_id: params.expect(:book_id))
           blacklisted.destroy!
 
           present response: success_response
