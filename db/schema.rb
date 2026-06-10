@@ -579,6 +579,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_000100) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.json "grade_ids", comment: "按年级推送时的目标年级ID列表"
+    t.string "pad_image_url", comment: "Pad适配的16:9图片URL"
     t.index ["book_id"], name: "index_splash_ads_on_book_id"
     t.index ["category_id"], name: "index_splash_ads_on_category_id"
     t.index ["deleted_at"], name: "index_splash_ads_on_deleted_at"
