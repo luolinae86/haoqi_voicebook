@@ -2,6 +2,8 @@
 
 class CreatePushNotifications < ActiveRecord::Migration[8.0]
   def change
+    return if table_exists?(:push_notifications)
+
     create_table :push_notifications do |t|
       t.string :title, null: false
       t.string :body, null: false
@@ -21,7 +23,7 @@ class CreatePushNotifications < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :push_notifications, :push_type
-    add_index :push_notifications, :status
+    add_index :push_notifications, :push_type unless index_exists?(:push_notifications, :push_type)
+    add_index :push_notifications, :status unless index_exists?(:push_notifications, :status)
   end
 end
