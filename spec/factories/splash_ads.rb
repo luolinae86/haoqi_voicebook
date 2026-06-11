@@ -22,7 +22,7 @@ FactoryBot.define do
   factory :splash_ad do
     image_url { 'splash_ads/test_image.png' }
     link_type { 'collection' }
-    collection_id { 1 }
+    compilation_id { 1 }
     push_scope { 'all_users' }
     status { 'active' }
     start_time { 1.day.ago }

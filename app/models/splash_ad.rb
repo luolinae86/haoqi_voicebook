@@ -24,12 +24,12 @@
 #  created_at                                               :datetime         not null
 #  updated_at                                               :datetime         not null
 #  book_id(关联图书ID)                                      :bigint
-#  collection_id(关联合集ID)                                  :bigint
+#  compilation_id(关联合集ID)                                 :bigint
 #
 # Indexes
 #
 #  index_splash_ads_on_book_id      (book_id)
-#  index_splash_ads_on_collection_id  (collection_id)
+#  index_splash_ads_on_compilation_id  (compilation_id)
 #  index_splash_ads_on_deleted_at   (deleted_at)
 #
 class SplashAd < ApplicationRecord
@@ -114,6 +114,8 @@ class SplashAd < ApplicationRecord
   }
 
   def link_type_name
+    return nil if link_type.blank?
+
     LINK_TYPES[link_type.to_sym] || link_type
   end
 
@@ -158,7 +160,7 @@ class SplashAd < ApplicationRecord
     when 'single_book'
       errors.add(:book_id, '不能为空') if book_id.blank?
     when 'collection'
-      errors.add(:collection_id, '不能为空') if collection_id.blank?
+      errors.add(:compilation_id, '不能为空') if compilation_id.blank?
     end
   end
 

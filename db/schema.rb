@@ -564,7 +564,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_030000) do
     t.string "image_url", null: false, comment: "图片URL"
     t.string "link_type", null: false, comment: "链接类型: single_book/collection"
     t.bigint "book_id", comment: "关联图书ID"
-    t.bigint "collection_id", comment: "关联合集ID"
+    t.bigint "compilation_id", comment: "关联合集ID"
     t.string "push_scope", default: "all_users", null: false, comment: "推送范围: all_users/age_range/specific_users"
     t.integer "min_age", comment: "最小年龄"
     t.integer "max_age", comment: "最大年龄"
@@ -583,7 +583,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_030000) do
     t.json "grade_ids", comment: "按年级推送时的目标年级ID列表"
     t.string "pad_image_url", comment: "Pad适配的16:9图片URL"
     t.index ["book_id"], name: "index_splash_ads_on_book_id"
-    t.index ["collection_id"], name: "index_splash_ads_on_collection_id"
+    t.index ["compilation_id"], name: "index_splash_ads_on_compilation_id"
     t.index ["deleted_at"], name: "index_splash_ads_on_deleted_at"
   end
 
