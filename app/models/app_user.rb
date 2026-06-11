@@ -75,10 +75,17 @@ class AppUser < ApplicationRecord
 
   # 作用域
   scope :vip_users, -> { where(is_vip: true).where('vip_expires_at > ?', Time.current) }
+  scope :not_expired, -> { where('expires_at IS NULL OR expires_at > ?', Time.current) }
+  scope :expired, -> { where('expires_at IS NOT NULL AND expires_at <= ?', Time.current) }
 
   # 检查用户是否为有效 VIP
   def vip_active?
     is_vip? && vip_expires_at.present? && vip_expires_at > Time.current
+  end
+
+  # 检查账户是否已过期
+  def expired?
+    expires_at.present? && expires_at <= Time.current
   end
 
   # 获取当前设备ID（优先从 devices 表，回退到旧字段兼容）

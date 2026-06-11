@@ -47,6 +47,8 @@ FactoryBot.define do
     reading_words { 0 }
     reading_minutes { 0 }
     books_read { 0 }
+    device_type { 'phone' }
+    expires_at { nil }
 
     after(:create) do |user|
       # 为每个用户创建一个默认设备
@@ -75,6 +77,16 @@ FactoryBot.define do
       reading_words { Faker::Number.between(from: 1000, to: 100_000) }
       reading_minutes { Faker::Number.between(from: 60, to: 5000) }
       books_read { Faker::Number.between(from: 1, to: 50) }
+    end
+
+    # 临时用户（5天后过期）
+    trait :temporary do
+      expires_at { 5.days.from_now }
+    end
+
+    # Pad 设备用户
+    trait :pad do
+      device_type { 'pad' }
     end
   end
 

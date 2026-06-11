@@ -15,13 +15,44 @@ module Api
         params do
           requires :device_id, type: String, desc: '设备ID'
           optional :channel, type: String, desc: '注册渠道（app_store/tablet/community/koc）'
+          optional :device_type, type: String, desc: '设备类型（phone/pad）'
         end
         post :create_by_device do
           device = Device.find_by(device_id: params[:device_id])
           user = if device&.app_user
                    device.app_user
                  else
-                   create_new_app_user(params[:device_id], channel: params[:channel])
+                   create_new_app_user(params[:device_id], channel: params[:channel], device_type: params[:device_type])
+                 end
+
+          present response: success_response(user: Entities::AppUser.represent(user).as_json)
+        end
+
+        # ==================== 创建临时用户 ====================
+        desc '创建带过期时间的临时用户（5天后过期）'
+        params do
+          requires :device_id, type: String, desc: '设备ID'
+          optional :device_type, type: String, desc: '设备类型（phone/pad）'
+          optional :channel, type: String, desc: '注册渠道（app_store/tablet/community/koc）'
+        end
+        post :create_temporary_user do
+          device = Device.find_by(device_id: params[:device_id])
+          user = if device&.app_user
+                   device.app_user
+                 else
+                   user = AppUser.create!(
+                     grade_id: Grade.find_by(name: '三年级')&.id,
+                     nickname: '少年越读者',
+                     channel: params[:channel].presence,
+                     device_type: params[:device_type].presence,
+                     expires_at: 5.days.from_now
+                   )
+                   Device.bind!(params[:device_id], user)
+
+                   default_head_img = HeadImg.normal.ordered.first
+                   user.update!(head_img_id: default_head_img.id) if default_head_img && user.head_img_id.blank?
+
+                   user
                  end
 
           present response: success_response(user: Entities::AppUser.represent(user).as_json)

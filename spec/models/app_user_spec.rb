@@ -35,11 +35,11 @@
 #  index_app_users_on_uuid           (uuid) UNIQUE
 #  index_app_users_on_wechat_openid  (wechat_openid) UNIQUE
 #
-require "rails_helper"
+require 'rails_helper'
 
 RSpec.describe AppUser, type: :model do
   # 关联测试
-  describe "associations" do
+  describe 'associations' do
     it { is_expected.to have_many(:bookshelves).dependent(:destroy) }
     it { is_expected.to have_many(:shelf_books).through(:bookshelves).source(:book) }
     it { is_expected.to have_many(:memberships).dependent(:destroy) }
@@ -49,29 +49,29 @@ RSpec.describe AppUser, type: :model do
   end
 
   # 验证测试
-  describe "validations" do
+  describe 'validations' do
     subject { create(:app_user) }
 
     it { is_expected.to validate_uniqueness_of(:phone).case_insensitive }
     it { is_expected.to allow_value(nil).for(:phone) }
-    it { is_expected.to allow_value("").for(:phone) }
-    it { is_expected.to allow_value("13800138000").for(:phone) }
-    it { is_expected.to allow_value("19912345678").for(:phone) }
-    it { is_expected.not_to allow_value("12345678901").for(:phone) }
-    it { is_expected.not_to allow_value("1380013800").for(:phone) }
-    it { is_expected.not_to allow_value("abc").for(:phone) }
+    it { is_expected.to allow_value('').for(:phone) }
+    it { is_expected.to allow_value('13800138000').for(:phone) }
+    it { is_expected.to allow_value('19912345678').for(:phone) }
+    it { is_expected.not_to allow_value('12345678901').for(:phone) }
+    it { is_expected.not_to allow_value('1380013800').for(:phone) }
+    it { is_expected.not_to allow_value('abc').for(:phone) }
     it { is_expected.to validate_length_of(:nickname).is_at_most(50) }
   end
 
   # 枚举测试
-  describe "enums" do
+  describe 'enums' do
     it { is_expected.to define_enum_for(:role).with_values(child: 0, parent: 1, admin: 2) }
   end
 
   # 作用域测试
-  describe "scopes" do
-    describe ".vip_users" do
-      it "只返回有效的 VIP 用户" do
+  describe 'scopes' do
+    describe '.vip_users' do
+      it '只返回有效的 VIP 用户' do
         vip_user = create(:app_user, is_vip: true, vip_expires_at: 1.month.from_now)
         expired_vip = create(:app_user, is_vip: true, vip_expires_at: 1.day.ago)
         normal_user = create(:app_user, is_vip: false)
@@ -84,65 +84,82 @@ RSpec.describe AppUser, type: :model do
   end
 
   # 实例方法测试
-  describe "#vip_active?" do
-    it "当用户是 VIP 且未过期时返回 true" do
+  describe '#vip_active?' do
+    it '当用户是 VIP 且未过期时返回 true' do
       user = create(:app_user, is_vip: true, vip_expires_at: 1.month.from_now)
       expect(user.vip_active?).to be true
     end
 
-    it "当 VIP 已过期时返回 false" do
+    it '当 VIP 已过期时返回 false' do
       user = create(:app_user, is_vip: true, vip_expires_at: 1.day.ago)
       expect(user.vip_active?).to be false
     end
 
-    it "当用户不是 VIP 时返回 false" do
+    it '当用户不是 VIP 时返回 false' do
       user = create(:app_user, is_vip: false)
       expect(user.vip_active?).to be false
     end
   end
 
-  describe "#update_reading_stats!" do
-    it "增加阅读字数统计" do
+  describe '#expired?' do
+    it 'expires_at 为 nil 时返回 false（永久有效）' do
+      user = create(:app_user, expires_at: nil)
+      expect(user.expired?).to be false
+    end
+
+    it 'expires_at 在过去时返回 true' do
+      user = create(:app_user, expires_at: 1.day.ago)
+      expect(user.expired?).to be true
+    end
+
+    it 'expires_at 在未来时返回 false' do
+      user = create(:app_user, expires_at: 5.days.from_now)
+      expect(user.expired?).to be false
+    end
+  end
+
+  describe '#update_reading_stats!' do
+    it '增加阅读字数统计' do
       user = create(:app_user, reading_words: 100)
       user.update_reading_stats!(words: 50)
       expect(user.reload.reading_words).to eq(150)
     end
 
-    it "增加阅读时长统计" do
+    it '增加阅读时长统计' do
       user = create(:app_user, reading_minutes: 10)
       user.update_reading_stats!(minutes: 5)
       expect(user.reload.reading_minutes).to eq(15)
     end
 
-    it "增加阅读本数统计" do
+    it '增加阅读本数统计' do
       user = create(:app_user, books_read: 3)
       user.update_reading_stats!(books: 1)
       expect(user.reload.books_read).to eq(4)
     end
 
-    it "参数为 0 时不更新" do
+    it '参数为 0 时不更新' do
       user = create(:app_user, reading_words: 100)
       user.update_reading_stats!(words: 0, minutes: 0, books: 0)
       expect(user.reload.reading_words).to eq(100)
     end
   end
 
-  describe "#expire_cache" do
-    it "更新用户属性后清除缓存" do
-      user = create(:app_user, nickname: "old")
+  describe '#expire_cache' do
+    it '更新用户属性后清除缓存' do
+      user = create(:app_user, nickname: 'old')
       cache_key = "app_user_#{user.uuid}"
       expect(Rails.cache).to receive(:delete).with(cache_key)
 
-      user.update!(nickname: "new")
+      user.update!(nickname: 'new')
     end
 
-    it "创建用户时不清除缓存（仅 update 触发）" do
+    it '创建用户时不清除缓存（仅 update 触发）' do
       allow(Rails.cache).to receive(:delete)
       expect(Rails.cache).not_to receive(:delete)
       create(:app_user)
     end
 
-    it "删除用户时不清除缓存（仅 update 触发）" do
+    it '删除用户时不清除缓存（仅 update 触发）' do
       user = create(:app_user)
       allow(Rails.cache).to receive(:delete)
       expect(Rails.cache).not_to receive(:delete)

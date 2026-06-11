@@ -80,6 +80,89 @@ RSpec.describe 'API AppUsers', type: :request do
       body = json_response[:response]
       expect(body[:data][:user][:uuid]).to eq(existing_user.uuid)
     end
+
+    it '不传 device_type 时默认为 nil' do
+      post '/api/app_users/create_by_device',
+           params: { device_id: 'test-device-no-type' },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.find_by(uuid: json_response[:response][:data][:user][:uuid])
+      expect(created_user.device_type).to be_nil
+    end
+
+    it '传入 device_type=phone 正确保存' do
+      post '/api/app_users/create_by_device',
+           params: { device_id: 'test-device-phone', device_type: 'phone' },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.find_by(uuid: json_response[:response][:data][:user][:uuid])
+      expect(created_user.device_type).to eq('phone')
+    end
+
+    it '传入 device_type=pad 正确保存' do
+      post '/api/app_users/create_by_device',
+           params: { device_id: 'test-device-pad', device_type: 'pad' },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = AppUser.find_by(uuid: json_response[:response][:data][:user][:uuid])
+      expect(created_user.device_type).to eq('pad')
+    end
+  end
+
+  # ==================== 创建临时用户 ====================
+  describe 'POST /api/app_users/create_temporary_user' do
+    it '创建成功，expires_at 约等于 5 天后' do
+      post '/api/app_users/create_temporary_user',
+           params: { device_id: 'temp-device-1' },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      body = json_response[:response]
+      expect(body[:code]).to eq(0)
+      user_data = body[:data][:user]
+      expect(user_data[:uuid]).to be_present
+      expect(user_data[:expires_at]).to be_present
+
+      created_user = AppUser.find_by(uuid: user_data[:uuid])
+      expect(created_user.expires_at).to be_within(10.seconds).of(5.days.from_now)
+    end
+
+    it '返回的用户信息包含 expires_at 和 device_type' do
+      post '/api/app_users/create_temporary_user',
+           params: { device_id: 'temp-device-2', device_type: 'pad' },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      user_data = json_response[:response][:data][:user]
+      expect(user_data[:expires_at]).to be_present
+      expect(user_data[:device_type]).to eq('pad')
+    end
+
+    it '传入 device_type 正确保存' do
+      post '/api/app_users/create_temporary_user',
+           params: { device_id: 'temp-device-3', device_type: 'phone' },
+           as: :json
+
+      created_user = AppUser.last
+      expect(created_user.device_type).to eq('phone')
+    end
+
+    it '已存在设备时返回已有用户（不修改过期时间）' do
+      existing_user = create(:app_user)
+      create(:device, device_id: 'existing-temp-device', app_user: existing_user)
+
+      post '/api/app_users/create_temporary_user',
+           params: { device_id: 'existing-temp-device' },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(json_response[:response][:data][:user][:uuid]).to eq(existing_user.uuid)
+      # 已存在用户不被修改过期时间
+      expect(existing_user.reload.expires_at).to be_nil
+    end
   end
 
   # ==================== 发送验证码 ====================

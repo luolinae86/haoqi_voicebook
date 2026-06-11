@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_11_000100) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_11_010000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -40,6 +40,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_000100) do
     t.bigint "head_img_id", comment: "用户头像ID"
     t.string "wechat_nickname", comment: "微信昵称"
     t.string "channel", limit: 32, comment: "注册渠道：app_store/tablet/community/koc"
+    t.datetime "expires_at", comment: "账户过期时间，nil 表示永久有效"
+    t.string "device_type", comment: "设备类型 phone/pad"
     t.index ["device_id"], name: "index_app_users_on_device_id", unique: true
     t.index ["grade_id"], name: "index_app_users_on_grade_id"
     t.index ["is_vip"], name: "index_app_users_on_is_vip"
