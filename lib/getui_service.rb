@@ -45,7 +45,7 @@ class GetuiService
     api_request('push/single/cid', request_body)
   end
 
-  # 批量单推
+  # 批量推（两步：创建消息体 → 绑定 CID 列表）
   # @param cid_list [Array<String>] CID 列表
   # @param title [String] 通知标题
   # @param body [String] 通知内容
@@ -55,16 +55,26 @@ class GetuiService
   def push_to_batch(cid_list, title = nil, body = nil, payload: {}, push_type: :notification)
     return {} if cid_list.blank?
 
-    request_body = {
+    # Step 1: 创建消息体，获取 taskid
+    task_body = {
       request_id: SecureRandom.uuid,
-      push_message: build_push_message(payload, title, body),
-      push_channel: build_push_channel(title, body),
-      cid: cid_list
+      group_name: "batch_#{SecureRandom.hex(4)}",
+      push_message: build_push_message(payload, title, body)
+    }
+    task_body[:push_channel] = build_push_channel(title, body) unless push_type == :transmission
+
+    task_result = api_request('push/list/message', task_body)
+    task_id = task_result.dig('data', 'taskid') || task_result.dig('data', 'task_id') || task_result.dig('data', 'id') || task_result.dig('data', 'taskId')
+    raise PushError, '创建批量消息体失败：未返回 task_id' unless task_id
+
+    # Step 2: 用 taskid + cid 列表推送
+    push_body = {
+      audience: { cid: cid_list },
+      taskid: task_id,
+      is_async: true
     }
 
-    request_body.delete(:push_channel) if push_type == :transmission
-
-    api_request('push/single/batch/cid', request_body)
+    api_request('push/list/cid', push_body)
   end
 
   # 群推：推给所有用户

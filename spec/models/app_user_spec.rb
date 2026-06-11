@@ -147,7 +147,7 @@ RSpec.describe AppUser, type: :model do
   describe '#expire_cache' do
     it '更新用户属性后清除缓存' do
       user = create(:app_user, nickname: 'old')
-      cache_key = "app_user_#{user.uuid}"
+      cache_key = "app_user_v2_#{user.uuid}"
       expect(Rails.cache).to receive(:delete).with(cache_key)
 
       user.update!(nickname: 'new')

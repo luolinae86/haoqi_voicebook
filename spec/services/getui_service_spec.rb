@@ -23,11 +23,17 @@ RSpec.describe GetuiService do
     allow(http).to receive(:use_ssl=)
     # auth endpoint returns token
     auth_response = mock_http_response(data: { 'token' => 'test_token', 'expire_time' => (Time.now.to_i * 1000 + 86_400_000).to_s })
+    # create task endpoint returns task_id
+    task_response = mock_http_response(data: { 'task_id' => 'task_abc123', 'id' => 'task_abc123' })
     # push endpoints return success
     push_response = mock_http_response
+    call_count = 0
     allow(http).to receive(:request) do |req|
+      call_count += 1
       if req.path.include?('auth')
         auth_response
+      elsif req.path.include?('push/list/message')
+        task_response
       else
         push_response
       end
