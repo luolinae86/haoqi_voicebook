@@ -13,5 +13,8 @@ module Entities
     expose :link_type_name
     expose :book_id
     expose :compilation_id
+    expose :compilation_name do |instance, _|
+      instance.compilation_id.present? ? ::Compilation.find_by(id: instance.compilation_id)&.name : nil
+    end
   end
 end

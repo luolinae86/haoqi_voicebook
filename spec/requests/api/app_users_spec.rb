@@ -327,6 +327,26 @@ RSpec.describe 'API AppUsers', type: :request do
         expect(json_response[:response][:data][:user][:splash_ad][:id]).to eq(ad.id)
       end
 
+      it 'compilation_id 不为空时返回 compilation_name' do
+        compilation = create(:compilation, name: '经典绘本合集')
+        create(:splash_ad, status: 'active', push_scope: 'all_users', compilation_id: compilation.id)
+
+        get '/api/app_users/info', params: { uuid: user.uuid }
+
+        splash_ad = json_response[:response][:data][:user][:splash_ad]
+        expect(splash_ad[:compilation_id]).to eq(compilation.id)
+        expect(splash_ad[:compilation_name]).to eq('经典绘本合集')
+      end
+
+      it 'compilation_id 为空时 compilation_name 返回 nil' do
+        create(:splash_ad, status: 'active', push_scope: 'all_users', compilation_id: nil, link_type: 'single_book', book_id: 1)
+
+        get '/api/app_users/info', params: { uuid: user.uuid }
+
+        splash_ad = json_response[:response][:data][:user][:splash_ad]
+        expect(splash_ad[:compilation_name]).to be_nil
+      end
+
       it '非 active 广告不返回' do
         create(:splash_ad, status: 'draft', push_scope: 'all_users')
 
