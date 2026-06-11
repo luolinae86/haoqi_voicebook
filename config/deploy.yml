@@ -99,7 +99,10 @@ drain_timeout: 30
 retain_containers: 2
 
 # ==================== 构建配置 ====================
+# 本地构建（Mac ARM → Linux AMD64），避免在生产服务器 build 导致 OOM
+# 生产服务器仅 1.6GB 内存，bundle install 需要 ~750MB，会触发 OOM Killer
 builder:
+  local: true
   arch: amd64
   cache:
     type: registry

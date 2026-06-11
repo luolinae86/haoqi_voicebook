@@ -11,7 +11,7 @@
 #  end_time(结束时间)                                       :datetime         not null
 #  grade_ids(按年级推送时的目标年级ID列表)                   :json
 #  image_url(图片URL)                                       :string(255)      not null
-#  link_type(链接类型: single_book/category)                :string(255)      not null
+#  link_type(链接类型: single_book/collection)                :string(255)      not null
 #  max_age(最大年龄)                                        :integer
 #  min_age(最小年龄)                                        :integer
 #  push_mode(推送方式: immediate/first_open_daily)          :string(255)      default("immediate"), not null
@@ -24,22 +24,21 @@
 #  created_at                                               :datetime         not null
 #  updated_at                                               :datetime         not null
 #  book_id(关联图书ID)                                      :bigint
-#  category_id(关联分类ID)                                  :bigint
+#  collection_id(关联合集ID)                                  :bigint
 #
 # Indexes
 #
 #  index_splash_ads_on_book_id      (book_id)
-#  index_splash_ads_on_category_id  (category_id)
+#  index_splash_ads_on_collection_id  (collection_id)
 #  index_splash_ads_on_deleted_at   (deleted_at)
 #
 class SplashAd < ApplicationRecord
   belongs_to :book, optional: true
-  belongs_to :category, optional: true
 
   # 链接类型
   LINK_TYPES = {
     single_book: '单本图书',
-    category: '图书分类'
+    collection: '合集'
   }.freeze
 
   PUSH_SCOPES = {
@@ -62,7 +61,7 @@ class SplashAd < ApplicationRecord
 
   enum :link_type, {
     single_book: 'single_book',
-    category: 'category'
+    collection: 'collection'
   }, prefix: true
 
   enum :push_scope, {
@@ -158,8 +157,8 @@ class SplashAd < ApplicationRecord
     case link_type
     when 'single_book'
       errors.add(:book_id, '不能为空') if book_id.blank?
-    when 'category'
-      errors.add(:category_id, '不能为空') if category_id.blank?
+    when 'collection'
+      errors.add(:collection_id, '不能为空') if collection_id.blank?
     end
   end
 

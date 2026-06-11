@@ -12,6 +12,6 @@ module Entities
     expose :link_type
     expose :link_type_name
     expose :book_id
-    expose :category_id
+    expose :collection_id
   end
 end

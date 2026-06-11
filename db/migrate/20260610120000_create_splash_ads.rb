@@ -5,9 +5,9 @@ class CreateSplashAds < ActiveRecord::Migration[8.0]
   def change
     create_table :splash_ads do |t|
       t.string :image_url, null: false, comment: '图片URL'
-      t.string :link_type, null: false, comment: '链接类型: single_book/category'
+      t.string :link_type, null: false, comment: '链接类型: single_book/collection'
       t.bigint :book_id, comment: '关联图书ID'
-      t.bigint :category_id, comment: '关联分类ID'
+      t.bigint :collection_id, comment: '关联合集ID'
       t.string :push_scope, default: 'all_users', null: false, comment: '推送范围: all_users/age_range/specific_users'
       t.integer :min_age, comment: '最小年龄'
       t.integer :max_age, comment: '最大年龄'
@@ -25,7 +25,7 @@ class CreateSplashAds < ActiveRecord::Migration[8.0]
     end
 
     add_index :splash_ads, :book_id
-    add_index :splash_ads, :category_id
+    add_index :splash_ads, :collection_id
     add_index :splash_ads, :deleted_at
   end
 end
