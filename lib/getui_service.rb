@@ -119,10 +119,12 @@ class GetuiService
     return nil if title.blank? && body.blank?
 
     {
-      ups: {
-        notification: {
-          title: title,
-          body: body
+      default: {
+        ups: {
+          notification: {
+            title: title,
+            body: body
+          }
         }
       }
     }
