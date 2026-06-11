@@ -86,6 +86,8 @@ class AppUser < ApplicationRecord
   # 检查账户是否已过期
   def expired?
     expires_at.present? && expires_at <= Time.current
+  rescue ActiveModel::MissingAttributeError
+    false
   end
 
   # 获取当前设备ID（优先从 devices 表，回退到旧字段兼容）
