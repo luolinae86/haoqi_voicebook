@@ -373,7 +373,7 @@ module Api
           updates[:send_count] = ad.send_count + params[:send_count] if params[:send_count].present?
           updates[:click_count] = ad.click_count + params[:click_count] if params[:click_count].present?
 
-          ad.update!(updates) unless updates.empty?
+          ad.update_columns(updates) unless updates.empty?
 
           present response: success_response(
             send_count: ad.send_count,
