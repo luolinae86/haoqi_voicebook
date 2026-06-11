@@ -47,7 +47,7 @@ module Api
           default_head_img = HeadImg.normal.ordered.first
           temp_user.update!(head_img_id: default_head_img.id) if default_head_img && temp_user.head_img_id.blank?
 
-          present response: success_response(user: Entities::AppUser.represent(temp_user).as_json)
+          present response: success_response(user: { uuid: temp_user.uuid })
         end
 
         # ==================== 发送验证码 ====================

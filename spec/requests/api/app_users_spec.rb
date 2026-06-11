@@ -126,7 +126,7 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(body[:code]).to eq(0)
       user_data = body[:data][:user]
       expect(user_data[:uuid]).to be_present
-      expect(user_data[:expires_at]).to be_present
+      expect(user_data.keys).to eq([:uuid])
 
       created_user = AppUser.find_by(uuid: user_data[:uuid])
       expect(created_user.expires_at).to be_within(10.seconds).of(5.days.from_now)
