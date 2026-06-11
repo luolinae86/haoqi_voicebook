@@ -137,7 +137,7 @@ class AppUser < ApplicationRecord
   private
 
   def expire_cache
-    Rails.cache.delete("app_user_#{uuid}")
+    Rails.cache.delete("app_user_v2_#{uuid}")
   end
 
   def generate_device_id

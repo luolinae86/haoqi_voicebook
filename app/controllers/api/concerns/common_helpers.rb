@@ -92,9 +92,7 @@ module Api
       # 验证用户已授权（uuid 有效且账户未过期）
       def auth_user
         error!({ response: err_response(ERR_CODE[:UN_AUTH], '未授权访问') }, 200) unless current_user
-        # 从数据库实时检查过期状态，避免缓存对象过期不及时
-        user_expires_at = AppUser.unscoped.where(id: current_user.id).pick(:expires_at)
-        error!({ response: err_response(1001, '账户已过期') }, 200) if user_expires_at.present? && user_expires_at <= Time.current
+        error!({ response: err_response(1001, '账户已过期') }, 200) if current_user.expired?
       end
 
       # 验证 API 客户端认证（access_key_id + sign 签名）
