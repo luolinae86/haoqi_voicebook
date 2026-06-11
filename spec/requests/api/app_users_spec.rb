@@ -114,9 +114,11 @@ RSpec.describe 'API AppUsers', type: :request do
 
   # ==================== 创建临时用户 ====================
   describe 'POST /api/app_users/create_temporary_user' do
-    it '创建成功，expires_at 约等于 5 天后' do
+    it '传入普通用户uuid，成功创建临时用户' do
+      parent = create(:app_user, device_type: 'phone', grade_id: 59)
+
       post '/api/app_users/create_temporary_user',
-           params: { device_id: 'temp-device-1' },
+           params: { uuid: parent.uuid },
            as: :json
 
       expect(response).to have_http_status(:created)
@@ -128,40 +130,31 @@ RSpec.describe 'API AppUsers', type: :request do
 
       created_user = AppUser.find_by(uuid: user_data[:uuid])
       expect(created_user.expires_at).to be_within(10.seconds).of(5.days.from_now)
-    end
-
-    it '返回的用户信息包含 expires_at 和 device_type' do
-      post '/api/app_users/create_temporary_user',
-           params: { device_id: 'temp-device-2', device_type: 'pad' },
-           as: :json
-
-      expect(response).to have_http_status(:created)
-      user_data = json_response[:response][:data][:user]
-      expect(user_data[:expires_at]).to be_present
-      expect(user_data[:device_type]).to eq('pad')
-    end
-
-    it '传入 device_type 正确保存' do
-      post '/api/app_users/create_temporary_user',
-           params: { device_id: 'temp-device-3', device_type: 'phone' },
-           as: :json
-
-      created_user = AppUser.last
+      expect(created_user.grade_id).to eq(59)
       expect(created_user.device_type).to eq('phone')
     end
 
-    it '已存在设备时返回已有用户（不修改过期时间）' do
-      existing_user = create(:app_user)
-      create(:device, device_id: 'existing-temp-device', app_user: existing_user)
+    it '继承父用户的 grade_id 和 device_type' do
+      parent = create(:app_user, device_type: 'pad', grade_id: 60)
 
       post '/api/app_users/create_temporary_user',
-           params: { device_id: 'existing-temp-device' },
+           params: { uuid: parent.uuid },
            as: :json
 
       expect(response).to have_http_status(:created)
-      expect(json_response[:response][:data][:user][:uuid]).to eq(existing_user.uuid)
-      # 已存在用户不被修改过期时间
-      expect(existing_user.reload.expires_at).to be_nil
+      created_user = AppUser.last
+      expect(created_user.grade_id).to eq(60)
+      expect(created_user.device_type).to eq('pad')
+    end
+
+    it 'uuid不存在时返回错误' do
+      post '/api/app_users/create_temporary_user',
+           params: { uuid: 'nonexistent-uuid' },
+           as: :json
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).not_to eq(0)
+      expect(json_response[:response][:msg]).to include('用户未注册')
     end
   end
 
@@ -303,6 +296,58 @@ RSpec.describe 'API AppUsers', type: :request do
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(1002)
+    end
+
+    it '账户已过期返回错误' do
+      user.update!(expires_at: 1.day.ago)
+
+      get '/api/app_users/info', params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to eq('账户已过期')
+    end
+
+    it '账户未过期正常访问' do
+      user.update!(expires_at: 5.days.from_now)
+
+      get '/api/app_users/info', params: { uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(0)
+    end
+
+    context 'splash_ad' do
+      it '有 active 广告时返回开屏广告' do
+        ad = create(:splash_ad, status: 'active', push_scope: 'all_users')
+
+        get '/api/app_users/info', params: { uuid: user.uuid }
+
+        expect(json_response[:response][:data][:user][:splash_ad]).to be_present
+        expect(json_response[:response][:data][:user][:splash_ad][:id]).to eq(ad.id)
+      end
+
+      it '非 active 广告不返回' do
+        create(:splash_ad, status: 'draft', push_scope: 'all_users')
+
+        get '/api/app_users/info', params: { uuid: user.uuid }
+
+        expect(json_response[:response][:data][:user][:splash_ad]).to be_nil
+      end
+
+      it 'active 广告不匹配用户年级时不返回' do
+        create(:splash_ad, status: 'active', push_scope: 'age_range', grade_ids: [999], min_age: 0, max_age: 18)
+
+        get '/api/app_users/info', params: { uuid: user.uuid }
+
+        expect(json_response[:response][:data][:user][:splash_ad]).to be_nil
+      end
+
+      it '无任何广告时返回 nil' do
+        get '/api/app_users/info', params: { uuid: user.uuid }
+
+        expect(json_response[:response][:data][:user][:splash_ad]).to be_nil
+      end
     end
   end
 
@@ -871,25 +916,26 @@ RSpec.describe 'API AppUsers', type: :request do
         expect(user.reload.password_digest).to be_present
       end
 
-      it '不提供手机号返回错误' do
+      it '不提供手机号也成功设置密码（首次设置不需要手机验证）' do
         user = AppUser.create! # 不设置密码
         post '/api/app_users/reset_password',
              params: { uuid: user.uuid, password: 'NewPass123' },
              as: :json
 
-        expect(response).to have_http_status(200)
-        expect(json_response[:response][:code]).not_to eq(0)
-        expect(json_response[:response][:msg]).to include('手机号')
+        expect(response).to have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(user.reload.password_digest).to be_present
       end
 
-      it '手机号未绑定账户返回错误' do
+      it '手机号未绑定账户也能设置密码（首次设置不验证手机号）' do
         user = AppUser.create!
         post '/api/app_users/reset_password',
              params: { uuid: user.uuid, password: 'NewPass123', phone: '19900000000' },
              as: :json
 
-        expect(response).to have_http_status(200)
-        expect(json_response[:response][:code]).not_to eq(0)
+        expect(response).to have_http_status(201)
+        expect(json_response[:response][:code]).to eq(0)
+        expect(user.reload.password_digest).to be_present
       end
 
       it '用户未注册时返回错误' do

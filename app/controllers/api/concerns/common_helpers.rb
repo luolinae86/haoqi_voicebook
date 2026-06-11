@@ -84,14 +84,15 @@ module Api
       # 根据 uuid 查找当前用户
       # @return [AppUser, nil]
       def current_user
-        @current_user ||= Rails.cache.fetch("app_user_#{params[:uuid]}", expires_in: 1.hours) do
+        @current_user ||= Rails.cache.fetch("app_user_#{params[:uuid]}", expires_in: 1.hour) do
           AppUser.find_by(uuid: params[:uuid])
         end
       end
 
-      # 验证用户已授权（uuid 有效）
+      # 验证用户已授权（uuid 有效且账户未过期）
       def auth_user
         error!({ response: err_response(ERR_CODE[:UN_AUTH], '未授权访问') }, 200) unless current_user
+        error!({ response: err_response(1001, '账户已过期') }, 200) if current_user.expired?
       end
 
       # 验证 API 客户端认证（access_key_id + sign 签名）
@@ -119,7 +120,7 @@ module Api
       # @return [String] SHA1 签名
       def generate_sign(secret)
         # 过滤掉签名参数本身，其余参数按键排序后拼接
-        sign_params = params.except(:sign, :access_key_id, :route_info).sort.map { |k, v| "#{k}=#{v}" }.join("&")
+        sign_params = params.except(:sign, :access_key_id, :route_info).sort.map { |k, v| "#{k}=#{v}" }.join('&')
         Digest::SHA1.hexdigest("#{sign_params}&secret=#{secret}")
       end
 

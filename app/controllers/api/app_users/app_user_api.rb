@@ -29,33 +29,25 @@ module Api
         end
 
         # ==================== 创建临时用户 ====================
-        desc '创建带过期时间的临时用户（5天后过期）'
+        desc '为普通用户创建一个带过期时间的临时子账户（5天后过期）'
         params do
-          requires :device_id, type: String, desc: '设备ID'
-          optional :device_type, type: String, desc: '设备类型（phone/pad）'
-          optional :channel, type: String, desc: '注册渠道（app_store/tablet/community/koc）'
+          requires :uuid, type: String, desc: '普通用户的uuid'
         end
         post :create_temporary_user do
-          device = Device.find_by(device_id: params[:device_id])
-          user = if device&.app_user
-                   device.app_user
-                 else
-                   user = AppUser.create!(
-                     grade_id: Grade.find_by(name: '三年级')&.id,
-                     nickname: '少年越读者',
-                     channel: params[:channel].presence,
-                     device_type: params[:device_type].presence,
-                     expires_at: 5.days.from_now
-                   )
-                   Device.bind!(params[:device_id], user)
+          parent_user = AppUser.find_by(uuid: params[:uuid])
+          error_pop_resp('用户未注册，请先调用 create_by_device') unless parent_user
 
-                   default_head_img = HeadImg.normal.ordered.first
-                   user.update!(head_img_id: default_head_img.id) if default_head_img && user.head_img_id.blank?
+          temp_user = AppUser.create!(
+            grade_id: parent_user.grade_id,
+            nickname: parent_user.nickname,
+            device_type: parent_user.device_type,
+            expires_at: 5.days.from_now
+          )
 
-                   user
-                 end
+          default_head_img = HeadImg.normal.ordered.first
+          temp_user.update!(head_img_id: default_head_img.id) if default_head_img && temp_user.head_img_id.blank?
 
-          present response: success_response(user: Entities::AppUser.represent(user).as_json)
+          present response: success_response(user: Entities::AppUser.represent(temp_user).as_json)
         end
 
         # ==================== 发送验证码 ====================
