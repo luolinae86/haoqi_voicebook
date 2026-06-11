@@ -562,7 +562,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_030000) do
 
   create_table "splash_ads", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "image_url", null: false, comment: "图片URL"
-    t.string "link_type", null: false, comment: "链接类型: single_book/collection"
+    t.string "link_type", null: false, comment: "链接类型: single_book/compilation"
     t.bigint "book_id", comment: "关联图书ID"
     t.bigint "compilation_id", comment: "关联合集ID"
     t.string "push_scope", default: "all_users", null: false, comment: "推送范围: all_users/age_range/specific_users"

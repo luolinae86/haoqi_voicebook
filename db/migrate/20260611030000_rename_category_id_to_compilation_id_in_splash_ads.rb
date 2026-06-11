@@ -10,7 +10,7 @@ class RenameCategoryIdToCompilationIdInSplashAds < ActiveRecord::Migration[8.0]
     add_index :splash_ads, :compilation_id
 
     # 同步更新旧数据：link_type 'category' → 'collection'
-    execute "UPDATE splash_ads SET link_type = 'collection' WHERE link_type = 'category'"
+    execute "UPDATE splash_ads SET link_type = 'compilation' WHERE link_type = 'category'"
   end
 
   def down
@@ -21,6 +21,6 @@ class RenameCategoryIdToCompilationIdInSplashAds < ActiveRecord::Migration[8.0]
     change_column_comment :splash_ads, :category_id, '关联分类ID'
     add_index :splash_ads, :category_id
 
-    execute "UPDATE splash_ads SET link_type = 'category' WHERE link_type = 'collection'"
+    execute "UPDATE splash_ads SET link_type = 'category' WHERE link_type = 'compilation'"
   end
 end
