@@ -46,7 +46,8 @@ module Api
         )
 
         query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
-        "https://#{bucket_name}.#{endpoint}/#{CGI.escape(object_key)}?#{query}"
+        escaped_key = object_key.split('/').map { |s| CGI.escape(s) }.join('/')
+        "https://#{bucket_name}.#{endpoint}/#{escaped_key}?#{query}"
       rescue StandardError
         # 若解析失败，原样返回
         url

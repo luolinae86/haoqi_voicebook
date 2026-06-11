@@ -9,7 +9,7 @@ RSpec.describe "API Health Check", type: :request do
 
       expect(response).to have_http_status(200)
       expect(json_response[:code]).to eq(0)
-      expect(json_response[:message]).to include("Hello World")
+      expect(json_response[:msg]).to include("Hello World")
       expect(json_response[:data][:version]).to be_present
     end
   end

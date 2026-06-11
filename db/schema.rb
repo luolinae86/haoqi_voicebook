@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_11_030000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_11_050000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -344,6 +344,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_030000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "image_url", comment: "页面图片URL（PDF导入）"
+    t.float "page_width"
+    t.float "page_height"
+    t.text "plain_text"
+    t.json "rich_content"
+    t.integer "block_count", default: 0
+    t.integer "image_count", default: 0
     t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_ebook_pages_on_book_id"
   end
@@ -479,6 +485,28 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_030000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["app_user_id"], name: "index_parental_controls_on_app_user_id", unique: true
+  end
+
+  create_table "push_notifications", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "title", null: false
+    t.string "body", null: false
+    t.integer "push_type", default: 0, null: false
+    t.integer "push_scope", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.boolean "is_delete", default: false
+    t.string "link_url"
+    t.integer "min_age"
+    t.integer "max_age"
+    t.text "user_group"
+    t.integer "send_count", default: 0
+    t.integer "click_count", default: 0
+    t.decimal "delivery_rate", precision: 10, default: "0"
+    t.datetime "scheduled_at"
+    t.datetime "sent_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["push_type"], name: "index_push_notifications_on_push_type"
+    t.index ["status"], name: "index_push_notifications_on_status"
   end
 
   create_table "rank_contents", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|

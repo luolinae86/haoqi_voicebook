@@ -49,8 +49,21 @@ module Ebook
         FileUtils.rm_rf(@storage_root)
 
         reader.pages.each do |page|
+          # Always walk the page for text to resolve directory headings
+          receiver = PdfPageReceiver.new
+          page.walk(receiver)
+          text_content = build_text_content(page, receiver.runs)
+
           if force_image_pages
-            import_as_image_page(page, renderer)
+            import_as_image_page(page, renderer, toc_mapping[:page_map], text_content, current_directory)
+            # Update current_directory from this page's text for subsequent pages
+            resolved = resolve_directory(
+              page_number: page.number,
+              text_content: text_content,
+              directory_map: toc_mapping[:page_map],
+              current_directory: current_directory
+            )
+            current_directory = resolved if resolved
           else
             receiver = PdfPageReceiver.new
             page.walk(receiver)
@@ -104,7 +117,7 @@ module Ebook
     private
 
     # 导入单页为图片（PDF 强制图片模式）
-    def import_as_image_page(page, renderer)
+    def import_as_image_page(page, renderer, directory_map = {}, text_content = {}, current_directory = nil)
       return unless renderer
 
       full_page = forced_page_image_candidate(page, renderer, enabled: true)
@@ -137,10 +150,42 @@ module Ebook
 
       return unless image_info
 
+      mapped_directory = resolve_directory(
+        page_number: page.number,
+        text_content: text_content,
+        directory_map: directory_map,
+        current_directory: current_directory
+      )
+      rich_content = {
+        text: "",
+        lines: [],
+        images: [{
+          id: "image-#{page.number}-1",
+          type: "image",
+          role: "hero_image",
+          mime_type: image_info[:mime_type],
+          image_url: image_info[:image_url],
+          bbox: {
+            left: 0.0,
+            bottom: 0.0,
+            right: page.width.to_f,
+            top: page.height.to_f,
+            width: page.width.to_f,
+            height: page.height.to_f
+          }
+        }],
+        directory: mapped_directory&.deep_dup
+      }
+
       @book.ebook_pages.create!(
         page_number: page.number,
+        page_width: page.width.to_f,
+        page_height: page.height.to_f,
         image_url: image_info[:image_url],
-        word_count: 0
+        rich_content: rich_content,
+        word_count: 0,
+        block_count: 1,
+        image_count: 1
       )
     end
 

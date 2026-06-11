@@ -50,7 +50,7 @@ RSpec.describe ParentalControl, type: :model do
   # 常量测试
   describe "TIME_LIMITS" do
     it "包含预设的时间限制选项" do
-      expect(ParentalControl::TIME_LIMITS).to eq([30, 60, 90, nil])
+      expect(ParentalControl::TIME_LIMITS).to eq([0, 30, 60, 90])
     end
   end
 end

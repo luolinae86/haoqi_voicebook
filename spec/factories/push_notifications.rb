@@ -28,7 +28,7 @@ FactoryBot.define do
     title { "系统通知" }
     body { "这是一条测试推送通知" }
     push_type { :system }
-    push_scope { :all }
+    push_scope { :everyone }
     status { :draft }
     is_delete { false }
   end

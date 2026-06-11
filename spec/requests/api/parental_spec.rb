@@ -113,7 +113,7 @@ RSpec.describe "API Parental Control", type: :request do
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(0)
         expect(json_response[:response][:data]).to be_present
-        expect(json_response[:response][:data][:time_limit_minutes]).to eq(60)
+        expect(json_response[:response][:data][:parental_control][:time_limit_minutes]).to eq(60)
       end
     end
 
@@ -303,15 +303,15 @@ RSpec.describe "API Parental Control", type: :request do
     context "已登录" do
       it "从黑名单移除成功" do
         expect do
-          delete "/api/parental/blacklist/#{book.id}", params: auth_params
+          post "/api/parental/remove_blacklist", params: auth_params.merge(book_id: book.id)
         end.to change(BlacklistedBook, :count).by(-1)
 
-        expect(response).to have_http_status(200)
+        expect(response).to have_http_status(201)
         expect(json_response[:response][:code]).to eq(0)
       end
 
       it "移除不存在的图书返回错误" do
-        delete "/api/parental/blacklist/999999", params: auth_params
+        post "/api/parental/remove_blacklist", params: auth_params.merge(book_id: 999999)
 
         expect(response).to have_http_status(200)
       end
@@ -321,7 +321,7 @@ RSpec.describe "API Parental Control", type: :request do
       let(:invalid_auth_params) { { uuid: "invalid_uuid_00000" } }
 
       it "返回 401 未授权" do
-        delete "/api/parental/blacklist/#{book.id}", params: invalid_auth_params
+        post "/api/parental/remove_blacklist", params: invalid_auth_params.merge(book_id: book.id)
 
         expect(response).to have_http_status(200)
         expect(json_response[:response][:code]).to eq(1002)

@@ -87,7 +87,8 @@ module Ebook
       content = normalized_content(page)
       content = sanitized_content_for_export(
         content,
-        page_number: page.page_number
+        page_number: page.page_number,
+        page_width: page.page_width
       )
       {
         page_number: page.page_number,
@@ -142,7 +143,7 @@ module Ebook
       }.with_indifferent_access
     end
 
-    def sanitized_content_for_export(content, page_number:)
+    def sanitized_content_for_export(content, page_number:, page_width: nil)
       raw_page = {
         "page_number" => page_number,
         "text" => content[:text].to_s,
@@ -150,7 +151,7 @@ module Ebook
         "images" => deep_stringify(content[:images] || []),
         "directory" => deep_stringify(content[:directory])
       }
-      lines = page_sanitizer.send(:visible_lines, raw_page, nil)
+      lines = page_sanitizer.send(:visible_lines, raw_page, page_width || 612.0)
       lines.each do |line|
         next unless line["marker"].present?
 

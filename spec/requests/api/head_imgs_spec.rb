@@ -7,7 +7,7 @@ RSpec.describe "API HeadImgs", type: :request do
 
   # ==================== 头像列表 ====================
   describe "GET /api/head_imgs/index" do
-    it "普通用户只返回非VIP头像" do
+    it "普通用户返回所有头像（包含VIP）" do
       vip_img = create(:head_img, is_vip: true)
       normal_img = create(:head_img, is_vip: false)
 
@@ -17,7 +17,7 @@ RSpec.describe "API HeadImgs", type: :request do
       expect(json_response[:response][:code]).to eq(0)
       head_imgs = json_response[:response][:data][:head_imgs]
       expect(head_imgs.map { |h| h[:id] }).to include(normal_img.id)
-      expect(head_imgs.map { |h| h[:id] }).not_to include(vip_img.id)
+      expect(head_imgs.map { |h| h[:id] }).to include(vip_img.id)
     end
 
     it "VIP用户返回所有头像" do
@@ -34,7 +34,7 @@ RSpec.describe "API HeadImgs", type: :request do
       expect(ids).to include(vip_img.id)
     end
 
-    it "VIP已过期用户只返回非VIP头像" do
+    it "VIP已过期用户返回所有头像（包含VIP）" do
       vip_img = create(:head_img, is_vip: true)
       normal_img = create(:head_img, is_vip: false)
       user.update!(is_vip: true, vip_expires_at: 1.day.ago)
@@ -44,7 +44,7 @@ RSpec.describe "API HeadImgs", type: :request do
       expect(response).to have_http_status(200)
       head_imgs = json_response[:response][:data][:head_imgs]
       expect(head_imgs.map { |h| h[:id] }).to include(normal_img.id)
-      expect(head_imgs.map { |h| h[:id] }).not_to include(vip_img.id)
+      expect(head_imgs.map { |h| h[:id] }).to include(vip_img.id)
     end
 
     it "头像 URL 签名有效期为一年" do

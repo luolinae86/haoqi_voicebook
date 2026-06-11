@@ -548,6 +548,8 @@ module Ebook
     end
 
     def side_noise_page?(lines, page_width)
+      return false if page_width.nil?
+
       lines.count { |line| standalone_side_noise?(line, page_width) } >= 4
     end
 
