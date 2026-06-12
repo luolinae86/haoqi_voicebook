@@ -28,7 +28,7 @@ registry:
 env:
   clear:
     RAILS_ENV: production
-    WEB_CONCURRENCY: 4
+    WEB_CONCURRENCY: 16
     RAILS_MAX_THREADS: 5
     DATABASE_POOL_SIZE: 100
     TZ: Asia/Shanghai
