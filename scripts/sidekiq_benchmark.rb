@@ -3,7 +3,7 @@
 # Sidekiq 并发基准测试脚本
 # 用法: bundle exec rails runner scripts/sidekiq_benchmark.rb
 
-JOB_COUNT = 100
+JOB_COUNT = 200
 REDIS_KEY_DONE = 'bench:done'
 
 # 1. 入队任务

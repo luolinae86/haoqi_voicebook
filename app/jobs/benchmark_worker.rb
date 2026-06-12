@@ -8,11 +8,11 @@ class BenchmarkWorker
   sidekiq_options queue: 'default', retry: 0
 
   def perform(job_id)
-    # 模拟 DB 查询（类似真实 API 业务）
+    # 模拟真实业务：DB 查询 + 外部 API 调用（I/O 等待）
     AppUser.limit(10).to_a
-    # 模拟轻量计算
+    sleep(0.05) # 模拟 50ms I/O 等待（HTTP/API/Redis 调用）
     sum = 0
-    10_000.times { |i| sum += i }
+    5_000.times { |i| sum += i }
     # 写入 Redis 标记完成
     Sidekiq.redis { |r| r.incr("bench:done") }
   end
