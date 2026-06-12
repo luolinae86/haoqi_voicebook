@@ -7,7 +7,7 @@
 require 'benchmark'
 
 JOB_COUNT = 200
-CONCURRENCY_LEVELS = [2, 4, 6, 8, 12, 16]
+CONCURRENCY_LEVELS = [2, 4, 6, 8, 12, 16, 24, 32]
 
 # 模拟一个典型的 Sidekiq Job（DB 查询 + I/O 等待 + Redis 写入）
 def simulate_job(job_id)
