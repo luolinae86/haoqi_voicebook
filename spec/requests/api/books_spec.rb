@@ -224,8 +224,8 @@ RSpec.describe 'API Books', type: :request do
   # ==================== 页面清单 ====================
   describe 'GET /api/books/pages' do
     it '返回图书页面清单' do
-      page1 = create(:ebook_page, :pdf_image, book: book, page_number: 1)
-      page2 = create(:ebook_page, :pdf_image, book: book, page_number: 2)
+      create(:ebook_page, :pdf_image, book: book, page_number: 1)
+      create(:ebook_page, :pdf_image, book: book, page_number: 2)
 
       get '/api/books/pages', params: { id: book.id, uuid: user.uuid }
 
@@ -258,7 +258,7 @@ RSpec.describe 'API Books', type: :request do
   # ==================== 单页内容 ====================
   describe 'GET /api/books/page' do
     it '返回 PDF 图片页内容' do
-      page = create(:ebook_page, :pdf_image, book: book, page_number: 1)
+      create(:ebook_page, :pdf_image, book: book, page_number: 1)
 
       get '/api/books/page', params: { id: book.id, page_number: 1, uuid: user.uuid }
 
@@ -285,8 +285,8 @@ RSpec.describe 'API Books', type: :request do
   # ==================== 页面 XHTML 内容 ====================
   describe 'GET /api/books/page_html' do
     it '返回 EPUB 页 XHTML 内容' do
-      page = create(:ebook_page, :epub, book: book, page_number: 1,
-                                        xhtml_content: '<html><body><p>Test Content</p></body></html>')
+      create(:ebook_page, :epub, book: book, page_number: 1,
+                                 xhtml_content: '<html><body><p>Test Content</p></body></html>')
 
       get '/api/books/page_html', params: { id: book.id, page_number: 1, uuid: user.uuid }
 
@@ -298,7 +298,7 @@ RSpec.describe 'API Books', type: :request do
     end
 
     it 'XHTML 未导出时返回 404' do
-      page = create(:ebook_page, :pdf_image, book: book, page_number: 1)
+      create(:ebook_page, :pdf_image, book: book, page_number: 1)
 
       get '/api/books/page_html', params: { id: book.id, page_number: 1, uuid: user.uuid }
 
@@ -359,7 +359,7 @@ RSpec.describe 'API Books', type: :request do
       expires = data[:content_file_url].match(/Expires=(\d+)/)
       expect(expires).to be_present
       expires_at = expires[1].to_i
-      one_day_later = (Time.now + 86_400).to_i
+      one_day_later = (Time.zone.now + 86_400).to_i
       expect(expires_at).to be_within(60).of(one_day_later)
     end
 
@@ -370,6 +370,33 @@ RSpec.describe 'API Books', type: :request do
 
       expect(response).to have_http_status(200)
       expect(json_response[:response][:data][:content_file_url]).to be_nil
+    end
+
+    it '返回 ld/hd/sd/snap 文件路径（签名后的 OSS URL）' do
+      chapter.update!(
+        ld_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/ld/video.mp4',
+        hd_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/hd/video.mp4',
+        sd_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/sd/video.mp4',
+        snap_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/snap/image.jpg'
+      )
+
+      get '/api/books/chapter_url', params: { chapter_id: chapter.id, uuid: user.uuid }
+
+      data = json_response[:response][:data]
+      expect(data[:ld_file_path]).to include('Signature=')
+      expect(data[:hd_file_path]).to include('Signature=')
+      expect(data[:sd_file_path]).to include('Signature=')
+      expect(data[:snap_file_path]).to include('Signature=')
+    end
+
+    it '文件路径为空时返回 nil' do
+      get '/api/books/chapter_url', params: { chapter_id: chapter.id, uuid: user.uuid }
+
+      data = json_response[:response][:data]
+      expect(data[:ld_file_path]).to be_nil
+      expect(data[:hd_file_path]).to be_nil
+      expect(data[:sd_file_path]).to be_nil
+      expect(data[:snap_file_path]).to be_nil
     end
 
     it '章节不存在时返回错误' do
