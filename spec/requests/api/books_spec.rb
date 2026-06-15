@@ -372,12 +372,11 @@ RSpec.describe 'API Books', type: :request do
       expect(json_response[:response][:data][:content_file_url]).to be_nil
     end
 
-    it '返回 ld/hd/sd/snap 文件路径（签名后的 OSS URL）' do
+    it '返回 ld/hd/sd 文件路径（签名后的 OSS URL）' do
       chapter.update!(
         ld_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/ld/video.mp4',
         hd_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/hd/video.mp4',
-        sd_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/sd/video.mp4',
-        snap_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/snap/image.jpg'
+        sd_file_path: 'https://bucket.oss-cn-beijing.aliyuncs.com/sd/video.mp4'
       )
 
       get '/api/books/chapter_url', params: { chapter_id: chapter.id, uuid: user.uuid }
@@ -386,7 +385,6 @@ RSpec.describe 'API Books', type: :request do
       expect(data[:ld_file_path]).to include('Signature=')
       expect(data[:hd_file_path]).to include('Signature=')
       expect(data[:sd_file_path]).to include('Signature=')
-      expect(data[:snap_file_path]).to include('Signature=')
     end
 
     it '文件路径为空时返回 nil' do
@@ -396,7 +394,6 @@ RSpec.describe 'API Books', type: :request do
       expect(data[:ld_file_path]).to be_nil
       expect(data[:hd_file_path]).to be_nil
       expect(data[:sd_file_path]).to be_nil
-      expect(data[:snap_file_path]).to be_nil
     end
 
     it '章节不存在时返回错误' do

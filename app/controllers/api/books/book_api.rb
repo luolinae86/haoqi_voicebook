@@ -77,8 +77,7 @@ module Api
             duration: chapter.duration,
             ld_file_path: Book.sign_oss_url(chapter.ld_file_path, expires: 86_400),
             hd_file_path: Book.sign_oss_url(chapter.hd_file_path, expires: 86_400),
-            sd_file_path: Book.sign_oss_url(chapter.sd_file_path, expires: 86_400),
-            snap_file_path: Book.sign_oss_url(chapter.snap_file_path, expires: 86_400)
+            sd_file_path: Book.sign_oss_url(chapter.sd_file_path, expires: 86_400)
           )
         end
 

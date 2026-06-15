@@ -30,13 +30,12 @@ RSpec.describe 'Entities::Chapter', type: :model do
   describe 'file path fields' do
     let(:book) { create(:book) }
 
-    it 'returns ld_file_path, hd_file_path, sd_file_path, snap_file_path' do
+    it 'returns ld_file_path, hd_file_path, sd_file_path' do
       create(:chapter,
              book: book,
              ld_file_path: 'https://cdn.example.com/ld/video.mp4',
              hd_file_path: 'https://cdn.example.com/hd/video.mp4',
-             sd_file_path: 'https://cdn.example.com/sd/video.mp4',
-             snap_file_path: 'https://cdn.example.com/snap/image.jpg')
+             sd_file_path: 'https://cdn.example.com/sd/video.mp4')
 
       chapter = book.chapters.first
       result = Entities::Chapter.represent(chapter).as_json
@@ -44,7 +43,6 @@ RSpec.describe 'Entities::Chapter', type: :model do
       expect(result[:ld_file_path]).to eq('https://cdn.example.com/ld/video.mp4')
       expect(result[:hd_file_path]).to eq('https://cdn.example.com/hd/video.mp4')
       expect(result[:sd_file_path]).to eq('https://cdn.example.com/sd/video.mp4')
-      expect(result[:snap_file_path]).to eq('https://cdn.example.com/snap/image.jpg')
     end
 
     it 'returns nil for file path fields when not set' do
@@ -56,7 +54,6 @@ RSpec.describe 'Entities::Chapter', type: :model do
       expect(result[:ld_file_path]).to be_nil
       expect(result[:hd_file_path]).to be_nil
       expect(result[:sd_file_path]).to be_nil
-      expect(result[:snap_file_path]).to be_nil
     end
 
     it 'signs aliyuncs.com OSS URLs for file path fields' do
@@ -64,8 +61,7 @@ RSpec.describe 'Entities::Chapter', type: :model do
              book: book,
              ld_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/ld/video.mp4',
              hd_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/hd/video.mp4',
-             sd_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/sd/video.mp4',
-             snap_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/snap/image.jpg')
+             sd_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/sd/video.mp4')
 
       chapter = book.chapters.first
       result = Entities::Chapter.represent(chapter).as_json
@@ -74,7 +70,6 @@ RSpec.describe 'Entities::Chapter', type: :model do
       expect(result[:ld_file_path]).to include('Signature=')
       expect(result[:hd_file_path]).to include('Signature=')
       expect(result[:sd_file_path]).to include('Signature=')
-      expect(result[:snap_file_path]).to include('Signature=')
     end
   end
 end

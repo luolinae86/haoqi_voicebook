@@ -23,9 +23,6 @@ module Entities
     expose :sd_file_path do |instance, _|
       self.class.sign_oss_url(instance.sd_file_path)
     end
-    expose :snap_file_path do |instance, _|
-      self.class.sign_oss_url(instance.snap_file_path)
-    end
 
     def self.sign_oss_url(url, expires: 3600)
       ::Book.sign_oss_url(url, expires: expires)
