@@ -13,6 +13,9 @@
 #  compilation_id(合辑信息)       :bigint
 #  content_group_id(关联内容分组) :bigint           not null
 #  recommend_id(推荐信息)         :bigint
+#  rank_id                        :bigint
+#  name(名称)                     :string(16)
+#  color(颜色)                    :string(16)
 #
 # Indexes
 #
@@ -32,11 +35,11 @@ class Content < ApplicationRecord
   scope :sorted, -> { order(sn: :asc, id: :desc) }
 
   enum :content_type, {
-    compilation: 'compilation',           # 合辑
+    compilation: 'compilation', # 合辑
     book: 'book', # 单本
     author_display: 'author_display', # 作者显示
     recommend: 'recommend', # 推荐
-    rank: 'rank', # 排行榜
+    rank: 'rank' # 排行榜
   }, prefix: true
 
   CONTENT_TYPES = {
@@ -49,29 +52,32 @@ class Content < ApplicationRecord
 
   def content_type_name
     return content_type if content_type.blank?
+
     CONTENT_TYPES[content_type.to_sym] || content_type
   end
 
   def display_img_url
-    if content_group.group_type == "multi_images"
+    if content_group.group_type == 'multi_images'
       img_url
     else
-      if content_type == "compilation"
+      case content_type
+      when 'compilation'
         compilation.banner_image_url
-      elsif content_type == "book"
+      when 'book'
         book.cover_image_url
-      elsif content_type == "author_display"
+      when 'author_display'
         author.head_img
       end
     end
   end
 
   def content_name
-    if content_type == "compilation"
+    case content_type
+    when 'compilation'
       compilation.name
-    elsif content_type == "book"
+    when 'book'
       book.name
-    elsif content_type == "author_display"
+    when 'author_display'
       author.name
     end
   end

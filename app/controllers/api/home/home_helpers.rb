@@ -24,10 +24,12 @@ module Api
 
       def book_blacklisted?(book_id)
         return false if book_id.blank?
+
         pc = current_user&.parental_control
         return false unless pc
+
         pc.blacklisted_books.exists?(book_id: book_id)
-      rescue
+      rescue StandardError
         false
       end
 
@@ -46,17 +48,19 @@ module Api
           id: content.id,
           content_type: content.content_type,
           content_type_name: content.content_type_name,
-          sn: content.sn
+          sn: content.sn,
+          name: content.name,
+          color: content.color
         }
 
         case content.content_type
-        when "compilation"
+        when 'compilation'
           content_hash[:compilation] = serialize_compilation(content.compilation) if content.compilation
-        when "book"
+        when 'book'
           content_hash[:book] = serialize_book(content.book) if content.book
-        when "author_display"
+        when 'author_display'
           content_hash[:author] = serialize_author(content.author) if content.author
-        when "recommend"
+        when 'recommend'
           content_hash[:recommend] = serialize_sub_recommend(content.recommend) if content.recommend
         end
 
@@ -104,7 +108,7 @@ module Api
           id: recommend.id,
           name: recommend.name,
           sn: recommend.sn,
-          color: recommend.color || "",
+          color: recommend.color || '',
           status_text: recommend.status_text
         }
       end

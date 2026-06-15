@@ -6,8 +6,11 @@ module Entities
     expose :content_type
     expose :content_type_name
     expose :sn
+    expose :name
+    expose :color
     expose :book do |instance, _|
       next nil unless instance.book
+
       {
         id: instance.book.id,
         name: instance.book.name,
@@ -23,6 +26,7 @@ module Entities
     end
     expose :compilation do |instance, _|
       next nil unless instance.compilation
+
       {
         id: instance.compilation.id,
         name: instance.compilation.name,
@@ -39,6 +43,7 @@ module Entities
 
     def signed_oss_url(url)
       return nil if url.blank?
+
       Book.sign_oss_url(url)
     end
   end
