@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_11_050000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_15_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -230,6 +230,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_050000) do
     t.datetime "updated_at", null: false
     t.integer "duration", comment: "音频/视频时长（秒）"
     t.date "publish_date", comment: "发布日期"
+    t.string "ld_file_path", comment: "低清文件路径"
+    t.string "hd_file_path", comment: "高清文件路径"
+    t.string "sd_file_path", comment: "标清文件路径"
+    t.string "snap_file_path", comment: "截图文件路径"
     t.index ["book_id"], name: "index_chapters_on_book_id"
   end
 

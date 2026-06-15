@@ -15,6 +15,10 @@
 #  is_free           :boolean          default(FALSE), comment: '是否免费'
 #  is_published      :boolean          default(FALSE), comment: '是否已发布'
 #  publish_date      :date             comment: '发布日期'
+#  ld_file_path      :string(255)      comment: '低清文件路径'
+#  hd_file_path      :string(255)      comment: '高清文件路径'
+#  sd_file_path      :string(255)      comment: '标清文件路径'
+#  snap_file_path    :string(255)      comment: '截图文件路径'
 #  sn                :integer          default(0), comment: '排序'
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -33,10 +37,14 @@
 #  content_file_url(章节内容文件URL（音频/视频）)  :string(255)
 #  cover_image_url(章节封面图片URL)                :string(255)
 #  duration(音频/视频时长（秒）)                   :integer
+#  hd_file_path(高清文件路径)                      :string(255)
 #  is_free(是否免费)                               :boolean          default(FALSE)
 #  is_published(是否已发布)                        :boolean          default(FALSE)
+#  ld_file_path(低清文件路径)                      :string(255)
 #  name(章节名称)                                  :string(255)      not null
 #  publish_date(发布日期)                          :date
+#  sd_file_path(标清文件路径)                      :string(255)
+#  snap_file_path(截图文件路径)                    :string(255)
 #  sn(排序)                                        :integer          default(0)
 #  created_at                                      :datetime         not null
 #  updated_at                                      :datetime         not null
@@ -55,7 +63,7 @@ class Chapter < ApplicationRecord
     pdf: 'pdf',
     mp3: 'mp3',
     mp4: 'mp4',
-    wav: 'wav',
+    wav: 'wav'
   }.freeze
 
   FILE_TYPE_NAMES = {
