@@ -157,7 +157,7 @@ RSpec.describe 'API Books', type: :request do
   # ==================== 导入电子书 ====================
   describe 'POST /api/books/import' do
     it '提交 PDF 导入任务' do
-      book.update!(content_file_url: 'https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf')
+      book.update!(file_url: 'https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf', file_type: 'pdf')
 
       post '/api/books/import', params: {
         uuid: user.uuid,
@@ -172,7 +172,7 @@ RSpec.describe 'API Books', type: :request do
     end
 
     it '提交 EPUB 导入任务' do
-      book.update!(content_file_url: 'https://bucket.oss-cn-beijing.aliyuncs.com/test/book.epub')
+      book.update!(file_url: 'https://bucket.oss-cn-beijing.aliyuncs.com/test/book.epub', file_type: 'epub')
 
       post '/api/books/import', params: {
         uuid: user.uuid,
@@ -185,8 +185,8 @@ RSpec.describe 'API Books', type: :request do
       expect(body[:response][:data][:content_file_type]).to eq('epub')
     end
 
-    it '使用图书的 content_file_url 进行导入' do
-      book.update!(content_file_url: 'https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf')
+    it '使用图书的 file_url 进行导入' do
+      book.update!(file_url: 'https://bucket.oss-cn-beijing.aliyuncs.com/test/book.pdf', file_type: 'pdf')
 
       post '/api/books/import', params: {
         uuid: user.uuid,
@@ -200,7 +200,7 @@ RSpec.describe 'API Books', type: :request do
     end
 
     it '图书没有 file_url 时返回错误' do
-      book.update!(content_file_url: nil)
+      book.update!(file_url: nil)
 
       post '/api/books/import', params: {
         uuid: user.uuid,

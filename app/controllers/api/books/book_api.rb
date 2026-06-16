@@ -112,14 +112,14 @@ module Api
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') if book.blank?
 
-          file_url = book.content_file_url
+          file_url = book.file_url
           error_pop_resp('文件URL不存在') if file_url.blank?
 
           Ebook::ImportService.new(book: book, file_url: file_url).call
 
           present response: success_response(
             book_id: book.id,
-            content_file_type: book.content_file_type,
+            content_file_type: book.file_type,
             msg: '导入任务已提交，请轮询图书详情接口查看进度'
           )
         rescue Ebook::ImportService::Error => e

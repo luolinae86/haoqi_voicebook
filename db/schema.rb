@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_15_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_16_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -152,6 +152,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_15_000000) do
     t.string "content_file_type", comment: "内容文件类型 (epub/pdf)"
     t.string "content_file_name", comment: "内容文件名"
     t.text "content_description"
+    t.string "file_url", comment: "源文件URL"
+    t.string "file_type", comment: "源文件类型 (pdf/epub)"
+    t.string "file_name", comment: "源文件名"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["name"], name: "index_books_on_name"
@@ -594,7 +597,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_15_000000) do
 
   create_table "splash_ads", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "image_url", null: false, comment: "图片URL"
-    t.string "link_type", null: false, comment: "链接类型: single_book/compilation"
+    t.string "link_type", null: false, comment: "链接类型: single_book/category"
     t.bigint "book_id", comment: "关联图书ID"
     t.bigint "compilation_id", comment: "关联合集ID"
     t.string "push_scope", default: "all_users", null: false, comment: "推送范围: all_users/age_range/specific_users"
