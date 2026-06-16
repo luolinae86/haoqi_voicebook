@@ -234,7 +234,8 @@ module Api
             {
               book_id: book.id,
               name: book.name,
-              cover_image_url: book.cover_image_url.present? ? signed_oss_url(book.cover_image_url) : nil
+              cover_image_url: book.cover_image_url.present? ? signed_oss_url(book.cover_image_url) : nil,
+              is_free: book.is_free
             }
           end
 

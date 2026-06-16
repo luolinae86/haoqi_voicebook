@@ -190,6 +190,26 @@ RSpec.describe "API Home", type: :request do
           expect(book_data[:category_subs]).to eq([{ id: category_sub.id, name: "文学经典", sn: 1 }])
         end
 
+        it "免费图书的 is_free 返回 true" do
+          book.update!(is_free: true)
+
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: recommend.id, uuid: user.uuid }
+
+          contents = json_response[:response][:data][:content_groups].first[:contents]
+          book_content = contents.find { |c| c[:content_type] == "book" }
+          expect(book_content[:book][:is_free]).to be(true)
+        end
+
+        it "付费图书的 is_free 返回 false" do
+          book.update!(is_free: false)
+
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: recommend.id, uuid: user.uuid }
+
+          contents = json_response[:response][:data][:content_groups].first[:contents]
+          book_content = contents.find { |c| c[:content_type] == "book" }
+          expect(book_content[:book][:is_free]).to be(false)
+        end
+
         it "作者展示类型返回 author 信息" do
           author_group = ContentGroup.create!(
             recommend: recommend,

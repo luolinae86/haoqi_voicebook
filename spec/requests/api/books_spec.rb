@@ -542,5 +542,22 @@ RSpec.describe 'API Books', type: :request do
       expect(data[:covers].length).to eq(1)
       expect(data[:covers].first[:name]).to eq('单本图书')
     end
+
+    it '返回每本图书的 is_free 字段' do
+      free_book = create(:book, name: '免费图书', is_free: true)
+      paid_book = create(:book, name: '付费图书', is_free: false)
+
+      get '/api/books/covers', params: { book_ids: [free_book.id, paid_book.id], uuid: user.uuid }
+
+      expect(response).to have_http_status(200)
+      data = json_response[:response][:data]
+      expect(data[:covers].length).to eq(2)
+
+      free_cover = data[:covers].find { |c| c[:book_id] == free_book.id }
+      expect(free_cover[:is_free]).to be(true)
+
+      paid_cover = data[:covers].find { |c| c[:book_id] == paid_book.id }
+      expect(paid_cover[:is_free]).to be(false)
+    end
   end
 end
