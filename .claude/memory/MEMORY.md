@@ -1,0 +1,15 @@
+- [Grape namespace 统一鉴权用 before 块](feedback_grape_before_auth.md) — namespace 下所有端点需鉴权时用 `before { auth_user }`，不在每个 endpoint 内重复写
+- [Grape API 复杂逻辑优先放 helpers](feedback_prefer_helpers_for_api_logic.md) — endpoint 逻辑提取优先用对应 `*_helpers.rb`，而非 Service
+- [Grape API 重构为 Service 模式](feedback_api_refactor_pattern.md) — endpoint 超 15 行业务逻辑时提取到 app/services/
+- [默认工作项目](project_workdir.md) — 工作项目始终是 RubyMine 当前打开的项目
+- [部署标准流程](feedback_deployment_workflow.md) — 固定五步：git commit → git push → kamal deploy → db:migrate → 展示资源状态，不可跳过或调换顺序
+- [部署后返回服务器资源信息](feedback_deploy_health_check.md) — 每次部署完成后返回内存/硬盘使用率等基本信息，并给出健康判断
+- [严禁未经确认自动提交代码](feedback_no_auto_commit.md) — 用户明确要求前绝不执行 git commit/push
+- [helper 剥离方法约定](feedback_helper_pattern.md) — 从 Grape API 剥离方法时创建独立 helper 到 app/helpers/，用 include 引入
+- [voicebook Grape helpers 规范](feedback_voicebook_helper_pattern.md) — Grape API helpers 禁止用 helpers do end，必须独立为模块文件
+- [测试服务器资源配置](project_server_resources.md) — 测试服务器硬件资源基准
+- [严禁未经明确指示修改代码](feedback_no_unsolicited_edits.md) — 除非用户明确要求，绝不修改任何代码
+- [避免修改 Dockerfile](feedback_avoid_dockerfile_edit.md) — 除非必须，不要修改 Dockerfile 导致 Kamal 重新构建
+- [EPUB import 同 spine 多 TOC 条目 start_page_number 唯一化](project_epub_import_start_page_fix.md) — 同一 XHTML 被多个 TOC 指向时，每个 catalogue 分配独立 start_page_number
+- [book 返回必须包含三个字段](feedback_book_fields.md) — 所有序列化 book 的接口必须返回 content_description、category_subs（二级分类）、supplier_name（出版社）
+- [wandwords 本地启动流程](reference_wandwords_startup.md) — 基于本地 MySQL+Redis，rvm 3.3.0 启动，服务在 :3000

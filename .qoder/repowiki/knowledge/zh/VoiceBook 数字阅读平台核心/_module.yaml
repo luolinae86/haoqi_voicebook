@@ -1,0 +1,24 @@
+schema_version: 1
+module_path: ""
+title: VoiceBook 数字阅读平台核心
+scope:
+    - .dockerignore
+    - .gitattributes
+    - .gitignore
+    - .rspec
+    - .rubocop.yml
+    - .ruby-version
+    - DEPLOYMENT.md
+    - Dockerfile
+    - Gemfile
+    - Gemfile.lock
+    - KAMAL_DEPLOYMENT.md
+    - README.md
+    - Rakefile
+    - config.ru
+    - docker-compose.yml
+    - .env
+    - .env.swp
+source_files: []
+depends_on: []
+related_to: []

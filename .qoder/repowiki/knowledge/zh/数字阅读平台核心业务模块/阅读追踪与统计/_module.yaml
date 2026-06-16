@@ -1,0 +1,17 @@
+schema_version: 1
+module_path: app/reading_tracking
+title: 阅读追踪与统计
+scope:
+    - app/controllers/api/readings/
+    - app/models/reading_progress.rb
+    - app/models/reading_session.rb
+    - app/models/user_reading_daily_stats.rb
+    - app/models/bookmark.rb
+    - app/models/bookshelf.rb
+    - app/entities/reading_progress_entity.rb
+    - app/services/reading/
+source_files: []
+depends_on: []
+related_to:
+    - path: app/book_catalog
+    - path: app/user_management

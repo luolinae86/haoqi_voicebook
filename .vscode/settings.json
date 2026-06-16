@@ -1,0 +1,38 @@
+{
+  "keyboard.dispatch": "code",
+  "ruby.useBundler": true,
+  "ruby.lint": {
+    "rubocop": true
+  },
+  "ruby.format": "rubocop",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [
+    120
+  ],
+  "files.associations": {
+    "*.rake": "ruby",
+    "*.jbuilder": "ruby",
+    "*.rabl": "ruby",
+    "Gemfile": "ruby",
+    "Rakefile": "ruby"
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/tmp/**": true,
+    "**/vendor/**": true,
+    "**/log/**": true,
+    "**/.bundle/**": true
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/tmp/**": true,
+    "**/log/**": true,
+    "**/.bundle/**": true
+  }
+}

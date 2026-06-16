@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: tests
+title: 业务逻辑与接口集成测试
+scope:
+    - spec/
+source_files: []
+depends_on: []
+related_to: []

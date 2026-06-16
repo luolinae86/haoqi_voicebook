@@ -1,0 +1,19 @@
+schema_version: 1
+module_path: app/core_infra
+title: 核心基础设施与异步任务处理
+scope:
+    - app/controllers/api/base.rb
+    - app/controllers/api/config.rb
+    - app/controllers/api/concerns/
+    - app/controllers/api/errors/
+    - app/controllers/application_controller.rb
+    - app/models/application_record.rb
+    - app/jobs/application_job.rb
+    - app/jobs/book_epub_import_worker.rb
+    - app/jobs/book_pdf_import_worker.rb
+    - app/jobs/epub_export_worker.rb
+    - app/jobs/epub_import_worker.rb
+source_files: []
+depends_on: []
+related_to:
+    - path: lib

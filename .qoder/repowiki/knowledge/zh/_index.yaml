@@ -1,0 +1,230 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: main
+exported_at: "2026-06-08T02:39:24Z"
+modules:
+    "":
+        dir_name: VoiceBook 数字阅读平台核心
+        title: VoiceBook 数字阅读平台核心
+        scope:
+            - .dockerignore
+            - .gitattributes
+            - .gitignore
+            - .rspec
+            - .rubocop.yml
+            - .ruby-version
+            - DEPLOYMENT.md
+            - Dockerfile
+            - Gemfile
+            - Gemfile.lock
+            - KAMAL_DEPLOYMENT.md
+            - README.md
+            - Rakefile
+            - config.ru
+            - docker-compose.yml
+            - .env
+            - .env.swp
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    app:
+        dir_name: 数字阅读平台核心业务模块
+        title: 数字阅读平台核心业务模块
+        scope:
+            - app/
+        source_files: []
+        children:
+            - app/rankings_leaderboards
+            - app/payments_memberships
+            - app/user_management
+            - app/core_infra
+            - app/reading_tracking
+            - app/book_catalog
+        depends_on: []
+        related_to: []
+    app/book_catalog:
+        dir_name: 图书目录与内容管理
+        title: 图书目录与内容管理
+        scope:
+            - app/controllers/api/books/
+            - app/controllers/api/categories/
+            - app/controllers/api/compilations/
+            - app/controllers/api/grades/
+            - app/models/book.rb
+            - app/models/author.rb
+            - app/models/category.rb
+            - app/models/category_sub.rb
+            - app/models/chapter.rb
+            - app/models/ebook_page.rb
+            - app/models/compilation.rb
+            - app/models/grade.rb
+            - app/models/supplier.rb
+            - app/models/blacklisted_book.rb
+            - app/models/book_level.rb
+            - app/models/book_stats.rb
+            - app/models/content.rb
+            - app/models/content_group.rb
+            - app/entities/book.rb
+            - app/entities/author.rb
+            - app/entities/category.rb
+            - app/entities/category_sub.rb
+            - app/entities/chapter.rb
+            - app/entities/ebook_page.rb
+            - app/entities/grade.rb
+            - app/entities/supplier.rb
+            - app/entities/min_book.rb
+            - app/entities/search_book_entity.rb
+            - app/entities/hot_search_entity.rb
+            - app/services/ebook/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app/reading_tracking
+            - path: app/rankings_leaderboards
+    app/core_infra:
+        dir_name: 核心基础设施与异步任务处理
+        title: 核心基础设施与异步任务处理
+        scope:
+            - app/controllers/api/base.rb
+            - app/controllers/api/config.rb
+            - app/controllers/api/concerns/
+            - app/controllers/api/errors/
+            - app/controllers/application_controller.rb
+            - app/models/application_record.rb
+            - app/jobs/application_job.rb
+            - app/jobs/book_epub_import_worker.rb
+            - app/jobs/book_pdf_import_worker.rb
+            - app/jobs/epub_export_worker.rb
+            - app/jobs/epub_import_worker.rb
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: lib
+    app/payments_memberships:
+        dir_name: 会员订阅与支付管理
+        title: 会员订阅与支付管理
+        scope:
+            - app/controllers/api/memberships/
+            - app/controllers/api/oss/
+            - app/models/membership.rb
+            - app/models/order.rb
+            - app/models/package.rb
+            - app/models/push_notification.rb
+            - app/models/device.rb
+            - app/models/sms_verification.rb
+            - app/models/api_auth.rb
+            - app/entities/membership.rb
+            - app/entities/order.rb
+            - app/entities/package.rb
+            - app/services/alipay_payment_service.rb
+            - app/services/wechat_payment_service.rb
+            - app/workers/payment_callback_worker.rb
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app/user_management
+    app/rankings_leaderboards:
+        dir_name: 榜单排行与内容推荐
+        title: 榜单排行与内容推荐
+        scope:
+            - app/controllers/api/leaderboards/
+            - app/controllers/api/ranks/
+            - app/controllers/api/home/
+            - app/controllers/api/parental/
+            - app/models/leaderboard.rb
+            - app/models/leaderboard_item.rb
+            - app/models/rank.rb
+            - app/models/rank_content.rb
+            - app/models/recommend.rb
+            - app/models/hot_search.rb
+            - app/models/user_search.rb
+            - app/models/parental_control.rb
+            - app/entities/leaderboard_entity.rb
+            - app/entities/leaderboard_item_entity.rb
+            - app/entities/rank_content_entity.rb
+            - app/entities/recommend.rb
+            - app/jobs/calculate_leaderboards_job.rb
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app/book_catalog
+    app/reading_tracking:
+        dir_name: 阅读追踪与统计
+        title: 阅读追踪与统计
+        scope:
+            - app/controllers/api/readings/
+            - app/models/reading_progress.rb
+            - app/models/reading_session.rb
+            - app/models/user_reading_daily_stats.rb
+            - app/models/bookmark.rb
+            - app/models/bookshelf.rb
+            - app/entities/reading_progress_entity.rb
+            - app/services/reading/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app/book_catalog
+            - path: app/user_management
+    app/user_management:
+        dir_name: 用户认证与资料管理
+        title: 用户认证与资料管理
+        scope:
+            - app/controllers/api/app_users/
+            - app/controllers/api/head_imgs/
+            - app/models/app_user.rb
+            - app/models/head_img.rb
+            - app/entities/app_user.rb
+            - app/entities/head_img.rb
+            - app/services/qq_auth_service.rb
+            - app/services/wechat_auth_service.rb
+            - app/services/aliyun_sms_service.rb
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app/payments_memberships
+            - path: app/reading_tracking
+    config:
+        dir_name: 应用配置与初始化
+        title: 应用配置与初始化
+        scope:
+            - config/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    database:
+        dir_name: 数据库模式与迁移管理
+        title: 数据库模式与迁移管理
+        scope:
+            - db/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    lib:
+        dir_name: 电子书处理与基础设施中间件
+        title: 电子书处理与基础设施中间件
+        scope:
+            - lib/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app/core_infra
+    tests:
+        dir_name: 业务逻辑与接口集成测试
+        title: 业务逻辑与接口集成测试
+        scope:
+            - spec/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

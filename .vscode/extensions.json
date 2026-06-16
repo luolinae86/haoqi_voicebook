@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "k--kato.intellij-idea-keybindings",
+    "rebornix.ruby",
+    "wingrunr21.vscode-ruby",
+    "misogi.ruby-rubocop",
+    "castwide.solargraph",
+    "shopify.ruby-lsp"
+  ]
+}

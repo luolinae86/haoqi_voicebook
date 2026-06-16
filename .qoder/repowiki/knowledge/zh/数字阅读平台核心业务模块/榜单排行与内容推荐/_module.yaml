@@ -1,0 +1,25 @@
+schema_version: 1
+module_path: app/rankings_leaderboards
+title: 榜单排行与内容推荐
+scope:
+    - app/controllers/api/leaderboards/
+    - app/controllers/api/ranks/
+    - app/controllers/api/home/
+    - app/controllers/api/parental/
+    - app/models/leaderboard.rb
+    - app/models/leaderboard_item.rb
+    - app/models/rank.rb
+    - app/models/rank_content.rb
+    - app/models/recommend.rb
+    - app/models/hot_search.rb
+    - app/models/user_search.rb
+    - app/models/parental_control.rb
+    - app/entities/leaderboard_entity.rb
+    - app/entities/leaderboard_item_entity.rb
+    - app/entities/rank_content_entity.rb
+    - app/entities/recommend.rb
+    - app/jobs/calculate_leaderboards_job.rb
+source_files: []
+depends_on: []
+related_to:
+    - path: app/book_catalog

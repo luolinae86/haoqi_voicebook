@@ -1,0 +1,39 @@
+schema_version: 1
+module_path: app/book_catalog
+title: 图书目录与内容管理
+scope:
+    - app/controllers/api/books/
+    - app/controllers/api/categories/
+    - app/controllers/api/compilations/
+    - app/controllers/api/grades/
+    - app/models/book.rb
+    - app/models/author.rb
+    - app/models/category.rb
+    - app/models/category_sub.rb
+    - app/models/chapter.rb
+    - app/models/ebook_page.rb
+    - app/models/compilation.rb
+    - app/models/grade.rb
+    - app/models/supplier.rb
+    - app/models/blacklisted_book.rb
+    - app/models/book_level.rb
+    - app/models/book_stats.rb
+    - app/models/content.rb
+    - app/models/content_group.rb
+    - app/entities/book.rb
+    - app/entities/author.rb
+    - app/entities/category.rb
+    - app/entities/category_sub.rb
+    - app/entities/chapter.rb
+    - app/entities/ebook_page.rb
+    - app/entities/grade.rb
+    - app/entities/supplier.rb
+    - app/entities/min_book.rb
+    - app/entities/search_book_entity.rb
+    - app/entities/hot_search_entity.rb
+    - app/services/ebook/
+source_files: []
+depends_on: []
+related_to:
+    - path: app/reading_tracking
+    - path: app/rankings_leaderboards

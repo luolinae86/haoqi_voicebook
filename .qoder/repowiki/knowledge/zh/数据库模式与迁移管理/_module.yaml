@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: database
+title: 数据库模式与迁移管理
+scope:
+    - db/
+source_files: []
+depends_on: []
+related_to: []

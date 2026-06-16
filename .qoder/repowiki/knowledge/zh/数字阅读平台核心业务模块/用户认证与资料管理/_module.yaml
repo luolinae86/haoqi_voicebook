@@ -1,0 +1,18 @@
+schema_version: 1
+module_path: app/user_management
+title: 用户认证与资料管理
+scope:
+    - app/controllers/api/app_users/
+    - app/controllers/api/head_imgs/
+    - app/models/app_user.rb
+    - app/models/head_img.rb
+    - app/entities/app_user.rb
+    - app/entities/head_img.rb
+    - app/services/qq_auth_service.rb
+    - app/services/wechat_auth_service.rb
+    - app/services/aliyun_sms_service.rb
+source_files: []
+depends_on: []
+related_to:
+    - path: app/payments_memberships
+    - path: app/reading_tracking

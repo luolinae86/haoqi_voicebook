@@ -1,0 +1,23 @@
+schema_version: 1
+module_path: app/payments_memberships
+title: 会员订阅与支付管理
+scope:
+    - app/controllers/api/memberships/
+    - app/controllers/api/oss/
+    - app/models/membership.rb
+    - app/models/order.rb
+    - app/models/package.rb
+    - app/models/push_notification.rb
+    - app/models/device.rb
+    - app/models/sms_verification.rb
+    - app/models/api_auth.rb
+    - app/entities/membership.rb
+    - app/entities/order.rb
+    - app/entities/package.rb
+    - app/services/alipay_payment_service.rb
+    - app/services/wechat_payment_service.rb
+    - app/workers/payment_callback_worker.rb
+source_files: []
+depends_on: []
+related_to:
+    - path: app/user_management
