@@ -6,8 +6,12 @@ module Entities
     expose :content_type
     expose :content_type_name
     expose :sn
-    expose :name
-    expose :color
+    expose :name do |instance, _|
+      instance.content_name
+    end
+    expose :color do |instance, _|
+      nil
+    end
     expose :book do |instance, _|
       next nil unless instance.book
 
