@@ -110,7 +110,7 @@ RSpec.describe Order, type: :model do
     it '已购买月度会员的用户再次购买年度会员，VIP 时间顺延 1 年' do
       Timecop.freeze(Time.zone.parse('2026-06-01 12:00:00')) do
         user = create(:app_user, is_vip: true, vip_expires_at: Time.zone.parse('2026-07-01 23:59:59'))
-        membership = create(:membership, app_user: user, plan_type: :annual, status: :pending)
+        membership = create(:membership, :annual, :pending, app_user: user)
         order = create(:order, app_user: user, membership: membership, status: :pending)
 
         order.activate_membership!

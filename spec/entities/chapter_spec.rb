@@ -30,7 +30,7 @@ RSpec.describe 'Entities::Chapter', type: :model do
   describe 'file path fields' do
     let(:book) { create(:book) }
 
-    it 'returns ld_file_path, hd_file_path, sd_file_path' do
+    it 'does not return ld_file_path, hd_file_path, sd_file_path' do
       create(:chapter,
              book: book,
              ld_file_path: 'https://cdn.example.com/ld/video.mp4',
@@ -40,36 +40,9 @@ RSpec.describe 'Entities::Chapter', type: :model do
       chapter = book.chapters.first
       result = Entities::Chapter.represent(chapter).as_json
 
-      expect(result[:ld_file_path]).to eq('https://cdn.example.com/ld/video.mp4')
-      expect(result[:hd_file_path]).to eq('https://cdn.example.com/hd/video.mp4')
-      expect(result[:sd_file_path]).to eq('https://cdn.example.com/sd/video.mp4')
-    end
-
-    it 'returns nil for file path fields when not set' do
-      create(:chapter, book: book)
-
-      chapter = book.chapters.first
-      result = Entities::Chapter.represent(chapter).as_json
-
-      expect(result[:ld_file_path]).to be_nil
-      expect(result[:hd_file_path]).to be_nil
-      expect(result[:sd_file_path]).to be_nil
-    end
-
-    it 'signs aliyuncs.com OSS URLs for file path fields' do
-      create(:chapter,
-             book: book,
-             ld_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/ld/video.mp4',
-             hd_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/hd/video.mp4',
-             sd_file_path: 'https://voicebook.oss-cn-hangzhou.aliyuncs.com/sd/video.mp4')
-
-      chapter = book.chapters.first
-      result = Entities::Chapter.represent(chapter).as_json
-
-      expect(result[:ld_file_path]).to include('voicebook.oss-cn-hangzhou.aliyuncs.com')
-      expect(result[:ld_file_path]).to include('Signature=')
-      expect(result[:hd_file_path]).to include('Signature=')
-      expect(result[:sd_file_path]).to include('Signature=')
+      expect(result).not_to have_key(:ld_file_path)
+      expect(result).not_to have_key(:hd_file_path)
+      expect(result).not_to have_key(:sd_file_path)
     end
   end
 end
