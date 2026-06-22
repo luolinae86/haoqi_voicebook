@@ -61,6 +61,7 @@ class AppUser < ApplicationRecord
   has_many :reading_progresses, dependent: :destroy      # 阅读进度
   has_many :user_reading_daily_stats, class_name: 'UserReadingDailyStats', dependent: :destroy # 日统计
   has_many :feedbacks, dependent: :destroy               # 意见反馈
+  has_many :user_searches, dependent: :delete_all        # 搜索记录
   belongs_to :head_img, optional: true
 
   # 验证规则
