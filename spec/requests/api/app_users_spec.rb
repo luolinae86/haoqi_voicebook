@@ -414,7 +414,7 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '绑定已存在的手机号时，设备转移到主账户，原用户被删除' do
       existing_user = create(:app_user, phone: '13900139001')
-      # 创建一个没有手机号的匿名用户来登录
+      existing_user.devices.delete_all # 清除自动创建的设备，模拟已登录但未绑设备的场景
       anon_user = create(:app_user, phone: nil)
       anon_user.update!(wechat_openid: 'oABC123456', wechat_nickname: '微信小用户')
       create(:device, app_user: anon_user)
@@ -422,7 +422,6 @@ RSpec.describe 'API AppUsers', type: :request do
       create(:sms_verification, phone: '13900139001', code: '6666', expires_at: 5.minutes.from_now)
 
       post '/api/app_users/login_by_code', params: { uuid: anon_user.uuid, phone: '13900139001', code: '6666' }
-
       # 返回的是主账户
       expect(json_response[:response][:data][:user][:uuid]).to eq(existing_user.uuid)
       # 原用户被删除
@@ -434,6 +433,7 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '绑定已存在手机号时，设备从原用户转移到主账户' do
       existing_user = create(:app_user, phone: '13900139002')
+      existing_user.devices.delete_all
       device = create(:device, app_user: user)
       device_id = device.device_id
       create(:sms_verification, phone: '13900139002', code: '7777', expires_at: 5.minutes.from_now)
@@ -452,6 +452,7 @@ RSpec.describe 'API AppUsers', type: :request do
       create(:device, app_user: anon_user)
 
       existing_user = create(:app_user, phone: '13900139003', wechat_openid: 'oOLD_OPENID')
+      existing_user.devices.delete_all
       create(:sms_verification, phone: '13900139003', code: '8888', expires_at: 5.minutes.from_now)
 
       post '/api/app_users/login_by_code', params: { uuid: anon_user.uuid, phone: '13900139003', code: '8888' }
@@ -459,6 +460,23 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(response).to have_http_status(:success)
       # 主账户的 openid 被同步为当前用户的 openid
       expect(existing_user.reload.wechat_openid).to eq('oDEVICE_USER')
+    end
+    it '目标账号已在其他设备登录时拒绝登录' do
+      target_user = create(:app_user)
+      target_user.devices.delete_all
+      target_user.update!(phone: '13900139010')
+      Device.create!(app_user: target_user, device_id: 'device_already_logged_in')
+      anon_user = create(:app_user)
+      anon_user.devices.delete_all
+      Device.create!(app_user: anon_user, device_id: 'device_new')
+
+      create(:sms_verification, phone: '13900139010', code: '5555', expires_at: 5.minutes.from_now)
+
+      post '/api/app_users/login_by_code', params: { uuid: anon_user.uuid, phone: '13900139010', code: '5555' }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to include('其它设备登录')
     end
   end
 
@@ -494,6 +512,22 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(response).to have_http_status(200)
       expect(json_response[:response][:code]).to eq(1001)
       expect(json_response[:response][:msg]).to eq('手机号或密码错误')
+    end
+
+    it '目标账号已在其他设备登录时拒绝登录' do
+      target_user = create(:app_user)
+      target_user.devices.delete_all
+      target_user.update!(phone: '13900139011', password: 'password123')
+      Device.create!(app_user: target_user, device_id: 'device_already_logged_in')
+      other_device_user = create(:app_user)
+      other_device_user.devices.delete_all
+      Device.create!(app_user: other_device_user, device_id: 'device_new')
+
+      post '/api/app_users/login_by_password', params: { uuid: other_device_user.uuid, phone: '13900139011', password: 'password123' }
+
+      expect(response).to have_http_status(200)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to include('其它设备登录')
     end
   end
 
@@ -550,6 +584,7 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '用户无手机号但同一openid下已有带手机号的主账户时，自动切换到主账户' do
       main_user = create(:app_user, phone: '13900139000', wechat_openid: 'shared_openid')
+      main_user.devices.delete_all
       user.update!(phone: nil, wechat_openid: nil)
       user_device_id = user.devices.first.device_id
       allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
@@ -625,6 +660,7 @@ RSpec.describe 'API AppUsers', type: :request do
 
     it '微信登录时转移到主账户，同时更新主账户的昵称' do
       main_user = create(:app_user, phone: '13900139005', wechat_openid: 'transfer_openid')
+      main_user.devices.delete_all
       user.update!(phone: nil, wechat_openid: nil)
       allow_any_instance_of(WechatAuthService).to receive(:get_credentials).with(wechat_code)
                                                                            .and_return({ access_token: 'mock_token', openid: 'transfer_openid' })
@@ -1476,27 +1512,27 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(device.reload.app_user_id).to eq(new_user.id)
     end
 
-    it '设备A绑定手机号后，设备B用同一手机号登录共享账户' do
+    it '设备A绑定手机号后，设备B用同一手机号登录被拒绝（单设备限制）' do
       phone = '13800138000'
       create(:sms_verification, phone: phone, code: '1234', expires_at: 5.minutes.from_now)
 
       device_a = Device.create!(device_id: 'device_a_multi_test', app_user: create(:app_user))
       user_a = device_a.app_user
       post '/api/app_users/login_by_code', params: { uuid: user_a.uuid, phone: phone, code: '1234' }
-      user_a = json_response[:response][:data][:user]
+      expect(response).to have_http_status(:success)
+      expect(json_response[:response][:code]).to eq(0)
+      account_id = json_response[:response][:data][:user][:id]
 
       create(:sms_verification, phone: phone, code: '5678', expires_at: 5.minutes.from_now)
       device_b = Device.create!(device_id: 'device_b_multi_test', app_user: create(:app_user))
       user_b = device_b.app_user
       post '/api/app_users/login_by_code', params: { uuid: user_b.uuid, phone: phone, code: '5678' }
-      user_b = json_response[:response][:data][:user]
 
-      expect(user_a[:id]).to eq(user_b[:id])
-      expect(user_a[:phone]).to eq(phone)
-      expect(user_b[:phone]).to eq(phone)
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to include('其它设备登录')
     end
 
-    it '设备B用手机号+密码登录已有账户' do
+    it '设备B用手机号+密码登录已有账户被拒绝（单设备限制）' do
       phone = '13700137000'
       device_a = Device.create!(device_id: 'device_a_pwd_test', app_user: create(:app_user))
       user_a = device_a.app_user
@@ -1511,25 +1547,32 @@ RSpec.describe 'API AppUsers', type: :request do
       user_b = device_b.app_user
       post '/api/app_users/login_by_password', params: { uuid: user_b.uuid, phone: phone, password: 'mypassword' }
 
+      expect(json_response[:response][:code]).to eq(1001)
+      expect(json_response[:response][:msg]).to include('其它设备登录')
+    end
+
+    it '设备A注销后设备B可以登录（单设备限制）' do
+      phone = '13600136000'
+      user_a = create(:app_user)
+      user_a.devices.delete_all
+      device_a = Device.create!(device_id: 'device_a_logout_test', app_user: user_a)
+      create(:sms_verification, phone: phone, code: '4444', expires_at: 5.minutes.from_now)
+      post '/api/app_users/login_by_code', params: { uuid: user_a.uuid, phone: phone, code: '4444' }
+      account_id = json_response[:response][:data][:user][:id]
+
+      # 设备A注销
+      Device.unbind!(device_a.device_id)
+
+      # 设备B现在可以登录
+      user_b = create(:app_user)
+      user_b.devices.delete_all
+      device_b = Device.create!(device_id: 'device_b_logout_test', app_user: user_b)
+      create(:sms_verification, phone: phone, code: '5555', expires_at: 5.minutes.from_now)
+      post '/api/app_users/login_by_code', params: { uuid: user_b.uuid, phone: phone, code: '5555' }
+
       expect(response).to have_http_status(:success)
       expect(json_response[:response][:code]).to eq(0)
       expect(json_response[:response][:data][:user][:id]).to eq(account_id)
-    end
-
-    it '设备A是VIP，设备B登录后也共享VIP状态' do
-      phone = '13600136000'
-      device_a = Device.create!(device_id: 'device_a_vip_test', app_user: create(:app_user))
-      user_a = device_a.app_user
-      create(:sms_verification, phone: phone, code: '4444', expires_at: 5.minutes.from_now)
-      post '/api/app_users/login_by_code', params: { uuid: user_a.uuid, phone: phone, code: '4444' }
-      AppUser.find(json_response[:response][:data][:user][:id]).update!(is_vip: true, vip_expires_at: 30.days.from_now)
-
-      create(:sms_verification, phone: phone, code: '5555', expires_at: 5.minutes.from_now)
-      device_b = Device.create!(device_id: 'device_b_vip_test', app_user: create(:app_user))
-      user_b = device_b.app_user
-      post '/api/app_users/login_by_code', params: { uuid: user_b.uuid, phone: phone, code: '5555' }
-
-      expect(json_response[:response][:data][:user][:is_vip]).to be true
     end
   end
 end
