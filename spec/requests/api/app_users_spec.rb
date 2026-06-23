@@ -461,22 +461,28 @@ RSpec.describe 'API AppUsers', type: :request do
       # 主账户的 openid 被同步为当前用户的 openid
       expect(existing_user.reload.wechat_openid).to eq('oDEVICE_USER')
     end
-    it '目标账号已在其他设备登录时拒绝登录' do
+    it '目标账号已在其他设备登录时自动踢掉旧设备' do
       target_user = create(:app_user)
       target_user.devices.delete_all
       target_user.update!(phone: '13900139010')
-      Device.create!(app_user: target_user, device_id: 'device_already_logged_in')
+      old_device = Device.create!(app_user: target_user, device_id: 'device_already_logged_in')
       anon_user = create(:app_user)
       anon_user.devices.delete_all
-      Device.create!(app_user: anon_user, device_id: 'device_new')
+      new_device = Device.create!(app_user: anon_user, device_id: 'device_new')
+      new_device_id = new_device.device_id
 
       create(:sms_verification, phone: '13900139010', code: '5555', expires_at: 5.minutes.from_now)
 
       post '/api/app_users/login_by_code', params: { uuid: anon_user.uuid, phone: '13900139010', code: '5555' }
 
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:code]).to eq(1001)
-      expect(json_response[:response][:msg]).to include('其它设备登录')
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      # 旧设备被踢下线
+      expect(old_device.reload.app_user_id).to be_nil
+      # 设备已转移到主账户（anon_user被销毁，设备转移到了target_user）
+      transferred = Device.find_by(device_id: new_device_id)
+      expect(transferred).to be_present
+      expect(transferred.app_user_id).to eq(target_user.id)
     end
   end
 
@@ -514,20 +520,23 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(json_response[:response][:msg]).to eq('手机号或密码错误')
     end
 
-    it '目标账号已在其他设备登录时拒绝登录' do
+    it '目标账号已在其他设备登录时自动踢掉旧设备' do
       target_user = create(:app_user)
       target_user.devices.delete_all
       target_user.update!(phone: '13900139011', password: 'password123')
-      Device.create!(app_user: target_user, device_id: 'device_already_logged_in')
+      old_device = Device.create!(app_user: target_user, device_id: 'device_already_logged_in')
       other_device_user = create(:app_user)
       other_device_user.devices.delete_all
-      Device.create!(app_user: other_device_user, device_id: 'device_new')
+      new_device = Device.create!(app_user: other_device_user, device_id: 'device_new')
 
       post '/api/app_users/login_by_password', params: { uuid: other_device_user.uuid, phone: '13900139011', password: 'password123' }
 
-      expect(response).to have_http_status(200)
-      expect(json_response[:response][:code]).to eq(1001)
-      expect(json_response[:response][:msg]).to include('其它设备登录')
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      # 旧设备被踢下线
+      expect(old_device.reload.app_user_id).to be_nil
+      # 新设备已绑定
+      expect(new_device.reload.app_user_id).to eq(target_user.id)
     end
   end
 
@@ -1512,7 +1521,7 @@ RSpec.describe 'API AppUsers', type: :request do
       expect(device.reload.app_user_id).to eq(new_user.id)
     end
 
-    it '设备A绑定手机号后，设备B用同一手机号登录被拒绝（单设备限制）' do
+    it '设备A绑定手机号后，设备B用同一手机号登录自动踢掉设备A' do
       phone = '13800138000'
       create(:sms_verification, phone: phone, code: '1234', expires_at: 5.minutes.from_now)
 
@@ -1520,7 +1529,6 @@ RSpec.describe 'API AppUsers', type: :request do
       user_a = device_a.app_user
       post '/api/app_users/login_by_code', params: { uuid: user_a.uuid, phone: phone, code: '1234' }
       expect(response).to have_http_status(:success)
-      expect(json_response[:response][:code]).to eq(0)
       account_id = json_response[:response][:data][:user][:id]
 
       create(:sms_verification, phone: phone, code: '5678', expires_at: 5.minutes.from_now)
@@ -1528,14 +1536,18 @@ RSpec.describe 'API AppUsers', type: :request do
       user_b = device_b.app_user
       post '/api/app_users/login_by_code', params: { uuid: user_b.uuid, phone: phone, code: '5678' }
 
-      expect(json_response[:response][:code]).to eq(1001)
-      expect(json_response[:response][:msg]).to include('其它设备登录')
+      expect(json_response[:response][:code]).to eq(0)
+      # 设备A被踢下线
+      expect(device_a.reload.app_user_id).to be_nil
+      # 设备B已绑定
+      expect(device_b.reload.app_user_id).to eq(account_id)
     end
 
-    it '设备B用手机号+密码登录已有账户被拒绝（单设备限制）' do
+    it '设备B用手机号+密码登录自动踢掉设备A' do
       phone = '13700137000'
-      device_a = Device.create!(device_id: 'device_a_pwd_test', app_user: create(:app_user))
-      user_a = device_a.app_user
+      user_a = create(:app_user)
+      user_a.devices.delete_all
+      device_a = Device.create!(device_id: 'device_a_pwd_test', app_user: user_a)
       create(:sms_verification, phone: phone, code: '9999', expires_at: 5.minutes.from_now)
       post '/api/app_users/login_by_code', params: { uuid: user_a.uuid, phone: phone, code: '9999' }
       account_id = json_response[:response][:data][:user][:id]
@@ -1543,15 +1555,20 @@ RSpec.describe 'API AppUsers', type: :request do
       create(:sms_verification, phone: phone, code: '8888', expires_at: 5.minutes.from_now)
       post '/api/app_users/reset_password', params: { uuid: user_a.uuid, phone: phone, code: '8888', password: 'mypassword' }
 
-      device_b = Device.create!(device_id: 'device_b_pwd_test', app_user: create(:app_user))
-      user_b = device_b.app_user
+      user_b = create(:app_user)
+      user_b.devices.delete_all
+      device_b = Device.create!(device_id: 'device_b_pwd_test', app_user: user_b)
       post '/api/app_users/login_by_password', params: { uuid: user_b.uuid, phone: phone, password: 'mypassword' }
 
-      expect(json_response[:response][:code]).to eq(1001)
-      expect(json_response[:response][:msg]).to include('其它设备登录')
+      expect(response).to have_http_status(201)
+      expect(json_response[:response][:code]).to eq(0)
+      # 设备A被踢下线
+      expect(device_a.reload.app_user_id).to be_nil
+      # 设备B已绑定
+      expect(device_b.reload.app_user_id).to eq(account_id)
     end
 
-    it '设备A注销后设备B可以登录（单设备限制）' do
+    it '设备A注销后设备B可以登录' do
       phone = '13600136000'
       user_a = create(:app_user)
       user_a.devices.delete_all

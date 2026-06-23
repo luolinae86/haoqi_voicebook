@@ -81,16 +81,11 @@ module Api
         Rails.cache.delete("app_user_v2_#{uuid}")
       end
 
-      # 检查目标账号是否已在其他设备登录
-      # 如果目标账号已绑定其他设备（非当前请求设备），则拒绝登录
-      def check_single_device_login!(target_user, requesting_device_id)
+      # 踢掉目标账号上的其他设备（单设备登录：新设备登录时自动踢掉旧设备）
+      def kick_other_devices!(target_user, requesting_device_id)
         return if target_user.nil?
 
-        bound_device_ids = target_user.devices.pluck(:device_id)
-        return if bound_device_ids.empty?
-        return if bound_device_ids.include?(requesting_device_id)
-
-        error_pop_resp('当前帐户已在其它设备登录，请先注销后，再用该设备登录')
+        target_user.devices.where.not(device_id: requesting_device_id).update_all(app_user_id: nil)
       end
 
       # 根据 uuid 查找当前用户
