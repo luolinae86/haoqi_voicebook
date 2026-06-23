@@ -12,3 +12,7 @@
     cron: '0 2 * * *'
     class: AnalyticsDailyAggregationWorker
     queue: default
+  stats_daily_aggregation:
+    cron: '5 2 * * *'
+    class: StatsDailyAggregationWorker
+    queue: default

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_17_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_22_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -330,6 +330,55 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_17_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["content_group_id"], name: "index_contents_on_content_group_id"
+  end
+
+  create_table "daily_channel_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "stat_date", null: false, comment: "统计日期 YYYY-MM-DD"
+    t.string "channel", limit: 32, comment: "渠道（NULL=全部）"
+    t.integer "registrations", default: 0, comment: "当日注册量"
+    t.integer "active_users", default: 0, comment: "当日活跃用户数"
+    t.integer "paid_users", default: 0, comment: "当日付费用户数"
+    t.decimal "paid_amount", precision: 10, scale: 2, default: "0.0", comment: "当日付费金额"
+    t.float "conversion_rate", default: 0.0, comment: "付费转化率"
+    t.decimal "cac", precision: 10, scale: 2, default: "0.0", comment: "获客成本"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["stat_date", "channel"], name: "index_daily_channel_stats_on_stat_date_and_channel", unique: true
+    t.index ["stat_date"], name: "index_daily_channel_stats_on_stat_date"
+  end
+
+  create_table "daily_content_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "stat_date", null: false, comment: "统计日期 YYYY-MM-DD"
+    t.bigint "book_id", comment: "图书ID（NULL=全平台汇总）"
+    t.string "content_type", comment: "内容类型（ebook/audio/video/picture_book）"
+    t.integer "clicks_count", default: 0, comment: "点击量"
+    t.integer "reads_count", default: 0, comment: "阅读量（停留≥30秒）"
+    t.integer "valid_plays_count", default: 0, comment: "有效播放量（≥10秒）"
+    t.integer "completed_plays_count", default: 0, comment: "完播次数"
+    t.integer "read_users_count", default: 0, comment: "阅读人数（去重）"
+    t.integer "play_users_count", default: 0, comment: "播放人数（去重）"
+    t.integer "completed_users_count", default: 0, comment: "完读人数（去重）"
+    t.float "completion_rate", default: 0.0, comment: "完读率"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["stat_date", "book_id"], name: "index_daily_content_stats_on_stat_date_and_book_id"
+    t.index ["stat_date"], name: "index_daily_content_stats_on_stat_date"
+  end
+
+  create_table "daily_reading_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "app_user_id", null: false, comment: "用户ID"
+    t.string "stat_date", null: false, comment: "统计日期 YYYY-MM-DD"
+    t.integer "session_count", default: 0, comment: "当日阅读次数"
+    t.integer "total_duration_seconds", default: 0, comment: "当日总阅读时长(秒)"
+    t.integer "books_read_count", default: 0, comment: "当日阅读书籍数"
+    t.integer "avg_duration_seconds", default: 0, comment: "平均每次阅读时长(秒)"
+    t.integer "completed_books_count", default: 0, comment: "当日完读书籍数"
+    t.float "completion_rate", default: 0.0, comment: "完读率"
+    t.integer "consecutive_days", default: 0, comment: "截至当日连续阅读天数"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_user_id", "stat_date"], name: "index_daily_reading_stats_on_app_user_id_and_stat_date", unique: true
+    t.index ["stat_date"], name: "index_daily_reading_stats_on_stat_date"
   end
 
   create_table "devices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
