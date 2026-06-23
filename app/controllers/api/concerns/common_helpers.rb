@@ -81,11 +81,17 @@ module Api
         Rails.cache.delete("app_user_v2_#{uuid}")
       end
 
-      # 踢掉目标账号上的其他设备（单设备登录：新设备登录时自动踢掉旧设备）
-      def kick_other_devices!(target_user, requesting_device_id)
+      # 检查目标账号的设备登录数量（最多3个设备）
+      MAX_DEVICES = 3
+
+      def check_device_limit!(target_user, requesting_device_id)
         return if target_user.nil?
 
-        target_user.devices.where.not(device_id: requesting_device_id).update_all(app_user_id: nil)
+        bound_devices = target_user.devices.pluck(:device_id)
+        return if bound_devices.include?(requesting_device_id)
+        return if bound_devices.size < MAX_DEVICES
+
+        error_pop_resp("当前已登录 #{MAX_DEVICES} 个设备，请先退出一个再登录")
       end
 
       # 根据 uuid 查找当前用户

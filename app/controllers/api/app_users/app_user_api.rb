@@ -85,7 +85,7 @@ module Api
           # 如果手机号已绑定其他用户，将当前设备重新绑定到主账户
           existing_user = AppUser.find_by(phone: params[:phone])
           if existing_user
-            kick_other_devices!(existing_user, requesting_device_id)
+            check_device_limit!(existing_user, requesting_device_id)
             # 将当前用户的 wechat_openid 同步到主账户（先清空当前用户的 openid 避免唯一索引冲突）
             if user.wechat_openid.present?
               openid_val = user.wechat_openid
@@ -101,7 +101,7 @@ module Api
             expire_user_cache(existing_user.uuid)
             user = existing_user
           else
-            kick_other_devices!(user, requesting_device_id)
+            check_device_limit!(user, requesting_device_id)
             user.update!(phone: params[:phone])
             expire_user_cache(params[:uuid])
           end
@@ -125,9 +125,7 @@ module Api
 
           if target_user != user
             requesting_device_id = user.devices.order(:created_at).last&.device_id || user.device_id
-            kick_other_devices!(target_user, requesting_device_id)
-            # 将当前设备绑定到目标账号
-            user.devices.update_all(app_user_id: target_user.id)
+            check_device_limit!(target_user, requesting_device_id)
           end
 
           present response: success_response(user: Entities::AppUser.represent(target_user).as_json)
@@ -161,7 +159,7 @@ module Api
 
           if main_user && user.phone.blank?
             requesting_device_id = user.devices.order(:created_at).last&.device_id || user.device_id
-            kick_other_devices!(main_user, requesting_device_id)
+            check_device_limit!(main_user, requesting_device_id)
             # 当前用户无手机号且存在主账户，直接转移到主账户，同时更新主账户的微信昵称
             user.devices.update_all(app_user_id: main_user.id)
             main_user.update_column(:wechat_nickname, wechat_info[:nickname]) if wechat_info[:nickname].present?
