@@ -307,13 +307,16 @@ module Api
         post :update_push_cid do
           auth_user
 
-          # 查找当前设备（按最新设备优先）
           device = current_user.devices.order(created_at: :desc).first
           if device
-            device.update!(push_cid: params[:push_cid])
-          else
-            # 兼容旧用户可能没有 devices 记录
-            Device.create!(app_user: current_user, device_id: current_user.device_id, push_cid: params[:push_cid])
+            device.update_column(:push_cid, params[:push_cid])
+          elsif current_user.device_id.present?
+            existing = Device.find_by(device_id: current_user.device_id)
+            if existing
+              existing.update_columns(app_user_id: current_user.id, push_cid: params[:push_cid])
+            else
+              Device.create!(app_user: current_user, device_id: current_user.device_id, push_cid: params[:push_cid])
+            end
           end
 
           present response: success_response(msg: '推送 CID 已更新')
