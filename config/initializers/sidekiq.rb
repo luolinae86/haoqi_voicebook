@@ -14,6 +14,12 @@ Sidekiq.configure_server do |config|
   FileUtils.mkdir_p(log_path.dirname)
   config.logger = Logger.new(log_path.to_s, "daily")
   config.logger.level = ::Logger::INFO
+
+  # 定时任务（从 config/sidekiq.yml :schedule 加载）
+  schedule_file = Rails.root.join("config/sidekiq.yml")
+  if File.exist?(schedule_file)
+    Sidekiq::Cron::Job.load_from_hash!(YAML.load_file(schedule_file, aliases: true)["schedule"] || {})
+  end
 end
 
 Sidekiq.configure_client do |config|
