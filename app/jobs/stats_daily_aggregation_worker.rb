@@ -75,7 +75,7 @@ class StatsDailyAggregationWorker
       book = Book.find_by(id: book_id)
       next unless book
 
-      clicks = ContentClickEvent.where(stat_date: date_str, book_id: book_id).count
+      clicks = ContentClickEvent.where(stat_date: date_str, book_id: book_id, click_type: 'click').count
       reads = ContentClickEvent.where(stat_date: date_str, book_id: book_id, click_type: 'read')
                                .where("duration_seconds >= 30").count
       read_users = ContentClickEvent.where(stat_date: date_str, book_id: book_id, click_type: 'read')
@@ -111,7 +111,7 @@ class StatsDailyAggregationWorker
     end
 
     # 全平台汇总（book_id = NULL）
-    clicks = ContentClickEvent.where(stat_date: date_str).count
+    clicks = ContentClickEvent.where(stat_date: date_str, click_type: 'click').count
     reads = ContentClickEvent.where(stat_date: date_str, click_type: 'read').where("duration_seconds >= 30").count
     read_users = ContentClickEvent.where(stat_date: date_str, click_type: 'read').where("duration_seconds >= 30").distinct.count(:app_user_id)
     valid_plays = MediaPlayEvent.where(stat_date: date_str, is_valid_play: true).count
