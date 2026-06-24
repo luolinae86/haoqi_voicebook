@@ -44,95 +44,57 @@ RSpec.describe 'API Report', type: :request do
     end
   end
 
-  describe 'POST /api/report/content_click' do
-    it 'records a click event' do
+  describe 'POST /api/report/resource_view' do
+    it 'records ebook browse as content_click event' do
       expect do
-        post '/api/report/content_click',
-             params: { uuid: user.uuid, book_id: book.id, click_type: 'click' },
+        post '/api/report/resource_view',
+             params: { uuid: user.uuid, book_id: book.id, resource_type: 'ebook', duration_seconds: 5 },
              as: :json
       end.to change(ContentClickEvent, :count).by(1)
 
-      expect(response).to have_http_status(:created)
+      expect(ContentClickEvent.last.click_type).to eq('click')
     end
 
-    it 'records a read event with duration' do
-      expect do
-        post '/api/report/content_click',
-             params: { uuid: user.uuid, book_id: book.id, click_type: 'read', duration_seconds: 120 },
-             as: :json
-      end.to change(ContentClickEvent, :count).by(1)
-
-      event = ContentClickEvent.last
-      expect(event.duration_seconds).to eq(120)
-    end
-
-    it 'returns error for nonexistent book' do
-      post '/api/report/content_click',
-           params: { uuid: user.uuid, book_id: 99_999, click_type: 'click' },
+    it 'marks duration >= 30s as read' do
+      post '/api/report/resource_view',
+           params: { uuid: user.uuid, book_id: book.id, resource_type: 'ebook', duration_seconds: 45 },
            as: :json
 
-      body = json_response[:response]
-      expect(body[:code]).to eq(1001)
+      expect(ContentClickEvent.last.click_type).to eq('read')
     end
 
-    it 'returns error for invalid uuid' do
-      post '/api/report/content_click',
-           params: { uuid: 'invalid_uuid', book_id: book.id, click_type: 'click' },
-           as: :json
-
-      body = json_response[:response]
-      expect(body[:code]).to eq(1002)
-    end
-  end
-
-  describe 'POST /api/report/media_play' do
-    it 'records a play_start event' do
+    it 'records audio play as media_play event' do
       expect do
-        post '/api/report/media_play',
+        post '/api/report/resource_view',
              params: {
-               uuid: user.uuid,
-               book_id: book.id,
-               chapter_id: chapter.id,
-               media_type: 'audio',
-               event_type: 'play_start',
-               play_seconds: 0,
-               total_duration: 600
+               uuid: user.uuid, book_id: book.id, chapter_id: chapter.id,
+               resource_type: 'audio', duration_seconds: 30, total_duration: 600
              },
              as: :json
       end.to change(MediaPlayEvent, :count).by(1)
 
-      expect(response).to have_http_status(:created)
-      body = json_response[:response]
-      expect(body[:data][:is_valid_play]).to be false
+      event = MediaPlayEvent.last
+      expect(event.is_valid_play).to be true
+      expect(event.play_seconds).to eq(30)
     end
 
-    it 'marks play as valid when >= 10 seconds' do
-      post '/api/report/media_play',
+    it 'marks play < 10s as invalid' do
+      post '/api/report/resource_view',
            params: {
-             uuid: user.uuid,
-             book_id: book.id,
-             chapter_id: chapter.id,
-             media_type: 'audio',
-             event_type: 'play_resume',
-             play_seconds: 30,
-             total_duration: 600
+             uuid: user.uuid, book_id: book.id, chapter_id: chapter.id,
+             resource_type: 'audio', duration_seconds: 5, total_duration: 600
            },
            as: :json
 
-      body = json_response[:response]
-      expect(body[:data][:is_valid_play]).to be true
+      expect(MediaPlayEvent.last.is_valid_play).to be false
     end
 
-    it 'marks reading progress as completed when play >= 80%' do
-      post '/api/report/media_play',
+    it 'marks reading progress as completed when >= 80%' do
+      post '/api/report/resource_view',
            params: {
-             uuid: user.uuid,
-             book_id: book.id,
-             chapter_id: chapter.id,
-             media_type: 'audio',
-             event_type: 'play_complete',
-             play_seconds: 500,
-             total_duration: 600
+             uuid: user.uuid, book_id: book.id, chapter_id: chapter.id,
+             resource_type: 'audio', duration_seconds: 500, total_duration: 600,
+             is_complete: true
            },
            as: :json
 
@@ -141,14 +103,20 @@ RSpec.describe 'API Report', type: :request do
       expect(progress.completed).to be true
     end
 
-    it 'returns error for nonexistent chapter' do
-      post '/api/report/media_play',
+    it 'returns error for nonexistent book' do
+      post '/api/report/resource_view',
+           params: { uuid: user.uuid, book_id: 99_999, resource_type: 'ebook' },
+           as: :json
+
+      body = json_response[:response]
+      expect(body[:code]).to eq(1001)
+    end
+
+    it 'returns error for nonexistent chapter when audio/video' do
+      post '/api/report/resource_view',
            params: {
-             uuid: user.uuid,
-             book_id: book.id,
-             chapter_id: 99_999,
-             media_type: 'audio',
-             event_type: 'play_start'
+             uuid: user.uuid, book_id: book.id, chapter_id: 99_999,
+             resource_type: 'audio', duration_seconds: 10
            },
            as: :json
 
