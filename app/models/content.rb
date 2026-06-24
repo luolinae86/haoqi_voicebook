@@ -16,6 +16,7 @@
 #  rank_id                        :bigint
 #  name(名称)                     :string(16)
 #  color(颜色)                    :string(16)
+#  category_sub_id(二级分类)      :bigint
 #
 # Indexes
 #
@@ -31,6 +32,7 @@ class Content < ApplicationRecord
   belongs_to :book, optional: true
   belongs_to :author, optional: true
   belongs_to :recommend, optional: true
+  belongs_to :category_sub, optional: true
 
   scope :sorted, -> { order(sn: :asc, id: :desc) }
 
@@ -39,7 +41,8 @@ class Content < ApplicationRecord
     book: 'book', # 单本
     author_display: 'author_display', # 作者显示
     recommend: 'recommend', # 推荐
-    rank: 'rank' # 排行榜
+    rank: 'rank', # 排行榜
+    category_sub: 'category_sub' # 二级分类
   }, prefix: true
 
   CONTENT_TYPES = {
@@ -47,7 +50,8 @@ class Content < ApplicationRecord
     book: '单本',
     author_display: '作者显示',
     recommend: '推荐',
-    rank: '排行榜'
+    rank: '排行榜',
+    category_sub: '二级分类'
   }.freeze
 
   def content_type_name
@@ -67,6 +71,8 @@ class Content < ApplicationRecord
         book.cover_image_url
       when 'author_display'
         author.head_img
+      when 'category_sub'
+        category_sub&.icon
       end
     end
   end
@@ -79,6 +85,8 @@ class Content < ApplicationRecord
       book.name
     when 'author_display'
       author.name
+    when 'category_sub'
+      category_sub&.name
     end
   end
 end

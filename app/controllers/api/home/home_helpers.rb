@@ -39,17 +39,18 @@ module Api
           name: cg.name,
           group_type: cg.group_type,
           group_type_name: cg.group_type_name,
-          contents: cg.contents.includes(:book).sorted.reject { |c| book_blacklisted?(c.book_id) }.map { |content| serialize_content(content) }
+          contents: cg.contents.includes(:book, :category_sub).sorted.reject { |c| book_blacklisted?(c.book_id) }.map { |content| serialize_content(content) }
         }
       end
 
       def serialize_content(content)
+        display_name = content.name.presence || content.book&.name || content.compilation&.name || content.category_sub&.name || ''
         content_hash = {
           id: content.id,
           content_type: content.content_type,
           content_type_name: content.content_type_name,
           sn: content.sn,
-          name: content.name,
+          name: display_name,
           color: content.color
         }
 
@@ -62,6 +63,8 @@ module Api
           content_hash[:author] = serialize_author(content.author) if content.author
         when 'recommend'
           content_hash[:recommend] = serialize_sub_recommend(content.recommend) if content.recommend
+        when 'category_sub'
+          content_hash[:category_sub] = serialize_category_sub(content.category_sub) if content.category_sub
         end
 
         content_hash[:img_url] = signed_oss_url(content.img_url) if content.img_url.present?
@@ -111,6 +114,16 @@ module Api
           sn: recommend.sn,
           color: recommend.color || '',
           status_text: recommend.status_text
+        }
+      end
+
+      def serialize_category_sub(category_sub)
+        {
+          id: category_sub.id,
+          name: category_sub.name,
+          icon: signed_oss_url(category_sub.icon),
+          category_id: category_sub.category_id,
+          sn: category_sub.sn
         }
       end
     end

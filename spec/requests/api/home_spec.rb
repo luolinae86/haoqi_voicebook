@@ -425,6 +425,60 @@ RSpec.describe "API Home", type: :request do
         end
       end
 
+      context "category_sub 二级分类内容分组" do
+        let!(:parent_recommend) { Recommend.create!(grade: grade, name: "分类推荐", status: true) }
+        let!(:category) { Category.create!(name: "文学") }
+        let!(:category_sub) { CategorySub.create!(name: "文学经典", category: category, icon: "https://example.com/icon.png", sn: 1) }
+        let!(:category_sub_group) do
+          ContentGroup.create!(
+            recommend: parent_recommend,
+            name: "二级分类",
+            group_type: "single_column",
+            sn: 0
+          )
+        end
+
+        before do
+          Content.create!(
+            content_group: category_sub_group,
+            content_type: "category_sub",
+            category_sub: category_sub,
+            sn: 0
+          )
+        end
+
+        it "返回二级分类的 category_sub 信息" do
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
+
+          expect(response).to have_http_status(:success)
+          expect(json_response[:response][:code]).to eq(0)
+          contents = json_response[:response][:data][:content_groups].first[:contents]
+          category_sub_content = contents.find { |c| c[:content_type] == "category_sub" }
+          expect(category_sub_content).to be_present
+          expect(category_sub_content[:category_sub][:id]).to eq(category_sub.id)
+          expect(category_sub_content[:category_sub][:name]).to eq("文学经典")
+          expect(category_sub_content[:category_sub][:category_id]).to eq(category.id)
+          expect(category_sub_content[:category_sub][:sn]).to eq(1)
+        end
+
+        it "二级分类的 icon 返回 OSS 签名 URL" do
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
+
+          contents = json_response[:response][:data][:content_groups].first[:contents]
+          category_sub_content = contents.find { |c| c[:content_type] == "category_sub" }
+          expect(category_sub_content[:category_sub][:icon]).to include("icon.png")
+          expect(category_sub_content[:category_sub][:icon]).to include("OSSAccessKeyId")
+        end
+
+        it "二级分类的 name 作为 display_name" do
+          get "/api/home/recommends/by_recommend_id", params: { recommend_id: parent_recommend.id, uuid: user.uuid }
+
+          contents = json_response[:response][:data][:content_groups].first[:contents]
+          category_sub_content = contents.find { |c| c[:content_type] == "category_sub" }
+          expect(category_sub_content[:name]).to eq("文学经典")
+        end
+      end
+
       context "参数校验" do
         it "recommend_id 不是整数时返回参数错误" do
           get "/api/home/recommends/by_recommend_id", params: { recommend_id: "abc", uuid: user.uuid }

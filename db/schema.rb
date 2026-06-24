@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_22_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_24_000001) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -329,6 +329,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_000000) do
     t.integer "sn", default: 0, comment: "排序"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "category_sub_id", comment: "二级分类"
+    t.string "name", limit: 16, comment: "名称"
+    t.string "color", limit: 16, comment: "颜色"
+    t.index ["category_sub_id"], name: "index_contents_on_category_sub_id"
     t.index ["content_group_id"], name: "index_contents_on_content_group_id"
   end
 
@@ -751,6 +755,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_000000) do
   add_foreign_key "compilation_grades", "compilations"
   add_foreign_key "compilation_grades", "grades"
   add_foreign_key "content_groups", "recommends"
+  add_foreign_key "contents", "category_subs"
   add_foreign_key "contents", "content_groups"
   add_foreign_key "devices", "app_users"
   add_foreign_key "ebook_pages", "books"
