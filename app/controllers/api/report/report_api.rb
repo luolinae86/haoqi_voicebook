@@ -30,7 +30,6 @@ module Api
           optional :chapter_id, type: Integer, desc: '章节ID（有声/视频时传）'
           optional :resource_type, type: String, desc: '资源类型', values: %w[ebook audio video picture_book], default: 'ebook'
           optional :duration_seconds, type: Integer, desc: '本次浏览/播放时长（秒）', default: 0
-          optional :total_duration, type: Integer, desc: '资源总时长（秒，有声/视频时传）', default: 0
           optional :is_complete, type: Boolean, desc: '是否完读/完播', default: false
         end
         post :resource_view do
@@ -46,7 +45,7 @@ module Api
           stat_date = Time.zone.today.to_s
 
           if %w[audio video].include?(params[:resource_type] || 'ebook') && chapter
-            total_dur = params[:total_duration] || chapter.duration || 0
+            total_dur = chapter.duration || 0
             is_valid = duration >= 10
 
             MediaPlayEvent.create!(

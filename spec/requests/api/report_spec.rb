@@ -68,7 +68,7 @@ RSpec.describe 'API Report', type: :request do
         post '/api/report/resource_view',
              params: {
                uuid: user.uuid, book_id: book.id, chapter_id: chapter.id,
-               resource_type: 'audio', duration_seconds: 30, total_duration: 600
+               resource_type: 'audio', duration_seconds: 30
              },
              as: :json
       end.to change(MediaPlayEvent, :count).by(1)
@@ -76,13 +76,14 @@ RSpec.describe 'API Report', type: :request do
       event = MediaPlayEvent.last
       expect(event.is_valid_play).to be true
       expect(event.play_seconds).to eq(30)
+      expect(event.total_duration).to eq(600)  # from chapter.duration
     end
 
     it 'marks play < 10s as invalid' do
       post '/api/report/resource_view',
            params: {
              uuid: user.uuid, book_id: book.id, chapter_id: chapter.id,
-             resource_type: 'audio', duration_seconds: 5, total_duration: 600
+             resource_type: 'audio', duration_seconds: 5
            },
            as: :json
 
@@ -93,7 +94,7 @@ RSpec.describe 'API Report', type: :request do
       post '/api/report/resource_view',
            params: {
              uuid: user.uuid, book_id: book.id, chapter_id: chapter.id,
-             resource_type: 'audio', duration_seconds: 500, total_duration: 600,
+             resource_type: 'audio', duration_seconds: 500,
              is_complete: true
            },
            as: :json
