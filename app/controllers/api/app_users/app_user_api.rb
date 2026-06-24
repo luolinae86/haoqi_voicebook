@@ -236,9 +236,12 @@ module Api
         desc '获取当前设备绑定的用户基本信息'
         params do
           requires :uuid, type: String, desc: '用户uuid'
+          optional :channel, type: String, desc: '渠道标识（app_store/tablet/community/koc）'
         end
         get :info do
           auth_user
+
+          current_user.update_column(:channel, params[:channel]) if params[:channel].present? && current_user.channel != params[:channel]
 
           present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
         end
