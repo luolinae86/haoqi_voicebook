@@ -27,7 +27,7 @@ module Api
         params do
           requires :uuid, type: String, desc: '用户uuid'
           requires :book_id, type: Integer, desc: '图书ID'
-          optional :chapter_id, type: Integer, desc: '章节ID（有声/视频时传）'
+          optional :chapter_id, type: Integer, desc: '章节ID（有声/视频时传）或页码（漫画时传）'
           optional :resource_type, type: String, desc: '资源类型', values: %w[ebook audio video picture_book], default: 'ebook'
           optional :duration_seconds, type: Integer, desc: '本次浏览/播放时长（秒）', default: 0
           optional :is_complete, type: Boolean, desc: '是否完读/完播', default: false
@@ -38,13 +38,32 @@ module Api
           book = Book.find_by(id: params[:book_id])
           error_pop_resp('图书不存在') unless book
 
-          chapter = params[:chapter_id].present? ? Chapter.find_by(id: params[:chapter_id], book_id: book.id) : nil
-          error_pop_resp('章节不存在') if params[:chapter_id].present? && chapter.blank?
+          resource_type = params[:resource_type] || 'ebook'
+          chapter = nil
+
+          # 漫画：chapter_id 当 page_number 用
+          if resource_type == 'picture_book' && params[:chapter_id].present?
+            # 漫画没有章节，chapter_id 实际是页码
+            Reading::TrackService.new(
+              app_user: current_user,
+              book: book,
+              page_number: params[:chapter_id],
+              duration_seconds: params[:duration_seconds] || 0
+            ).call
+
+            present response: success_response(msg: '已记录')
+            return
+          end
+
+          if %w[audio video].include?(resource_type) && params[:chapter_id].present?
+            chapter = Chapter.find_by(id: params[:chapter_id], book_id: book.id)
+            error_pop_resp('章节不存在') unless chapter
+          end
 
           duration = params[:duration_seconds] || 0
           stat_date = Time.zone.today.to_s
 
-          if %w[audio video].include?(params[:resource_type] || 'ebook') && chapter
+          if %w[audio video].include?(resource_type) && chapter
             total_dur = chapter.duration || 0
             is_valid = duration >= 10
 
@@ -52,7 +71,7 @@ module Api
               app_user: current_user,
               book: book,
               chapter: chapter,
-              media_type: params[:resource_type],
+              media_type: resource_type,
               event_type: params[:is_complete] ? 'play_complete' : 'play_start',
               play_seconds: duration,
               total_duration: total_dur,

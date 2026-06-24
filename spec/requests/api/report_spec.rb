@@ -104,6 +104,21 @@ RSpec.describe 'API Report', type: :request do
       expect(progress.completed).to be true
     end
 
+    it 'handles picture_book by treating chapter_id as page_number' do
+      expect do
+        post '/api/report/resource_view',
+             params: {
+               uuid: user.uuid, book_id: book.id, chapter_id: 5,
+               resource_type: 'picture_book', duration_seconds: 20
+             },
+             as: :json
+      end.to change(ReadingSession, :count).by(1)
+
+      session = ReadingSession.last
+      expect(session.page_number).to eq(5)
+      expect(session.duration_seconds).to eq(20)
+    end
+
     it 'returns error for nonexistent book' do
       post '/api/report/resource_view',
            params: { uuid: user.uuid, book_id: 99_999, resource_type: 'ebook' },
