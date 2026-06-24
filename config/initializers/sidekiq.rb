@@ -18,7 +18,9 @@ Sidekiq.configure_server do |config|
   # 定时任务（从 config/sidekiq.yml :schedule 加载）
   schedule_file = Rails.root.join("config/sidekiq.yml")
   if File.exist?(schedule_file)
-    Sidekiq::Cron::Job.load_from_hash!(YAML.load_file(schedule_file, aliases: true)["schedule"] || {})
+    yml = YAML.load_file(schedule_file, aliases: true)
+    schedule = yml[:schedule] || yml["schedule"] || {}
+    Sidekiq::Cron::Job.load_from_hash!(schedule)
   end
 end
 
