@@ -101,7 +101,8 @@ module Api
           page_count: book.page_count,
           rating: book.rating,
           content_description: book.content_description,
-          category_subs: book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } }
+          category_subs: book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } },
+          is_free: book.is_free
         }
       end
 

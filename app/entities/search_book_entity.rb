@@ -23,5 +23,6 @@ module Entities
       instance.category_subs.map { |cs| Entities::CategorySub.represent(cs).as_json }
     end
     expose :play_count
+    expose :is_free
   end
 end

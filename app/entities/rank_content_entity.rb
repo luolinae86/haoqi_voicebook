@@ -25,7 +25,8 @@ module Entities
         rating: instance.book.rating,
         content_description: instance.book.content_description,
         supplier_name: instance.book.supplier&.name,
-        category_subs: instance.book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } }
+        category_subs: instance.book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } },
+        is_free: instance.book.is_free
       }
     end
     expose :compilation do |instance, _|

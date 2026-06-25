@@ -18,5 +18,6 @@ module Entities
       instance.grades.first&.name
     end
     expose :content_type
+    expose :is_free
   end
 end
