@@ -56,7 +56,6 @@ class StatsDailyAggregationWorker
           created_at: Time.current,
           updated_at: Time.current
         },
-        unique_by: [:app_user_id, :stat_date]
       )
     end
 
@@ -106,7 +105,6 @@ class StatsDailyAggregationWorker
           created_at: Time.current,
           updated_at: Time.current
         },
-        unique_by: :id
       )
     end
 
@@ -137,7 +135,6 @@ class StatsDailyAggregationWorker
         created_at: Time.current,
         updated_at: Time.current
       },
-      unique_by: :id
     )
 
     Rails.logger.info("[StatsDailyAggregation] content_stats: #{book_ids.size} books for #{date_str}")
@@ -193,7 +190,6 @@ class StatsDailyAggregationWorker
         created_at: Time.current,
         updated_at: Time.current
       },
-      unique_by: [:stat_date, :channel]
     )
 
     Rails.logger.info("[StatsDailyAggregation] channel_stats: #{date_str}#{" (#{channel})" if channel}: reg=#{registrations}, paid=#{paid_users}, amt=#{paid_amount}")
