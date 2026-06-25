@@ -31,7 +31,7 @@ module Api
         get 'recommends/by_recommend_id' do
           auth_user
 
-          recommend = Recommend.find_by(id: params[:recommend_id], grade_id: current_user.grade_id, status: true)
+          recommend = Recommend.find_by(id: params[:recommend_id], grade_id: current_user.grade_id)
           content_groups = recommend ? recommend.content_groups.includes(:contents).map { |cg| serialize_content_group(cg) } : []
 
           present response: success_response(content_groups: content_groups)
