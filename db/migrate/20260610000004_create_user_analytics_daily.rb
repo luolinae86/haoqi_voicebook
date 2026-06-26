@@ -5,7 +5,7 @@ class CreateUserAnalyticsDaily < ActiveRecord::Migration[8.0]
   def change
     create_table :user_analytics_daily do |t|
       t.string :stat_date, null: false, comment: '日期 YYYY-MM-DD'
-      t.string :channel, limit: 32, comment: '渠道（NULL=全部）'
+      t.string :channel, limit: 32, null: false, default: '', comment: '渠道（空字符串=全部）'
       t.integer :dau, default: 0, comment: '日活'
       t.integer :wau, default: 0, comment: '周活'
       t.integer :mau, default: 0, comment: '月活'

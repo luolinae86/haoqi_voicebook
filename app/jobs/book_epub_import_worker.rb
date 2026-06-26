@@ -184,6 +184,8 @@ class BookEpubImportWorker
     return href unless href
     href = href.split("#").first if href.include?("#")
     return href if href.start_with?("http://", "https://", "data:")
+    # 兼容 Windows 反斜杠路径
+    href = href.gsub("\\", "/")
     Pathname.new(base_dir.to_s).join(href).cleanpath.to_s.delete_prefix("./")
   end
 
@@ -273,23 +275,43 @@ class BookEpubImportWorker
 
   def upload_images(opf, extract_dir, opf_dir, oss_service, sanitized_title:)
     url_map = {}
+    image_count = 0
+    uploaded_count = 0
+    missing_count = 0
+
     opf.xpath("//opf:item", "opf" => "http://www.idpf.org/2007/opf").each do |item|
       next unless IMAGE_MEDIA_TYPES.include?(item["media-type"])
 
       href = item["href"]
-      img_path = extract_dir.join(opf_dir, href)
-      next unless img_path.exist?
+      # 兼容 Windows 反斜杠路径（EPUB 规范要求正斜杠，但部分 EPUB 使用反斜杠）
+      normalized_href = href.gsub("\\", "/")
+      img_path = extract_dir.join(opf_dir, normalized_href)
+      image_count += 1
 
-      object_key = "#{sanitized_title}/images/#{File.basename(href)}"
-      oss_url = oss_service.upload_file(
-        local_path: img_path,
-        object_key: object_key,
-        content_type: item["media-type"]
-      )
-      # 用相对于 OPF 目录的路径作为 key，方便后续查找
-      url_map[href] = oss_url
-      Rails.logger.info("[BookEpubImport] Image uploaded: #{oss_url}")
+      unless img_path.exist?
+        missing_count += 1
+        Rails.logger.warn("[BookEpubImport] Image file not found: #{normalized_href} (original: #{href})")
+        next
+      end
+
+      object_key = "#{sanitized_title}/images/#{File.basename(normalized_href)}"
+      begin
+        oss_url = oss_service.upload_file(
+          local_path: img_path,
+          object_key: object_key,
+          content_type: item["media-type"]
+        )
+        # 用原始路径和规范化路径都作为 key，方便后续查找
+        url_map[href] = oss_url
+        url_map[normalized_href] = oss_url if href != normalized_href
+        uploaded_count += 1
+        Rails.logger.info("[BookEpubImport] Image uploaded: #{oss_url}")
+      rescue StandardError => e
+        Rails.logger.error("[BookEpubImport] Image upload failed: #{object_key} - #{e.class}: #{e.message}")
+      end
     end
+
+    Rails.logger.info("[BookEpubImport] Image upload summary: #{uploaded_count}/#{image_count} uploaded, #{missing_count} missing")
     url_map
   rescue StandardError => e
     Rails.logger.warn("[BookEpubImport] Image upload failed: #{e.message}")
@@ -308,6 +330,9 @@ class BookEpubImportWorker
       next if src.nil? || src.empty?
       # 跳过已经是绝对路径或 data URI 的情况
       next if src.start_with?("http://", "https://", "data:")
+
+      # 兼容 Windows 反斜杠路径
+      src = src.gsub("\\", "/")
 
       # 将 XHTML 相对路径解析为相对于 OPF 目录的路径
       resolved_path = Pathname.new(xhtml_dir).join(src).cleanpath.to_s

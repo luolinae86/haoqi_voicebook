@@ -43,7 +43,7 @@ class CreateDailyStatsTables < ActiveRecord::Migration[8.0]
     # 渠道日统计表（web 直接查询用）
     create_table :daily_channel_stats do |t|
       t.string :stat_date, null: false, comment: "统计日期 YYYY-MM-DD"
-      t.string :channel, limit: 32, comment: "渠道（NULL=全部）"
+      t.string :channel, limit: 32, null: false, default: '', comment: "渠道（空字符串=全部）"
       t.integer :registrations, default: 0, comment: "当日注册量"
       t.integer :active_users, default: 0, comment: "当日活跃用户数"
       t.integer :paid_users, default: 0, comment: "当日付费用户数"

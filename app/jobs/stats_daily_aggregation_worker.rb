@@ -145,10 +145,10 @@ class StatsDailyAggregationWorker
     date_str = date.to_s
 
     # 全渠道汇总
-    aggregate_channel_stats_for(date, nil)
+    aggregate_channel_stats_for(date, '')
 
     # 按各渠道分别聚合
-    channels = AppUser.where.not(channel: nil).distinct.pluck(:channel).compact
+    channels = AppUser.where.not(channel: [nil, '']).distinct.pluck(:channel).compact
     channels.each { |ch| aggregate_channel_stats_for(date, ch) }
   end
 
