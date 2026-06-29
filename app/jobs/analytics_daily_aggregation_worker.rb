@@ -12,10 +12,10 @@ class AnalyticsDailyAggregationWorker
     date = target_date ? target_date.to_date : Date.yesterday
     Rails.logger.info("[AnalyticsDailyAggregation] Start aggregating for #{date}")
 
-    aggregate_for_date(date, channel: nil)
+    aggregate_for_date(date, channel: '')
 
     # 按各渠道分别聚合
-    channels = AppUser.where.not(channel: nil).distinct.pluck(:channel).compact
+    channels = AppUser.where.not(channel: [nil, '']).distinct.pluck(:channel).compact
     channels.each do |channel|
       aggregate_for_date(date, channel: channel)
     end

@@ -243,6 +243,9 @@ module Api
 
           current_user.update_column(:channel, params[:channel]) if params[:channel].present? && current_user.channel != params[:channel]
 
+          # App 启动时记录活跃日志（用于 DAU/WAU/MAU 统计）
+          UserActivityLog.log_app_open(current_user, channel: params[:channel])
+
           present response: success_response(user: Entities::AppUser.represent(current_user).as_json)
         end
 
