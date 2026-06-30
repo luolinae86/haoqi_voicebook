@@ -67,17 +67,7 @@ class BookEpubImportWorker
         spine_refs << spine_items[idref] if spine_items[idref]
       end
 
-      # 5. 提取 TOC（从 nav.xhtml 或 toc.ncx）
-      toc_entries = extract_toc(opf, extract_dir, opf_dir)
-
-      # 6. 提取并上传 CSS 样式表到 OSS
-      styles_urls = upload_css_files(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
-
-      # 7. 提取并上传所有图片到 OSS，建立相对路径到 OSS URL 的映射
-      image_url_map = upload_images(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
-
-      # 去重 spine_refs（同一 href 可能在 spine 中被多次引用）
-      # 保留每个 href 的第一次出现，同时收集所有 TOC 匹配
+      # 去重 spine_refs
       unique_spine = []
       seen_hrefs = Set.new
       spine_refs.each do |href|
@@ -86,6 +76,20 @@ class BookEpubImportWorker
           unique_spine << href
         end
       end
+
+      # 5. 提取 TOC（从 nav.xhtml 或 toc.ncx）
+      toc_entries = extract_toc(opf, extract_dir, opf_dir)
+
+      # 如果 TOC 条目过少（少于 spine 的 10%），回退到使用 spine 列表
+      # 某些 EPUB 的 TOC 不完整（只有封面），需要回退处理
+      use_spine_fallback = toc_entries.size < unique_spine.size * 0.1 && unique_spine.size > 1
+      Rails.logger.info("[BookEpubImport] TOC entries: #{toc_entries.size}, spine items: #{unique_spine.size}, fallback: #{use_spine_fallback}")
+
+      # 6. 提取并上传 CSS 样式表到 OSS
+      styles_urls = upload_css_files(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
+
+      # 7. 提取并上传所有图片到 OSS，建立相对路径到 OSS URL 的映射
+      image_url_map = upload_images(opf, extract_dir, opf_dir, oss_service, sanitized_title: sanitize_dir_name(book.name))
 
       # 8. 导入每页 XHTML 和章节
       page_number = 1
@@ -98,12 +102,12 @@ class BookEpubImportWorker
         book.catalogues.delete_all
 
         unique_spine.each do |href|
-          # 查找所有指向此 href 的 TOC 条目（一个 spine 文件可能对应多个章节，如父子章节指向同一文件）
+          # 查找所有指向此 href 的 TOC 条目
           matching_tocs = toc_entries.select { |t| t[:href] == href }
           has_toc = matching_tocs.any?
 
-          # 只在 spine 文件有 TOC 对应时才分配 page_number（封面等不在 TOC 中的页面 page_number=0）
-          if has_toc
+          # 回退模式：为每个 spine 文件创建页面（无 TOC 时用文件名作为章节名）
+          if use_spine_fallback || has_toc
             xhtml_path = extract_dir.join(opf_dir, href)
             xhtml_content = nil
             word_count = 0
@@ -115,33 +119,59 @@ class BookEpubImportWorker
               word_count = extract_word_count(xhtml_content)
             end
 
-            # 为每个 TOC 条目创建独立的 catalogue 和 ebook_page，确保 start_page_number 唯一
-            # 字数只计入第一个 ebook_page，避免重复计算
-            first_page = true
-            matching_tocs.each do |matching_toc|
+            # 回退模式：每个 spine 文件创建一个章节
+            if use_spine_fallback
               chapter_number += 1
-              page_word_count = first_page ? word_count : 0
+              chapter_name = File.basename(href, File.extname(href))
+              # 清理章节名（去掉 index_split_ 前缀和数字）
+              chapter_name = chapter_name.sub(/^index_split_\d+_?/, '')
+              chapter_name = "第#{chapter_number}章" if chapter_name.blank?
 
               book.catalogues.create!(
                 chapter_number: chapter_number,
-                chapter_name: matching_toc[:title],
+                chapter_name: chapter_name,
                 start_page_number: page_number,
-                word_count: page_word_count
+                word_count: word_count
               )
 
               if xhtml_content.present?
                 book.ebook_pages.create!(
                   page_number: page_number,
                   xhtml_content: xhtml_content,
-                  word_count: page_word_count
+                  word_count: word_count
                 )
               end
 
               page_number += 1
-              first_page = false
-            end
+              total_word_count += word_count
+            else
+              # 正常模式：为每个 TOC 条目创建独立的 catalogue 和 ebook_page
+              first_page = true
+              matching_tocs.each do |matching_toc|
+                chapter_number += 1
+                page_word_count = first_page ? word_count : 0
 
-            total_word_count += word_count
+                book.catalogues.create!(
+                  chapter_number: chapter_number,
+                  chapter_name: matching_toc[:title],
+                  start_page_number: page_number,
+                  word_count: page_word_count
+                )
+
+                if xhtml_content.present?
+                  book.ebook_pages.create!(
+                    page_number: page_number,
+                    xhtml_content: xhtml_content,
+                    word_count: page_word_count
+                  )
+                end
+
+                page_number += 1
+                first_page = false
+              end
+
+              total_word_count += word_count
+            end
           end
         end
 
