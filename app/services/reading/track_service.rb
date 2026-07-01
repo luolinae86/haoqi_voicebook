@@ -40,29 +40,38 @@ module Reading
     end
 
     def update_reading_progress
-      progress = ReadingProgress.find_or_initialize_by(
-        app_user_id: @app_user.id,
-        book_id: @book.id
-      )
+      # 使用 upsert 避免并发时的唯一索引冲突
+      attempts = 0
+      begin
+        attempts += 1
+        progress = ReadingProgress.find_or_initialize_by(
+          app_user_id: @app_user.id,
+          book_id: @book.id
+        )
 
-      @user_new_book_read = progress.new_record?
+        @user_new_book_read = progress.new_record?
 
-      if progress.last_page_number < @page_number
-        progress.last_page_number = @page_number
+        if progress.last_page_number < @page_number
+          progress.last_page_number = @page_number
+        end
+
+        progress.total_words_read += @word_count
+        progress.total_duration_seconds += @duration_seconds
+        progress.session_count += 1
+        progress.last_read_at = Time.current
+
+        # 检查是否完读（到达最后一页）
+        if !progress.completed && @book.page_count > 0 && @page_number >= @book.page_count
+          progress.completed = true
+          progress.completed_at = Time.current
+        end
+
+        progress.save!
+      rescue ActiveRecord::RecordNotUnique
+        # 并发时另一个请求已创建记录，重新查找并更新
+        retry if attempts < 3
+        raise
       end
-
-      progress.total_words_read += @word_count
-      progress.total_duration_seconds += @duration_seconds
-      progress.session_count += 1
-      progress.last_read_at = Time.current
-
-      # 检查是否完读（到达最后一页）
-      if !progress.completed && @book.page_count > 0 && @page_number >= @book.page_count
-        progress.completed = true
-        progress.completed_at = Time.current
-      end
-
-      progress.save!
     end
 
     def update_daily_stats
