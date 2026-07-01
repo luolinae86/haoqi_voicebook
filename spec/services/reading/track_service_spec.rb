@@ -72,7 +72,14 @@ RSpec.describe Reading::TrackService do
 
     it 'does not double-count readers on same day' do
       track_reading
-      track_reading
+      # 模拟用户翻页（不同 page_number）
+      Reading::TrackService.new(
+        app_user: user,
+        book: book,
+        page_number: 6,
+        word_count: 150,
+        duration_seconds: 90
+      ).call
 
       stats = BookStats.find_by(book_id: book.id)
       expect(stats.total_readers).to eq(1)

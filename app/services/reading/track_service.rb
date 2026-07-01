@@ -28,6 +28,17 @@ module Reading
     private
 
     def create_reading_session
+      # 去重：相同 book_id + page_number + duration_seconds 在 1 秒内不重复创建
+      recent_duplicate = ReadingSession.where(
+        app_user: @app_user,
+        book: @book,
+        page_number: @page_number,
+        duration_seconds: @duration_seconds,
+        word_count: @word_count
+      ).where('created_at >= ?', 1.second.ago).exists?
+
+      return if recent_duplicate
+
       @reading_session = ReadingSession.create!(
         app_user: @app_user,
         book: @book,
