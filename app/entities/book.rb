@@ -34,6 +34,7 @@ module Entities
     expose :rating
     expose :status
     expose :page_count
+    expose :media_id
     expose :epub_oss_url do |instance, _|
       self.class.sign_oss_url(instance.epub_oss_url)
     end
