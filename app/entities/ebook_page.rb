@@ -8,5 +8,6 @@ module Entities
     expose :image_url do |instance, _|
       Book.sign_oss_url(instance.image_url)
     end
+    expose :is_free
   end
 end
