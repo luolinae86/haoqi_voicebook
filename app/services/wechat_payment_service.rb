@@ -12,6 +12,11 @@ class WechatPaymentService
 
   GATEWAY = "https://api.mch.weixin.qq.com"
 
+  # 类级别缓存平台证书，避免每次请求都下载
+  @@platform_certs_cache = {}
+  @@certs_cache_time = nil
+  CERTS_CACHE_TTL = 3600 # 证书缓存1小时
+
   # @param order_no [String] 商户订单号
   # @param amount [BigDecimal/Float] 支付金额（元）
   # @param subject [String] 订单标题
@@ -51,12 +56,10 @@ class WechatPaymentService
 
     message = "#{timestamp}\n#{nonce}\n#{body}\n"
 
-    # 使用微信平台公钥证书验证
-    # 注意：生产环境需要从微信获取平台证书，这里简化处理
-    platform_cert_pem = ENV.fetch("WECHAT_PLATFORM_CERT", nil)
+    # 获取微信平台证书（优先从环境变量，否则自动下载）
+    public_key = get_platform_public_key(serial)
 
-    if platform_cert_pem.present?
-      public_key = OpenSSL::PKey::RSA.new(platform_cert_pem)
+    if public_key
       return public_key.verify(
         OpenSSL::Digest.new("SHA256"),
         Base64.decode64(signature),
@@ -64,8 +67,7 @@ class WechatPaymentService
       )
     end
 
-    # 如果没有平台证书，记录日志并返回 false
-    Rails.logger.warn("[WechatPayment] Platform certificate not configured, serial: #{serial}")
+    Rails.logger.warn("[WechatPayment] Cannot find platform certificate for serial: #{serial}")
     false
   rescue StandardError => e
     Rails.logger.error("[WechatPayment] verify_callback error: #{e.message}")
@@ -140,9 +142,103 @@ class WechatPaymentService
   end
 
   def sign_message(message)
-    # 使用商户私钥签名
-    private_key_pem = ENV.fetch("WECHAT_API_KEY")
+    # 使用商户私钥签名（优先从文件读取，其次从环境变量）
+    private_key_pem = if File.exist?('/rails/config/certs/apiclient_key.pem')
+                        File.read('/rails/config/certs/apiclient_key.pem')
+                      else
+                        ENV.fetch("WECHAT_API_KEY") do
+                          require 'base64'
+                          Base64.decode64(ENV.fetch("WECHAT_API_KEY_B64"))
+                        end
+                      end
     private_key = OpenSSL::PKey::RSA.new(private_key_pem)
     Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new("SHA256"), message))
+  end
+
+  # 获取微信平台公钥（用于验证回调签名）
+  # @param serial [String] 证书序列号
+  # @return [OpenSSL::PKey::RSA, nil]
+  def get_platform_public_key(serial)
+    # 优先从环境变量获取
+    env_cert = ENV.fetch("WECHAT_PLATFORM_CERT", nil)
+    if env_cert.present?
+      return OpenSSL::PKey::RSA.new(env_cert)
+    end
+
+    # 从缓存或自动下载
+    refresh_platform_certs_if_needed
+    @@platform_certs_cache[serial]
+  end
+
+  # 刷新平台证书缓存（如需要）
+  def refresh_platform_certs_if_needed
+    return if @@certs_cache_time && (Time.current - @@certs_cache_time) < CERTS_CACHE_TTL
+
+    certs = download_platform_certs
+    @@platform_certs_cache = certs
+    @@certs_cache_time = Time.current
+    Rails.logger.info("[WechatPayment] Downloaded #{certs.size} platform certificate(s)")
+  rescue StandardError => e
+    Rails.logger.error("[WechatPayment] Failed to download platform certs: #{e.message}")
+  end
+
+  # 从微信下载平台证书
+  # @return [Hash] { serial_no => OpenSSL::PKey::RSA }
+  def download_platform_certs
+    url = "#{GATEWAY}/v3/certificates"
+
+    http = Net::HTTP.new("api.mch.weixin.qq.com", 443)
+    http.use_ssl = true
+
+    request = Net::HTTP::Get.new(url)
+    request["Accept"] = "application/json"
+    request["Authorization"] = build_auth_header("GET", "/v3/certificates", nil)
+
+    response = http.request(request)
+
+    unless response.code == "200"
+      raise PaymentError, "Failed to download certs: #{response.code} #{response.body.to_s.force_encoding('UTF-8')}"
+    end
+
+    data = JSON.parse(response.body)["data"] || []
+    certs = {}
+
+    data.each do |cert_info|
+      serial = cert_info["serial_no"]
+      encrypted_cert = cert_info["encrypt_certificate"]
+
+      # 解密证书内容
+      cert_pem = decrypt_certificate(
+        ciphertext: encrypted_cert["ciphertext"],
+        nonce: encrypted_cert["nonce"],
+        associated_data: encrypted_cert["associated_data"]
+      )
+
+      certs[serial] = OpenSSL::PKey::RSA.new(cert_pem) if cert_pem
+    end
+
+    certs
+  end
+
+  # 解密微信返回的加密证书
+  # @return [String, nil] PEM 格式的证书
+  def decrypt_certificate(ciphertext:, nonce:, associated_data:)
+    v3_key = ENV.fetch("WECHAT_API_V3_KEY")
+
+    cipher = OpenSSL::Cipher.new("aes-256-gcm")
+    cipher.decrypt
+    cipher.key = v3_key
+    cipher.iv = nonce
+    cipher.auth_data = associated_data || ""
+
+    decoded = Base64.decode64(ciphertext)
+    # GCM 模式 tag 在最后 16 字节
+    cipher.auth_tag = decoded[-16, 16]
+    plaintext = cipher.update(decoded[0..-17]) + cipher.final
+
+    plaintext
+  rescue StandardError => e
+    Rails.logger.error("[WechatPayment] decrypt_certificate error: #{e.message}")
+    nil
   end
 end

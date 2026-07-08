@@ -68,6 +68,7 @@ env:
     - WECHAT_API_CERT_SERIAL
     - WECHAT_NOTIFY_URL
     - WECHAT_PLATFORM_CERT
+    - WECHAT_API_V3_KEY
     # 个推推送
     - GE_TUI_APP_ID
     - GE_TUI_APP_KEY
