@@ -41,26 +41,60 @@ class WechatPaymentService
   # @param body [String] 回调请求体
   # @return [Boolean]
   def verify_callback?(headers, body)
-    # 微信支付 v3 使用平台证书验证签名，这里简化实现
-    # 生产环境需要使用微信支付平台证书验证
+    # 微信支付 v3 使用平台证书验证签名
     timestamp = headers["Wechatpay-Timestamp"]
     nonce = headers["Wechatpay-Nonce"]
     signature = headers["Wechatpay-Signature"]
-    headers["Wechatpay-Serial"]
+    serial = headers["Wechatpay-Serial"]
 
     return false if timestamp.blank? || nonce.blank? || signature.blank?
 
     message = "#{timestamp}\n#{nonce}\n#{body}\n"
-    # 使用微信平台证书验证（生产环境需要从微信获取）
-    platform_certificate = ENV.fetch("WECHAT_PLATFORM_CERT", nil)
-    return false unless platform_certificate
 
-    public_key = OpenSSL::PKey::RSA.new(platform_certificate)
-    public_key.verify(
-      OpenSSL::Digest.new("SHA256"),
-      Base64.decode64(signature),
-      message
-    )
+    # 使用微信平台公钥证书验证
+    # 注意：生产环境需要从微信获取平台证书，这里简化处理
+    platform_cert_pem = ENV.fetch("WECHAT_PLATFORM_CERT", nil)
+
+    if platform_cert_pem.present?
+      public_key = OpenSSL::PKey::RSA.new(platform_cert_pem)
+      return public_key.verify(
+        OpenSSL::Digest.new("SHA256"),
+        Base64.decode64(signature),
+        message
+      )
+    end
+
+    # 如果没有平台证书，记录日志并返回 false
+    Rails.logger.warn("[WechatPayment] Platform certificate not configured, serial: #{serial}")
+    false
+  rescue StandardError => e
+    Rails.logger.error("[WechatPayment] verify_callback error: #{e.message}")
+    false
+  end
+
+  # 解密微信支付回调通知
+  # @param ciphertext [String] 加密数据
+  # @param associated_data [String] 附加数据
+  # @param nonce [String] 随机串
+  # @return [Hash] 解密后的数据
+  def decrypt_callback(ciphertext:, associated_data:, nonce:)
+    v3_key = ENV.fetch("WECHAT_API_V3_KEY")
+
+    cipher = OpenSSL::Cipher.new("aes-256-gcm")
+    cipher.decrypt
+    cipher.key = v3_key
+    cipher.iv = nonce
+    cipher.auth_data = associated_data
+
+    decoded_ciphertext = Base64.decode64(ciphertext)
+    # GCM 模式的 tag 在最后 16 字节
+    cipher.auth_tag = decoded_ciphertext[-16, 16]
+    plaintext = cipher.update(decoded_ciphertext[0..-17]) + cipher.final
+
+    JSON.parse(plaintext)
+  rescue StandardError => e
+    Rails.logger.error("[WechatPayment] decrypt_callback error: #{e.message}")
+    nil
   end
 
   private
@@ -98,15 +132,17 @@ class WechatPaymentService
   def build_auth_header(method, url, body)
     timestamp = Time.current.to_i.to_s
     nonce = SecureRandom.hex(16)
-    body_str = JSON.generate(body) if body.is_a?(Hash)
-    message = "#{method}\n#{url}\n#{timestamp}\n#{nonce}\n#{body_str || ''}\n"
+    body_str = body.is_a?(Hash) ? JSON.generate(body) : (body || "")
+    message = "#{method}\n#{url}\n#{timestamp}\n#{nonce}\n#{body_str}\n"
     signature = sign_message(message)
 
     "WECHATPAY2-SHA256-RSA2048 mchid=\"#{ENV.fetch('WECHAT_MCH_ID')}\",nonce_str=\"#{nonce}\",timestamp=\"#{timestamp}\",serial_no=\"#{ENV.fetch('WECHAT_API_CERT_SERIAL')}\",signature=\"#{signature}\""
   end
 
   def sign_message(message)
-    private_key = OpenSSL::PKey::RSA.new(ENV.fetch("WECHAT_API_CERT"))
+    # 使用商户私钥签名
+    private_key_pem = ENV.fetch("WECHAT_API_KEY")
+    private_key = OpenSSL::PKey::RSA.new(private_key_pem)
     Base64.strict_encode64(private_key.sign(OpenSSL::Digest.new("SHA256"), message))
   end
 end
