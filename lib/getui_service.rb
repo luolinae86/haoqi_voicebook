@@ -128,11 +128,15 @@ class GetuiService
   def build_push_channel(title, body, url: nil)
     return nil if title.blank? && body.blank?
 
+    target_url = url || "https://zheliyuedu.cn"
+    encoded_url = URI.encode_www_form_component(target_url)
+    intent_str = "intent:#Intent;launchFlags=0x04000000;package=com.zheli.zheliapp;component=com.zheli.zheliapp%2Fcom.zheli.zheliapp.MainActivity;S.gttask=;S.url=#{encoded_url};end"
+
     notification = {
       title: title,
       body: body,
-      click_type: "url",
-      url: url || "https://zheliyuedu.cn"
+      click_type: "intent",
+      intent: intent_str
     }
 
     {
