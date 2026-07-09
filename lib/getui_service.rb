@@ -137,9 +137,9 @@ class GetuiService
           },
           # 安卓离线推送渠道配置（传给个推，由个推转发给厂商渠道）
           options: {
-            channels: [
-              { "constraint" => "XM", "key" => "/extra.channel_id", "value" => "154596" }
-            ]
+            "XM" => {
+              "/extra.channel_id" => "154596"
+            }
           }
         }
       }
