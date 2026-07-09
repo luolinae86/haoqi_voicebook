@@ -149,6 +149,9 @@ module Api
         # ==================== 微信异步回调 ====================
         desc '微信支付异步通知回调（无需鉴权）'
         post :wechat_callback do
+          Rails.logger.info("[WechatCallback] === Callback received ===")
+          Rails.logger.info("[WechatCallback] Serial: #{headers['Wechatpay-Serial']}, Timestamp present: #{headers['Wechatpay-Timestamp'].present?}")
+
           # 读取回调 body（优先从 rack.input 读取原始 body，兼容 Grape 解析后）
           callback_body = begin
             raw = env['rack.input']
@@ -160,9 +163,12 @@ module Api
             else
               raw.gets(nil).to_s
             end
-          rescue StandardError
+          rescue StandardError => e
+            Rails.logger.error("[WechatCallback] Error reading body: #{e.class}: #{e.message}")
             ''
           end
+
+          Rails.logger.info("[WechatCallback] Body length: #{callback_body.length}, blank? #{callback_body.blank?}")
 
           # 如果 raw body 为空（Grape 已消费），从 params 获取
           callback_body = params.except(:route_info, :version, :format).to_json if callback_body.blank?
@@ -174,9 +180,11 @@ module Api
             'Wechatpay-Serial' => headers['Wechatpay-Serial']
           }
 
+          Rails.logger.info("[WechatCallback] About to verify, headers: #{callback_headers.transform_values { |v| v&.length }}")
           wechat_service = WechatPaymentService.new
 
           if wechat_service.verify_callback?(callback_headers, callback_body)
+            Rails.logger.info("[WechatCallback] Signature verification PASSED")
             begin
               result = JSON.parse(callback_body)
               order_no = result['out_trade_no']
@@ -195,10 +203,11 @@ module Api
               { code: 'FAIL', msg: '解析失败' }
             end
           else
-            Rails.logger.warn('[WechatCallback] Signature verification failed')
+            Rails.logger.warn('[WechatCallback] Signature verification FAILED')
             { code: 'FAIL', msg: '签名验证失败' }
           end
         end
+
       end
     end
   end
