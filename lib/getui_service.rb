@@ -129,11 +129,12 @@ class GetuiService
     return nil if title.blank? && body.blank?
 
     {
-      default: {
+      android: {
         ups: {
           notification: {
             title: title,
-            body: body
+            body: body,
+            click_type: "startapp"
           },
           # 安卓离线推送渠道配置（传给个推，由个推转发给厂商渠道）
           options: {
