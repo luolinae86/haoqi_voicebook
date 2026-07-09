@@ -156,18 +156,29 @@ class WechatPaymentService
   end
 
   # 获取微信平台公钥（用于验证回调签名）
-  # @param serial [String] 证书序列号
+  # @param serial [String] 证书序列号（公钥模式下为 PUB_KEY_ID_xxx）
   # @return [OpenSSL::PKey::RSA, nil]
   def get_platform_public_key(serial)
-    # 优先从环境变量获取
+    # 从环境变量获取公钥
     env_cert = ENV.fetch("WECHAT_PLATFORM_CERT", nil)
     if env_cert.present?
+      # 如果配置了公钥 ID，验证 serial 是否匹配
+      pub_key_id = ENV.fetch("WECHAT_PLATFORM_CERT_PUB_KEY_ID", nil)
+      if pub_key_id.present?
+        if serial == pub_key_id
+          return OpenSSL::PKey::RSA.new(env_cert)
+        else
+          Rails.logger.warn("[WechatPayment] Public key serial mismatch: expected #{pub_key_id}, got #{serial}")
+          return nil
+        end
+      end
+      # 未配置公钥 ID 时，直接返回（向后兼容）
       return OpenSSL::PKey::RSA.new(env_cert)
     end
 
-    # 从缓存或自动下载
-    refresh_platform_certs_if_needed
-    @@platform_certs_cache[serial]
+    # 公钥模式下 /v3/certificates 接口不可用，跳过自动下载
+    Rails.logger.warn("[WechatPayment] WECHAT_PLATFORM_CERT not configured, serial: #{serial}")
+    nil
   end
 
   # 刷新平台证书缓存（如需要）
