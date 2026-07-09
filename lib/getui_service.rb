@@ -29,14 +29,14 @@ class GetuiService
   # @param payload [Hash] 附加数据
   # @param push_type [Symbol] :notification（默认，在线透传+离线通知）或 :transmission（仅在线透传）
   # @return [Hash] 个推返回结果
-  def push_to_single(cid, title = nil, body = nil, payload: {}, push_type: :notification)
+  def push_to_single(cid, title = nil, body = nil, payload: {}, push_type: :notification, url: nil)
     raise ArgumentError, 'cid 不能为空' if cid.blank?
 
     request_body = {
       request_id: SecureRandom.uuid,
       audience: { cid: [cid] },
       push_message: build_push_message(payload, title, body),
-      push_channel: build_push_channel(title, body)
+      push_channel: build_push_channel(title, body, url: url)
     }
 
     # 仅透传模式不加 push_channel（个推后台不会自动转通知）
@@ -52,7 +52,7 @@ class GetuiService
   # @param payload [Hash] 附加数据
   # @param push_type [Symbol] :notification 或 :transmission
   # @return [Hash] 个推返回结果
-  def push_to_batch(cid_list, title = nil, body = nil, payload: {}, push_type: :notification)
+  def push_to_batch(cid_list, title = nil, body = nil, payload: {}, push_type: :notification, url: nil)
     return {} if cid_list.blank?
 
     # Step 1: 创建消息体，获取 taskid
@@ -61,7 +61,7 @@ class GetuiService
       group_name: "batch_#{SecureRandom.hex(4)}",
       push_message: build_push_message(payload, title, body)
     }
-    task_body[:push_channel] = build_push_channel(title, body) unless push_type == :transmission
+    task_body[:push_channel] = build_push_channel(title, body, url: url) unless push_type == :transmission
 
     task_result = api_request('push/list/message', task_body)
     task_id = task_result.dig('data', 'taskid') || task_result.dig('data', 'task_id') || task_result.dig('data', 'id') || task_result.dig('data', 'taskId')
@@ -83,12 +83,12 @@ class GetuiService
   # @param payload [Hash] 附加数据
   # @param push_type [Symbol] :notification 或 :transmission
   # @return [Hash] 个推返回结果
-  def push_to_all(title = nil, body = nil, payload: {}, push_type: :notification)
+  def push_to_all(title = nil, body = nil, payload: {}, push_type: :notification, url: nil)
     request_body = {
       request_id: SecureRandom.uuid,
       audience: { all: 'all' },
       push_message: build_push_message(payload, title, body),
-      push_channel: build_push_channel(title, body)
+      push_channel: build_push_channel(title, body, url: url)
     }
 
     request_body.delete(:push_channel) if push_type == :transmission
@@ -125,17 +125,20 @@ class GetuiService
   end
 
   # 构建厂商通道离线通知（用户离线时通过华为/小米/OPPO/vivo 等显示通知）
-  def build_push_channel(title, body)
+  def build_push_channel(title, body, url: nil)
     return nil if title.blank? && body.blank?
+
+    notification = {
+      title: title,
+      body: body,
+      click_type: "url",
+      url: url || "https://zheliyuedu.cn"
+    }
 
     {
       android: {
         ups: {
-          notification: {
-            title: title,
-            body: body,
-            click_type: "startapp"
-          },
+          notification: notification,
           # 安卓离线推送渠道配置（传给个推，由个推转发给厂商渠道）
           options: {
             "XM" => {
