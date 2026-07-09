@@ -162,8 +162,8 @@ class WechatPaymentService
     # 从环境变量获取公钥
     env_cert = ENV.fetch("WECHAT_PLATFORM_CERT", nil)
     if env_cert.present?
-      # kamal 环境变量 \n 被双重转义为 \\n，需要手动还原为真实换行
-      env_cert = env_cert.gsub("\\\\n", "\n")
+      # kamal 环境变量换行被转义为字面量 \n 或 \\n，统一还原为真实换行
+      env_cert = env_cert.gsub(/\\+n/, "\n")
 
       # 如果配置了公钥 ID，验证 serial 是否匹配
       pub_key_id = ENV.fetch("WECHAT_PLATFORM_CERT_PUB_KEY_ID", nil)
