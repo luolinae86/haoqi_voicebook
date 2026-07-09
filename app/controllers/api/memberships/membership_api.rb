@@ -60,7 +60,7 @@ module Api
         get :plans do
           auth_user
 
-          packages = Package.ordered_by_price
+          packages = Package.sorted
 
           present response: success_response(packages: serialize_collection(packages, Entities::Package))
         end

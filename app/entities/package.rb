@@ -3,6 +3,7 @@
 module Entities
   class Package < Grape::Entity
     expose :id
+    expose :sn
     expose :name
     expose :price
     expose :origin_price
