@@ -186,21 +186,54 @@ module Api
           if wechat_service.verify_callback?(callback_headers, callback_body)
             Rails.logger.info("[WechatCallback] Signature verification PASSED")
             begin
-              result = JSON.parse(callback_body)
-              order_no = result['out_trade_no']
-              trade_state = result['trade_state']
+              # 微信回调 body 是加密的，需要先解密
+              callback_data = JSON.parse(callback_body)
+              resource = callback_data['resource']
 
-              if trade_state == 'SUCCESS'
-                PaymentCallbackWorker.perform_async({
-                                                      'order_no' => order_no,
-                                                      'payment_method' => 'wechat',
-                                                      'result' => result
-                                                    })
+              if resource && resource['ciphertext']
+                # 解密回调数据
+                decrypted = wechat_service.decrypt_callback(
+                  ciphertext: resource['ciphertext'],
+                  associated_data: resource['associated_data'] || '',
+                  nonce: resource['nonce']
+                )
+
+                if decrypted
+                  Rails.logger.info("[WechatCallback] Decrypted callback: #{decrypted.to_json}")
+                  order_no = decrypted['out_trade_no']
+                  trade_state = decrypted['trade_state']
+
+                  if trade_state == 'SUCCESS'
+                    PaymentCallbackWorker.perform_async({
+                                                          'order_no' => order_no,
+                                                          'payment_method' => 'wechat',
+                                                          'result' => decrypted
+                                                        })
+                  end
+                else
+                  Rails.logger.error("[WechatCallback] Failed to decrypt callback")
+                end
+              else
+                # 非加密格式（兼容旧版本）
+                order_no = callback_data['out_trade_no']
+                trade_state = callback_data['trade_state']
+
+                if trade_state == 'SUCCESS'
+                  PaymentCallbackWorker.perform_async({
+                                                        'order_no' => order_no,
+                                                        'payment_method' => 'wechat',
+                                                        'result' => callback_data
+                                                      })
+                end
               end
 
               { code: 'SUCCESS', msg: '成功' }
-            rescue JSON::ParserError
+            rescue JSON::ParserError => e
+              Rails.logger.error("[WechatCallback] JSON parse error: #{e.message}")
               { code: 'FAIL', msg: '解析失败' }
+            rescue StandardError => e
+              Rails.logger.error("[WechatCallback] Error: #{e.class}: #{e.message}")
+              { code: 'FAIL', msg: '处理失败' }
             end
           else
             Rails.logger.warn('[WechatCallback] Signature verification FAILED')
