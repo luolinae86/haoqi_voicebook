@@ -22,6 +22,23 @@ module Api
 
       private
 
+      # 从缓存结果中过滤当前用户的拉黑书籍（单次查询，批量排除）
+      def filter_blacklisted(content_groups)
+        pc = current_user&.parental_control
+        return content_groups unless pc
+
+        blacklisted_ids = pc.blacklisted_books.pluck(:book_id).to_set
+        return content_groups if blacklisted_ids.empty?
+
+        content_groups.map do |cg|
+          filtered = cg[:contents].reject do |c|
+            book_id = c.dig(:book, :id)
+            book_id && blacklisted_ids.include?(book_id)
+          end
+          cg.merge(contents: filtered)
+        end
+      end
+
       def book_blacklisted?(book_id)
         return false if book_id.blank?
 
@@ -34,12 +51,19 @@ module Api
       end
 
       def serialize_content_group(cg)
+        # 批量获取当前用户已拉黑的 book_ids（一次查询）
+        blacklisted_ids = if current_user&.parental_control
+                            current_user.parental_control.blacklisted_books.pluck(:book_id).to_set
+                          else
+                            Set.new
+                          end
+
         {
           id: cg.id,
           name: cg.name,
           group_type: cg.group_type,
           group_type_name: cg.group_type_name,
-          contents: cg.contents.includes(:book, :category_sub).sorted.reject { |c| book_blacklisted?(c.book_id) }.map { |content| serialize_content(content) }
+          contents: cg.contents.sorted.reject { |c| blacklisted_ids.include?(c.book_id) }.map { |content| serialize_content(content) }
         }
       end
 

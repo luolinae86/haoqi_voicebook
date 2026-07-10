@@ -27,7 +27,7 @@
 #  fk_rails_...  (content_group_id => content_groups.id)
 #
 class Content < ApplicationRecord
-  belongs_to :content_group
+  belongs_to :content_group, touch: true
   belongs_to :compilation, optional: true
   belongs_to :book, optional: true
   belongs_to :author, optional: true

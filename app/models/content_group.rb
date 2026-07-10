@@ -21,7 +21,7 @@
 #  fk_rails_...  (recommend_id => recommends.id)
 #
 class ContentGroup < ApplicationRecord
-  belongs_to :recommend
+  belongs_to :recommend, touch: true
   has_many :contents, dependent: :destroy
 
   enum :group_type, {
