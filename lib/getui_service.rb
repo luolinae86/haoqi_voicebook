@@ -138,9 +138,10 @@ class GetuiService
       "type" => "url"
     }
 
-    # JSON 编码后 URL 编码，再包裹引号（与客户端解析格式一致）
+    # JSON 双重编码：先序列化再对字符串二次序列化（内部引号转义为 \"）
     json_str = JSON.generate(payload_data)
-    encoded_payload = URI.encode_www_form_component("\"#{json_str}\"")
+    quoted_str = JSON.generate(json_str)  # 自动包裹外层引号并转义内部引号
+    encoded_payload = URI.encode_www_form_component(quoted_str)
     intent_str = "intent://push/main?#Intent;scheme=zheliapp;launchFlags=0x04000000;package=com.zheli.zheliapp;component=com.zheli.zheliapp%2Fcom.zheli.zheliapp.MainActivity;S.gttask=;S.payload=#{encoded_payload};end"
 
     notification = {
