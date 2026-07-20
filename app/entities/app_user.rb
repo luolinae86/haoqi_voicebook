@@ -22,7 +22,7 @@ module Entities
     expose :books_read
 
     expose :is_vip do |instance, _|
-      instance.is_vip?
+      instance.is_vip? && instance.vip_expires_at.present? && instance.vip_expires_at > Time.current
     end
     expose :vip_expires_at do |instance, _|
       instance.vip_expires_at&.strftime('%Y-%m-%d %H:%M:%S')
