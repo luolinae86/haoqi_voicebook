@@ -73,6 +73,7 @@ module Api
           requires :uuid, type: String, desc: '用户uuid'
           requires :phone, type: String, desc: '手机号'
           requires :code, type: String, desc: '验证码'
+          optional :device_id, type: String, desc: '设备 ID（前端传来，优先使用）'
         end
         post :login_by_code do
           user = AppUser.find_by(uuid: params[:uuid])
@@ -80,7 +81,10 @@ module Api
 
           find_and_consume_verification(params[:phone], params[:code])
 
-          requesting_device_id = user.devices.order(:created_at).last&.device_id || user.device_id
+          # 优先使用前端传来的 device_id，其次使用数据库中的
+          requesting_device_id = params[:device_id].presence ||
+                                  user.devices.order(:created_at).last&.device_id ||
+                                  user.device_id
 
           # 如果手机号已绑定其他用户，将当前设备重新绑定到主账户
           existing_user = AppUser.find_by(phone: params[:phone])
