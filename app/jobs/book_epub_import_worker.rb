@@ -117,6 +117,8 @@ class BookEpubImportWorker
               # 替换 XHTML 中的相对图片路径为 OSS URL
               xhtml_content = replace_image_paths(raw_xhtml, image_url_map, href)
               word_count = extract_word_count(xhtml_content)
+              # 提取纯文本内容（用于搜索和显示）
+              plain_text = extract_plain_text(xhtml_content)
             end
 
             # 回退模式：每个 spine 文件创建一个章节
@@ -138,6 +140,7 @@ class BookEpubImportWorker
                 book.ebook_pages.create!(
                   page_number: page_number,
                   xhtml_content: xhtml_content,
+                  plain_text: plain_text,
                   word_count: word_count
                 )
               end
@@ -162,6 +165,7 @@ class BookEpubImportWorker
                   book.ebook_pages.create!(
                     page_number: page_number,
                     xhtml_content: xhtml_content,
+                    plain_text: plain_text,
                     word_count: page_word_count
                   )
                 end
@@ -277,6 +281,16 @@ class BookEpubImportWorker
     text.length
   rescue StandardError
     0
+  end
+
+  # 从 XHTML 内容中提取纯文本（用于搜索和显示）
+  def extract_plain_text(xhtml)
+    doc = Nokogiri::HTML(xhtml)
+    text = doc.xpath("//body").text
+    # 清理多余空白，但保留段落结构
+    text.gsub(/\n\s*\n/, "\n").gsub(/[ \t]+/, ' ').strip
+  rescue StandardError
+    nil
   end
 
   def upload_css_files(opf, extract_dir, opf_dir, oss_service, sanitized_title:)
