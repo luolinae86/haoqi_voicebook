@@ -68,3 +68,21 @@ for host in ${KAMAL_HOSTS//,/ }; do
 done
 
 echo "===== 部署完成 ====="
+
+echo "===== 配置域名重定向（如未配置） ====="
+for host in ${KAMAL_HOSTS//,/ }; do
+  echo "[$host] 检查域名配置..."
+  CURRENT_HOSTS=$(ssh "root@$host" "docker exec kamal-proxy kamal-proxy list 2>/dev/null | grep wandwords-web | awk '{print \$2}'" 2>/dev/null || echo "")
+  if [[ "$CURRENT_HOSTS" != *"wanwords.com"* ]]; then
+    echo "[$host] 未检测到 wanwords.com，配置域名重定向..."
+    CONTAINER=$(ssh "root@$host" "docker ps --filter label=service=wandwords --filter label=role=web --format '{{.ID}}' | head -1")
+    if [ -n "$CONTAINER" ]; then
+      ssh "root@$host" "docker exec kamal-proxy kamal-proxy deploy wandwords-web --target='${CONTAINER}:80' --host='wanwords.com' --host='www.wanwords.com' --canonical-host='www.wanwords.com' --tls --deploy-timeout='120s' --drain-timeout='30s' --health-check-interval='5s' --health-check-timeout='10s' --health-check-path='/up' --target-timeout='60s' --buffer-requests --buffer-responses --tls-redirect"
+      echo "[$host] 域名配置完成"
+    else
+      echo "[$host] 未找到 web 容器，跳过域名配置"
+    fi
+  else
+    echo "[$host] 域名已配置，跳过"
+  fi
+done
