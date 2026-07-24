@@ -108,18 +108,34 @@ class BookEpubImportWorker
 
           # 回退模式：为每个 spine 文件创建页面（无 TOC 时用文件名作为章节名）
           if use_spine_fallback || has_toc
-            xhtml_path = extract_dir.join(opf_dir, href)
-            xhtml_content = nil
-            word_count = 0
+            # 合并当前文件及后续连续的非 TOC 文件（标题页 + 正文页）
+            xhtml_contents = []
+            current_index = unique_spine.index(href)
 
-            if xhtml_path.exist?
-              raw_xhtml = File.read(xhtml_path)
-              # 替换 XHTML 中的相对图片路径为 OSS URL
-              xhtml_content = replace_image_paths(raw_xhtml, image_url_map, href)
-              word_count = extract_word_count(xhtml_content)
-              # 提取纯文本内容（用于搜索和显示）
-              plain_text = extract_plain_text(xhtml_content)
+            # 收集当前 TOC 条目对应的所有连续文件
+            while current_index < unique_spine.size
+              current_href = unique_spine[current_index]
+              xhtml_path = extract_dir.join(opf_dir, current_href)
+
+              if xhtml_path.exist?
+                raw_xhtml = File.read(xhtml_path)
+                # 替换 XHTML 中的相对图片路径为 OSS URL
+                processed_xhtml = replace_image_paths(raw_xhtml, image_url_map, current_href)
+                xhtml_contents << processed_xhtml
+              end
+
+              current_index += 1
+
+              # 如果下一个文件有 TOC 条目，停止合并（属于下一个章节）
+              break if current_index < unique_spine.size &&
+                       toc_entries.any? { |t| t[:href] == unique_spine[current_index] }
             end
+
+            # 合并所有 XHTML 内容
+            xhtml_content = xhtml_contents.join("\n")
+            word_count = extract_word_count(xhtml_content)
+            # 提取纯文本内容（用于搜索和显示）
+            plain_text = extract_plain_text(xhtml_content)
 
             # 回退模式：每个 spine 文件创建一个章节
             if use_spine_fallback
@@ -149,31 +165,26 @@ class BookEpubImportWorker
               total_word_count += word_count
             else
               # 正常模式：为每个 TOC 条目创建独立的 catalogue 和 ebook_page
-              first_page = true
-              matching_tocs.each do |matching_toc|
-                chapter_number += 1
-                page_word_count = first_page ? word_count : 0
+              # 使用合并后的内容（标题页 + 正文页）
+              chapter_number += 1
 
-                book.catalogues.create!(
-                  chapter_number: chapter_number,
-                  chapter_name: matching_toc[:title],
-                  start_page_number: page_number,
-                  word_count: page_word_count
+              book.catalogues.create!(
+                chapter_number: chapter_number,
+                chapter_name: matching_tocs.first[:title],
+                start_page_number: page_number,
+                word_count: word_count
+              )
+
+              if xhtml_content.present?
+                book.ebook_pages.create!(
+                  page_number: page_number,
+                  xhtml_content: xhtml_content,
+                  plain_text: plain_text,
+                  word_count: word_count
                 )
-
-                if xhtml_content.present?
-                  book.ebook_pages.create!(
-                    page_number: page_number,
-                    xhtml_content: xhtml_content,
-                    plain_text: plain_text,
-                    word_count: page_word_count
-                  )
-                end
-
-                page_number += 1
-                first_page = false
               end
 
+              page_number += 1
               total_word_count += word_count
             end
           end
