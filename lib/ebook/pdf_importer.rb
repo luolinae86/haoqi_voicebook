@@ -49,47 +49,53 @@ module Ebook
         FileUtils.rm_rf(@storage_root)
 
         reader.pages.each do |page|
-          # Always walk the page for text to resolve directory headings
-          receiver = PdfPageReceiver.new
-          page.walk(receiver)
-          text_content = build_text_content(page, receiver.runs)
-
-          if force_image_pages
-            import_as_image_page(page, renderer, toc_mapping[:page_map], text_content, current_directory)
-            # Update current_directory from this page's text for subsequent pages
-            resolved = resolve_directory(
-              page_number: page.number,
-              text_content: text_content,
-              directory_map: toc_mapping[:page_map],
-              current_directory: current_directory
-            )
-            current_directory = resolved if resolved
-          else
+          begin
+            # Always walk the page for text to resolve directory headings
             receiver = PdfPageReceiver.new
             page.walk(receiver)
-            content, current_directory, page_geometry = build_content(
-              page,
-              receiver,
-              directory_map: toc_mapping[:page_map],
-              current_directory: current_directory,
-              renderer: renderer,
-              force_image_pages: false
-            )
-            plain_text = sanitize_text(content[:text])
-            word_count = count_words(plain_text)
+            text_content = build_text_content(page, receiver.runs)
 
-            @book.ebook_pages.create!(
-              page_number: page.number,
-              page_width: page_geometry[:width],
-              page_height: page_geometry[:height],
-              plain_text: plain_text,
-              rich_content: sanitize_content(content),
-              word_count: word_count,
-              block_count: content[:lines].size + content[:images].size,
-              image_count: content[:images].size
-            )
+            if force_image_pages
+              import_as_image_page(page, renderer, toc_mapping[:page_map], text_content, current_directory)
+              # Update current_directory from this page's text for subsequent pages
+              resolved = resolve_directory(
+                page_number: page.number,
+                text_content: text_content,
+                directory_map: toc_mapping[:page_map],
+                current_directory: current_directory
+              )
+              current_directory = resolved if resolved
+            else
+              receiver = PdfPageReceiver.new
+              page.walk(receiver)
+              content, current_directory, page_geometry = build_content(
+                page,
+                receiver,
+                directory_map: toc_mapping[:page_map],
+                current_directory: current_directory,
+                renderer: renderer,
+                force_image_pages: false
+              )
+              plain_text = sanitize_text(content[:text])
+              word_count = count_words(plain_text)
 
-            total_word_count += word_count
+              @book.ebook_pages.create!(
+                page_number: page.number,
+                page_width: page_geometry[:width],
+                page_height: page_geometry[:height],
+                plain_text: plain_text,
+                rich_content: sanitize_content(content),
+                word_count: word_count,
+                block_count: content[:lines].size + content[:images].size,
+                image_count: content[:images].size
+              )
+
+              total_word_count += word_count
+            end
+          rescue PDF::Reader::MalformedPDFError => e
+            # 跳过有问题的页面，继续处理其他页面
+            Rails.logger.warn("[PdfImporter] Skipping page #{page.number}: #{e.message}")
+            next
           end
         end
 

@@ -29,14 +29,20 @@ module Ebook
       entries = []
 
       @pages.first(LOOKAHEAD_PAGES).each do |page|
-        page_entries = page.text.lines.filter_map { |line| parse_toc_entry(line) }
-        next if page_entries.size < MIN_TOC_MATCHES
+        begin
+          page_entries = page.text.lines.filter_map { |line| parse_toc_entry(line) }
+          next if page_entries.size < MIN_TOC_MATCHES
 
-        toc_pages << page.number
-        page_entries.each do |entry|
-          next if entries.any? { |existing| normalize_lookup(existing[:title]) == normalize_lookup(entry[:title]) }
+          toc_pages << page.number
+          page_entries.each do |entry|
+            next if entries.any? { |existing| normalize_lookup(existing[:title]) == normalize_lookup(entry[:title]) }
 
-          entries << entry
+            entries << entry
+          end
+        rescue PDF::Reader::MalformedPDFError => e
+          # 跳过有问题的页面，继续处理其他页面
+          Rails.logger.warn("[TocMapper] Skipping page #{page.number}: #{e.message}")
+          next
         end
       end
 
