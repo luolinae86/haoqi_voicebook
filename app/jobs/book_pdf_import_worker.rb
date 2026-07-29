@@ -76,8 +76,11 @@ class BookPdfImportWorker
 
   def build_page_renderer(pdf_path)
     Ebook::PageImageRenderer.new(pdf_path: pdf_path)
-  rescue StandardError => e
+  rescue PDF::Reader::MalformedPDFError, PDF::Reader::Error => e
     Rails.logger.warn("[BookPdfImport] Page renderer unavailable: #{e.message}")
+    nil
+  rescue StandardError => e
+    Rails.logger.warn("[BookPdfImport] Page renderer unavailable: #{e.class}: #{e.message}")
     nil
   end
 end
