@@ -36,7 +36,14 @@ module Ebook
       raise ArgumentError, "PDF 文件不存在: #{@pdf_path}" unless @pdf_path.exist?
 
       @book.update!(import_status: :processing, import_error_message: nil)
-      reader = PDF::Reader.new(@pdf_path.to_s)
+
+      begin
+        reader = PDF::Reader.new(@pdf_path.to_s)
+      rescue PDF::Reader::MalformedPDFError, PDF::Reader::Error => e
+        Rails.logger.error("[PdfImporter] PDF 解析失败：#{e.message}")
+        @book.update!(import_status: :failed, import_error_message: "PDF 文件损坏：#{e.message}")
+        return @book
+      end
       renderer = @page_renderer || PageImageRenderer.new(pdf_path: @pdf_path)
       force_image_pages = page_image_mode?(reader)
       toc_mapping = TocMapper.new(reader: reader).call
