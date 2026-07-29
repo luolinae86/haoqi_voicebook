@@ -14,7 +14,7 @@ module Ebook
         begin
           _ = page.number
           @pages << page
-        rescue PDF::Reader::MalformedPDFError
+        rescue StandardError
           next
         end
       end
@@ -48,9 +48,13 @@ module Ebook
 
             entries << entry
           end
-        rescue PDF::Reader::MalformedPDFError => e
+        rescue PDF::Reader::MalformedPDFError, PDF::Reader::Error => e
           # 跳过有问题的页面，继续处理其他页面
-          Rails.logger.warn("[TocMapper] Skipping page #{page.number}: #{e.message}")
+          Rails.logger.warn("[TocMapper] Skipping page #{page.number rescue '?'}: #{e.message}")
+          next
+        rescue StandardError => e
+          # 捕获其他可能的错误
+          Rails.logger.warn("[TocMapper] Skipping page #{page.number rescue '?'}: #{e.class}: #{e.message}")
           next
         end
       end

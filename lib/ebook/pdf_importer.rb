@@ -52,9 +52,9 @@ module Ebook
         accessible_pages = []
         reader.pages.each do |page|
           begin
-            _ = page.number
+            page_num = page.number
             accessible_pages << page
-          rescue PDF::Reader::MalformedPDFError => e
+          rescue StandardError => e
             Rails.logger.warn("[PdfImporter] Cannot access page: #{e.message}")
             next
           end
@@ -104,9 +104,13 @@ module Ebook
 
               total_word_count += word_count
             end
-          rescue PDF::Reader::MalformedPDFError => e
+          rescue PDF::Reader::MalformedPDFError, PDF::Reader::Error => e
             # 跳过有问题的页面，继续处理其他页面
-            Rails.logger.warn("[PdfImporter] Skipping page #{page.number}: #{e.message}")
+            Rails.logger.warn("[PdfImporter] Skipping page #{page.number rescue '?'}: #{e.message}")
+            next
+          rescue StandardError => e
+            # 捕获其他可能的错误
+            Rails.logger.warn("[PdfImporter] Skipping page #{page.number rescue '?'}: #{e.class}: #{e.message}")
             next
           end
         end
