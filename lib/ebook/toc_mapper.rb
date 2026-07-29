@@ -113,7 +113,13 @@ module Ebook
 
     def normalized_page_text(page_number)
       @normalized_page_text ||= {}
-      @normalized_page_text[page_number] ||= normalize_lookup(@pages[page_number - 1].text.lines.first(10).join(" "))
+      @normalized_page_text[page_number] ||= begin
+        page = @pages[page_number - 1]
+        return "" unless page
+        normalize_lookup(page.text.lines.first(10).join(" "))
+      rescue StandardError
+        ""
+      end
     end
 
     def normalize_lookup(text)
