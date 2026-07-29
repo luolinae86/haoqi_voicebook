@@ -28,7 +28,20 @@ module Ebook
       toc_pages = []
       entries = []
 
+      # 安全地获取前 LOOKAHEAD_PAGES 个页面
+      pages_to_check = []
       @pages.first(LOOKAHEAD_PAGES).each do |page|
+        begin
+          # 尝试访问页面以检查是否有效
+          _ = page.number
+          pages_to_check << page
+        rescue PDF::Reader::MalformedPDFError => e
+          Rails.logger.warn("[TocMapper] Cannot access page: #{e.message}")
+          next
+        end
+      end
+
+      pages_to_check.each do |page|
         begin
           page_entries = page.text.lines.filter_map { |line| parse_toc_entry(line) }
           next if page_entries.size < MIN_TOC_MATCHES

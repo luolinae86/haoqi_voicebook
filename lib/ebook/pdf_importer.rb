@@ -50,6 +50,9 @@ module Ebook
 
         reader.pages.each do |page|
           begin
+            # 先检查页面是否可访问
+            _ = page.number
+
             # Always walk the page for text to resolve directory headings
             receiver = PdfPageReceiver.new
             page.walk(receiver)
