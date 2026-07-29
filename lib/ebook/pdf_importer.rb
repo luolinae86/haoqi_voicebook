@@ -48,11 +48,20 @@ module Ebook
         @book.ebook_pages.delete_all
         FileUtils.rm_rf(@storage_root)
 
+        # 安全地收集所有可访问的页面
+        accessible_pages = []
         reader.pages.each do |page|
           begin
-            # 先检查页面是否可访问
             _ = page.number
+            accessible_pages << page
+          rescue PDF::Reader::MalformedPDFError => e
+            Rails.logger.warn("[PdfImporter] Cannot access page: #{e.message}")
+            next
+          end
+        end
 
+        accessible_pages.each do |page|
+          begin
             # Always walk the page for text to resolve directory headings
             receiver = PdfPageReceiver.new
             page.walk(receiver)
@@ -105,7 +114,7 @@ module Ebook
         @book.update!(
           content_type: :ebook,
           word_count: total_word_count,
-          page_count: reader.pages.size,
+          page_count: accessible_pages.size,
           source_pdf_filename: @source_filename,
           source_pdf_path: @source_pdf_oss_key.presence || @pdf_path.to_s,
           ebook_checksum: checksum,
