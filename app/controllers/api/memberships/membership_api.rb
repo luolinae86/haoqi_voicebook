@@ -71,6 +71,7 @@ module Api
           requires :uuid, type: String, desc: '用户uuid'
           requires :package_id, type: Integer, desc: '套餐ID'
           requires :payment_method, type: String, desc: '支付方式：alipay/wechat', values: %w[alipay wechat]
+          optional :pay_scene, type: String, desc: '支付场景：app(默认)/native(扫码)', values: %w[app native], default: 'app'
         end
         post :create_order do
           auth_user
@@ -99,6 +100,7 @@ module Api
 
           # 生成支付参数
           subject = "#{package.name} - #{package.price}元"
+          pay_scene = params[:pay_scene] || 'app'
           payment_params = case params[:payment_method]
                            when 'alipay'
                              AlipayPaymentService.new.create_order(
@@ -107,18 +109,36 @@ module Api
                                subject: subject
                              )
                            when 'wechat'
-                             WechatPaymentService.new.create_prepay(
-                               order_no: order.order_no,
-                               amount: package.price,
-                               subject: subject
-                             )
+                             if pay_scene == 'native'
+                               # Native 支付（扫码支付）
+                               WechatPaymentService.new.create_native_prepay(
+                                 order_no: order.order_no,
+                                 amount: package.price,
+                                 subject: subject
+                               )
+                             else
+                               # APP 支付
+                               WechatPaymentService.new.create_prepay(
+                                 order_no: order.order_no,
+                                 amount: package.price,
+                                 subject: subject
+                               )
+                             end
                            end
 
-          present response: success_response(
+          response_data = {
             order: Entities::Order.represent(order).as_json,
             payment_params: payment_params,
             msg: '订单创建成功，请完成支付'
-          )
+          }
+
+          # 如果是 Native 支付，生成二维码图片
+          if params[:payment_method] == 'wechat' && pay_scene == 'native' && payment_params[:code_url]
+            qr_code_url = generate_qr_code(payment_params[:code_url], order.order_no)
+            response_data[:qr_code_url] = qr_code_url if qr_code_url
+          end
+
+          present response: success_response(response_data)
         end
 
         # ==================== 查询订阅记录 ====================
@@ -144,6 +164,25 @@ module Api
           end
 
           present response: success_response(items: items)
+        end
+
+        # ==================== 查询订单支付状态 ====================
+        desc '查询订单支付状态（用于扫码支付轮询）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :order_no, type: String, desc: '订单号'
+        end
+        get :check_payment_status do
+          auth_user
+
+          order = Order.find_by(order_no: params[:order_no], app_user_id: current_user.id)
+          error_pop_resp('订单不存在') unless order
+
+          present response: success_response(
+            order_no: order.order_no,
+            status: order.status,
+            paid_at: order.paid_at&.strftime('%Y-%m-%d %H:%M:%S')
+          )
         end
 
         # ==================== 微信异步回调 ====================
@@ -243,5 +282,33 @@ module Api
 
       end
     end
+  end
+
+  private
+
+  # 生成微信支付二维码图片并上传到 OSS
+  # @param code_url [String] 微信 code_url
+  # @param order_no [String] 订单号
+  # @return [String, nil] OSS URL
+  def generate_qr_code(code_url, order_no)
+    require 'rqrcode'
+
+    qr = RQRCode::QRCode.new(code_url)
+    png = qr.as_png(size: 300, border_modules: 4, module_px_size: 6)
+
+    # 上传到 OSS
+    oss_service = AliyunOssService.new
+    object_key = "qr_codes/wechat_pay_#{order_no}.png"
+
+    oss_url = oss_service.upload_data(
+      data: png.to_s,
+      object_key: object_key,
+      content_type: 'image/png'
+    )
+
+    oss_url
+  rescue StandardError => e
+    Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
+    nil
   end
 end

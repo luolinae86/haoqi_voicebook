@@ -22,7 +22,7 @@ class WechatPaymentService
   # @param subject [String] 订单标题
   # @return [Hash] 微信支付预支付参数（返回给 APP 调起支付）
   def create_prepay(order_no:, amount:, subject:)
-    prepay_id = request_prepay(order_no, amount, subject)
+    prepay_id = request_prepay(order_no, amount, subject, trade_type: 'app')
 
     # 生成 APP 支付参数
     timestamp = Time.current.to_i.to_s
@@ -38,6 +38,20 @@ class WechatPaymentService
       noncestr: nonce_str,
       timestamp: timestamp,
       sign: pay_sign
+    }
+  end
+
+  # Native 支付（扫码支付，适用于平板等设备）
+  # @param order_no [String] 商户订单号
+  # @param amount [BigDecimal/Float] 支付金额（元）
+  # @param subject [String] 订单标题
+  # @return [Hash] { code_url: "weixin://wxpay/..." }
+  def create_native_prepay(order_no:, amount:, subject:)
+    code_url = request_prepay(order_no, amount, subject, trade_type: 'native')
+
+    {
+      code_url: code_url,
+      order_no: order_no
     }
   end
 
@@ -101,8 +115,8 @@ class WechatPaymentService
 
   private
 
-  def request_prepay(order_no, amount, subject)
-    url = "#{GATEWAY}/v3/pay/transactions/app"
+  def request_prepay(order_no, amount, subject, trade_type: 'app')
+    url = "#{GATEWAY}/v3/pay/transactions/#{trade_type}"
     body = {
       appid: ENV.fetch("WECHAT_APP_ID"),
       mchid: ENV.fetch("WECHAT_MCH_ID"),
@@ -121,14 +135,15 @@ class WechatPaymentService
     request = Net::HTTP::Post.new(url)
     request["Content-Type"] = "application/json"
     request["Accept"] = "application/json"
-    request["Authorization"] = build_auth_header("POST", "/v3/pay/transactions/app", body)
+    request["Authorization"] = build_auth_header("POST", "/v3/pay/transactions/#{trade_type}", body)
     request.body = JSON.generate(body)
 
     response = http.request(request)
 
     raise PaymentError, "WeChat prepay failed: #{response.code} #{response.body.to_s.force_encoding('UTF-8')}" unless response.code == "200"
 
-    JSON.parse(response.body)["prepay_id"]
+    result = JSON.parse(response.body)
+    trade_type == 'native' ? result["code_url"] : result["prepay_id"]
   end
 
   def build_auth_header(method, url, body)
