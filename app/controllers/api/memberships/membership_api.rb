@@ -303,7 +303,6 @@ module Api
             Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
             nil
           end
-        end
       end
     end
   end
