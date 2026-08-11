@@ -8,7 +8,7 @@ module Api
       helpers Api::Concerns::CommonHelpers
 
       helpers do
-        # 生成微信支付二维码图片并上传到 OSS
+        # 生成微信支付二维码图片并上传到 OSS（使用签名 URL，适配私有 bucket）
         def generate_qr_code(code_url, order_no)
           require 'rqrcode'
 
@@ -18,13 +18,14 @@ module Api
           oss_service = AliyunOssService.new
           object_key = "qr_codes/wechat_pay_#{order_no}.png"
 
-          oss_url = oss_service.upload_data(
+          oss_service.upload_data(
             data: png.to_s,
             object_key: object_key,
             content_type: 'image/png'
           )
 
-          oss_url
+          # 返回签名 URL（私有 bucket 需要签名才能访问）
+          oss_service.generate_signed_url(object_key, expires: 86400)
         rescue StandardError => e
           Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
           nil
@@ -161,8 +162,6 @@ module Api
             qr_code_url = generate_qr_code(payment_params[:code_url], order.order_no)
             response_data[:qr_code_url] = qr_code_url if qr_code_url
           end
-
-          present response: success_response(response_data)
         end
 
         # ==================== 查询订阅记录 ====================

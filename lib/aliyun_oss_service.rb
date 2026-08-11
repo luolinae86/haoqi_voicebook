@@ -40,9 +40,8 @@ class AliyunOssService
   # @param object_key [String] OSS 中的对象路径
   # @param content_type [String] MIME 类型
   # @return [String] 上传后的公网 URL
-  def upload_data(data:, object_key:, content_type: "application/octet-stream", acl: "public-read")
+  def upload_data(data:, object_key:, content_type: "application/octet-stream")
     @bucket.put_object(object_key, content_type: content_type) { |w| w.write(data) }
-    @bucket.set_object_acl(object_key, acl) if acl
 
     public_url(object_key)
   rescue StandardError => e
