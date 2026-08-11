@@ -118,13 +118,14 @@ class AlipayPaymentService
     request = Net::HTTP::Post.new(uri.path)
 
     # 确保所有参数值为 UTF-8 编码（支付宝要求 UTF-8）
-    form_data = params.each_with_object({}) do |(k, v), h|
-      h[k.to_s] = v.to_s.force_encoding('UTF-8')
-    end
+    form_data = {}
+    params.each { |k, v| form_data[k.to_s] = String.new(v.to_s, encoding: 'UTF-8') }
     request.set_form_data(form_data)
 
     response = http.request(request)
-    JSON.parse(response.body.force_encoding('UTF-8'))
+    body = response.body
+    body = String.new(body, encoding: 'UTF-8') unless body.encoding == Encoding::UTF_8
+    JSON.parse(body)
   rescue StandardError => e
     raise PaymentError, "支付宝请求失败: #{e.message}"
   end
