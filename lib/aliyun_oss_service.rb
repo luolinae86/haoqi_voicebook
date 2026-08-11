@@ -42,7 +42,7 @@ class AliyunOssService
   # @return [String] 上传后的公网 URL
   def upload_data(data:, object_key:, content_type: "application/octet-stream", acl: "public-read")
     @bucket.put_object(object_key, content_type: content_type) { |w| w.write(data) }
-    @bucket.object_acl = [object_key, acl]
+    @bucket.set_object_acl(object_key, acl) if acl
 
     public_url(object_key)
   rescue StandardError => e
