@@ -36,18 +36,14 @@ class AlipayPaymentService
     raw_string = sign_params.sort.map { |k, v| "#{k}=#{v}" }.join('&')
     sign = rsa_sign(raw_string)
 
-    biz_content = JSON.parse(sign_params[:biz_content])
-    biz_content[:out_trade_no] = order_no
+    all_params = sign_params.merge(sign: sign)
+    form_data = {}
+    all_params.each { |k, v| form_data[k.to_s] = v.to_s.encode('UTF-8') }
 
-    params = sign_params.merge(
-      biz_content: biz_content.to_json,
-      sign: sign
-    )
-
-    response = post_to_alipay(params)
+    response = post_to_alipay(form_data)
 
     qr_code = response.dig('alipay_trade_precreate_response', 'qr_code')
-    raise PaymentError, "支付宝扫码支付创建失败: #{response['alipay_trade_precreate_response'].to_s[0..200]}" unless qr_code
+    raise PaymentError, "支付宝扫码支付创建失败: #{response.to_json[0..200]}" unless qr_code
 
     { qr_code: qr_code, order_no: order_no }
   end
@@ -119,13 +115,11 @@ class AlipayPaymentService
 
     # 确保所有参数值为 UTF-8 编码（支付宝要求 UTF-8）
     form_data = {}
-    params.each { |k, v| form_data[k.to_s] = String.new(v.to_s, encoding: 'UTF-8') }
+    params.each { |k, v| form_data[k.to_s] = v.to_s.encode('UTF-8') }
     request.set_form_data(form_data)
 
     response = http.request(request)
-    body = response.body
-    body = String.new(body, encoding: 'UTF-8') unless body.encoding == Encoding::UTF_8
-    JSON.parse(body)
+    JSON.parse(response.body.encode('UTF-8'))
   rescue StandardError => e
     raise PaymentError, "支付宝请求失败: #{e.message}"
   end
@@ -150,7 +144,13 @@ class AlipayPaymentService
 
   def build_sign_params(method, order_no, amount, subject)
     {
+      charset: 'utf-8',
       app_id: ENV.fetch('ALIPAY_APP_ID'),
+      method: method,
+      version: '1.0',
+      sign_type: 'RSA2',
+      timestamp: Time.current.strftime('%Y-%m-%d %H:%M:%S'),
+      notify_url: ENV.fetch('ALIPAY_NOTIFY_URL'),
       biz_content: JSON.generate({
                                    timeout_express: '30m',
                                    product_code: method == 'alipay.trade.precreate' ? 'FACE_TO_FACE_PAYMENT' : 'QUICK_MSECURITY_PAY',
@@ -158,13 +158,7 @@ class AlipayPaymentService
                                    subject: subject,
                                    body: subject,
                                    out_trade_no: order_no
-                                 }),
-      charset: 'utf-8',
-      method: method,
-      notify_url: ENV.fetch('ALIPAY_NOTIFY_URL'),
-      timestamp: Time.current.strftime('%Y-%m-%d %H:%M:%S'),
-      version: '1.0',
-      sign_type: 'RSA2'
+                                 })
     }
   end
 
