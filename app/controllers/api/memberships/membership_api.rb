@@ -280,35 +280,31 @@ module Api
           end
         end
 
+          private
+
+          # 生成微信支付二维码图片并上传到 OSS
+          def generate_qr_code(code_url, order_no)
+            require 'rqrcode'
+
+            qr = RQRCode::QRCode.new(code_url)
+            png = qr.as_png(size: 300, border_modules: 4, module_px_size: 6)
+
+            oss_service = AliyunOssService.new
+            object_key = "qr_codes/wechat_pay_#{order_no}.png"
+
+            oss_url = oss_service.upload_data(
+              data: png.to_s,
+              object_key: object_key,
+              content_type: 'image/png'
+            )
+
+            oss_url
+          rescue StandardError => e
+            Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
+            nil
+          end
+        end
       end
     end
-  end
-
-  private
-
-  # 生成微信支付二维码图片并上传到 OSS
-  # @param code_url [String] 微信 code_url
-  # @param order_no [String] 订单号
-  # @return [String, nil] OSS URL
-  def generate_qr_code(code_url, order_no)
-    require 'rqrcode'
-
-    qr = RQRCode::QRCode.new(code_url)
-    png = qr.as_png(size: 300, border_modules: 4, module_px_size: 6)
-
-    # 上传到 OSS
-    oss_service = AliyunOssService.new
-    object_key = "qr_codes/wechat_pay_#{order_no}.png"
-
-    oss_url = oss_service.upload_data(
-      data: png.to_s,
-      object_key: object_key,
-      content_type: 'image/png'
-    )
-
-    oss_url
-  rescue StandardError => e
-    Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
-    nil
   end
 end
