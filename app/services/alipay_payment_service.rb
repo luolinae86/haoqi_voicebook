@@ -112,16 +112,14 @@ class AlipayPaymentService
     http.use_ssl = true
 
     request = Net::HTTP::Post.new(uri.path)
-
-    # 确保所有参数值为 UTF-8 编码（支付宝要求 UTF-8）
-    form_data = {}
-    params.each { |k, v| form_data[k.to_s] = v.to_s.encode('UTF-8') }
-    request.set_form_data(form_data)
+    request.set_form_data(params)
 
     response = http.request(request)
-    JSON.parse(response.body.encode('UTF-8'))
+    body = response.body
+    body = body.force_encoding('UTF-8') unless body.valid_encoding?
+    JSON.parse(body)
   rescue StandardError => e
-    raise PaymentError, "支付宝请求失败: #{e.message}"
+    raise PaymentError, "支付宝请求失败：#{e.message}"
   end
 
   def private_key
