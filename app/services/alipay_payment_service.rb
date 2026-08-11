@@ -47,7 +47,7 @@ class AlipayPaymentService
     response = post_to_alipay(params)
 
     qr_code = response.dig('alipay_trade_precreate_response', 'qr_code')
-    raise PaymentError, "支付宝扫码支付创建失败: #{response.to_json}" unless qr_code
+    raise PaymentError, "支付宝扫码支付创建失败: #{response['alipay_trade_precreate_response'].to_s[0..200]}" unless qr_code
 
     { qr_code: qr_code, order_no: order_no }
   end
@@ -116,10 +116,15 @@ class AlipayPaymentService
     http.use_ssl = true
 
     request = Net::HTTP::Post.new(uri.path)
-    request.set_form_data(params)
+
+    # 确保所有参数值为 UTF-8 编码（支付宝要求 UTF-8）
+    form_data = params.each_with_object({}) do |(k, v), h|
+      h[k.to_s] = v.to_s.force_encoding('UTF-8')
+    end
+    request.set_form_data(form_data)
 
     response = http.request(request)
-    JSON.parse(response.body)
+    JSON.parse(response.body.force_encoding('UTF-8'))
   rescue StandardError => e
     raise PaymentError, "支付宝请求失败: #{e.message}"
   end
