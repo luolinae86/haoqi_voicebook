@@ -37,10 +37,8 @@ class AlipayPaymentService
     sign = rsa_sign(raw_string)
 
     all_params = sign_params.merge(sign: sign)
-    form_data = {}
-    all_params.each { |k, v| form_data[k.to_s] = v.to_s.encode('UTF-8') }
 
-    response = post_to_alipay(form_data)
+    response = post_to_alipay(all_params)
 
     qr_code = response.dig('alipay_trade_precreate_response', 'qr_code')
     raise PaymentError, "支付宝扫码支付创建失败: #{response.to_json[0..200]}" unless qr_code
@@ -112,10 +110,16 @@ class AlipayPaymentService
     http.use_ssl = true
 
     request = Net::HTTP::Post.new(uri.path)
-    request.set_form_data(params)
+    request['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
+
+    # 构建 form data，确保所有值都是 UTF-8 字符串
+    form_data = {}
+    params.each { |k, v| form_data[k.to_s] = v.to_s }
+    request.body = URI.encode_www_form(form_data)
 
     response = http.request(request)
-    body = response.body.force_encoding('UTF-8')
+    body = response.body
+    body = body.force_encoding('UTF-8')
     body = body.encode('UTF-8', invalid: :replace, undef: :replace) unless body.valid_encoding?
     JSON.parse(body)
   rescue JSON::ParserError => e
