@@ -162,6 +162,8 @@ module Api
             qr_code_url = generate_qr_code(payment_params[:code_url], order.order_no)
             response_data[:qr_code_url] = qr_code_url if qr_code_url
           end
+
+          present response: success_response(response_data)
         end
 
         # ==================== 查询订阅记录 ====================
