@@ -115,9 +115,11 @@ class AlipayPaymentService
     request.set_form_data(params)
 
     response = http.request(request)
-    body = response.body
-    body = body.force_encoding('UTF-8') unless body.valid_encoding?
+    body = response.body.force_encoding('UTF-8')
+    body = body.encode('UTF-8', invalid: :replace, undef: :replace) unless body.valid_encoding?
     JSON.parse(body)
+  rescue JSON::ParserError => e
+    raise PaymentError, "支付宝响应解析失败：#{e.message}"
   rescue StandardError => e
     raise PaymentError, "支付宝请求失败：#{e.message}"
   end
