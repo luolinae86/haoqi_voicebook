@@ -128,11 +128,21 @@ module Api
           pay_scene = params[:pay_scene] || 'app'
           payment_params = case params[:payment_method]
                            when 'alipay'
-                             AlipayPaymentService.new.create_order(
-                               order_no: order.order_no,
-                               amount: package.price,
-                               subject: subject
-                             )
+                             if pay_scene == 'native'
+                               # 当面付扫码支付
+                               AlipayPaymentService.new.create_native_order(
+                                 order_no: order.order_no,
+                                 amount: package.price,
+                                 subject: subject
+                               )
+                             else
+                               # APP 支付
+                               AlipayPaymentService.new.create_order(
+                                 order_no: order.order_no,
+                                 amount: package.price,
+                                 subject: subject
+                               )
+                             end
                            when 'wechat'
                              if pay_scene == 'native'
                                # Native 支付（扫码支付）
@@ -157,10 +167,18 @@ module Api
             msg: '订单创建成功，请完成支付'
           }
 
-          # 如果是 Native 支付，生成二维码图片
-          if params[:payment_method] == 'wechat' && pay_scene == 'native' && payment_params[:code_url]
-            qr_code_url = generate_qr_code(payment_params[:code_url], order.order_no)
-            response_data[:qr_code_url] = qr_code_url if qr_code_url
+          # 如果是扫码支付，生成二维码图片
+          if pay_scene == 'native'
+            qr_url = if params[:payment_method] == 'wechat'
+                       payment_params[:code_url]
+                     else
+                       payment_params[:qr_code]
+                     end
+
+            if qr_url
+              qr_code_url = generate_qr_code(qr_url, order.order_no)
+              response_data[:qr_code_url] = qr_code_url if qr_code_url
+            end
           end
 
           present response: success_response(response_data)

@@ -3,33 +3,56 @@
 require 'openssl'
 require 'net/http'
 require 'json'
+require 'cgi'
+require 'base64'
 
-# 支付宝 App 支付服务
-# 生成支付宝 App 支付订单参数（供客户端调起支付宝 SDK）
+# 支付宝支付服务（支持 App 支付和当面付扫码支付）
 class AlipayPaymentService
   class PaymentError < StandardError; end
 
+  # App 支付：生成支付宝 App 支付订单参数（供客户端调起支付宝 SDK）
   # @param order_no [String] 商户订单号
   # @param amount [BigDecimal/Float] 支付金额（元）
   # @param subject [String] 订单标题
   # @return [String] 支付宝支付订单字符串（直接返回给 APP）
   def create_order(order_no:, amount:, subject:)
-    sign_params = build_sign_params(order_no, amount, subject)
+    sign_params = build_sign_params('alipay.trade.app.pay', order_no, amount, subject)
 
-    # 支付宝要求：对原始参数字符串签名，而不是编码后的
     raw_string = sign_params.sort.map { |k, v| "#{k}=#{v}" }.join('&')
     sign = rsa_sign(raw_string)
 
-    # 所有参数值（含 sign）统一 URL 编码后拼接
     all_params = sign_params.merge(sign: sign)
     all_params.map { |k, v| "#{k}=#{CGI.escape(v.to_s)}" }.join('&')
   end
 
+  # 当面付扫码支付：生成支付宝二维码链接
+  # @param order_no [String] 商户订单号
+  # @param amount [BigDecimal/Float] 支付金额（元）
+  # @param subject [String] 订单标题
+  # @return [Hash] { qr_code: "https://qr.alipay.com/..." }
+  def create_native_order(order_no:, amount:, subject:)
+    sign_params = build_sign_params('alipay.trade.precreate', order_no, amount, subject)
+
+    raw_string = sign_params.sort.map { |k, v| "#{k}=#{v}" }.join('&')
+    sign = rsa_sign(raw_string)
+
+    biz_content = JSON.parse(sign_params[:biz_content])
+    biz_content[:out_trade_no] = order_no
+
+    params = sign_params.merge(
+      biz_content: biz_content.to_json,
+      sign: sign
+    )
+
+    response = post_to_alipay(params)
+
+    qr_code = response.dig('alipay_trade_precreate_response', 'qr_code')
+    raise PaymentError, "支付宝扫码支付创建失败: #{response.to_json}" unless qr_code
+
+    { qr_code: qr_code, order_no: order_no }
+  end
+
   # 验证支付宝异步回调签名（使用原始 URL-encoded body）
-  # 支付宝对原始 body 签名，Grape 会 URL-decode 参数导致验签失败
-  # @param _params [Hash] Grape 解码后的参数（未使用，仅保留接口兼容）
-  # @param raw_body [String] 原始 URL-encoded 请求体
-  # @return [Boolean]
   def verify_callback_with_raw_body?(_params, raw_body)
     pairs = raw_body.split('&').map { |p| p.split('=', 2) }
 
@@ -57,10 +80,7 @@ class AlipayPaymentService
   end
 
   # 验证支付宝异步回调签名（旧方法，保留兼容）
-  # @param params [Hash] 支付宝回调参数
-  # @return [Boolean]
   def verify_callback?(params)
-    # 兼容 Grape 返回的 symbol keys，统一转为 string keys
     params = params.transform_keys(&:to_s)
 
     sign = params.delete('sign')
@@ -90,6 +110,20 @@ class AlipayPaymentService
 
   private
 
+  def post_to_alipay(params)
+    uri = URI('https://openapi.alipay.com/gateway.do')
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+
+    request = Net::HTTP::Post.new(uri.path)
+    request.set_form_data(params)
+
+    response = http.request(request)
+    JSON.parse(response.body)
+  rescue StandardError => e
+    raise PaymentError, "支付宝请求失败: #{e.message}"
+  end
+
   def private_key
     @private_key ||= OpenSSL::PKey::RSA.new(ensure_pem_private_key(ENV.fetch('ALIPAY_PRIVATE_KEY')))
   end
@@ -100,29 +134,27 @@ class AlipayPaymentService
 
   def ensure_pem_private_key(str)
     return str if str.include?('BEGIN')
-
     "-----BEGIN RSA PRIVATE KEY-----\n#{str}\n-----END RSA PRIVATE KEY-----"
   end
 
   def ensure_pem_public_key(str)
     return str if str.include?('BEGIN')
-
     "-----BEGIN PUBLIC KEY-----\n#{str}\n-----END PUBLIC KEY-----"
   end
 
-  def build_sign_params(order_no, amount, subject)
+  def build_sign_params(method, order_no, amount, subject)
     {
       app_id: ENV.fetch('ALIPAY_APP_ID'),
       biz_content: JSON.generate({
                                    timeout_express: '30m',
-                                   product_code: 'QUICK_MSECURITY_PAY',
+                                   product_code: method == 'alipay.trade.precreate' ? 'FACE_TO_FACE_PAYMENT' : 'QUICK_MSECURITY_PAY',
                                    total_amount: format('%.2f', amount),
                                    subject: subject,
                                    body: subject,
                                    out_trade_no: order_no
                                  }),
       charset: 'utf-8',
-      method: 'alipay.trade.app.pay',
+      method: method,
       notify_url: ENV.fetch('ALIPAY_NOTIFY_URL'),
       timestamp: Time.current.strftime('%Y-%m-%d %H:%M:%S'),
       version: '1.0',
