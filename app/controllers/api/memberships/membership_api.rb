@@ -7,6 +7,30 @@ module Api
     class MembershipApi < Grape::API
       helpers Api::Concerns::CommonHelpers
 
+      helpers do
+        # 生成微信支付二维码图片并上传到 OSS
+        def generate_qr_code(code_url, order_no)
+          require 'rqrcode'
+
+          qr = RQRCode::QRCode.new(code_url)
+          png = qr.as_png(size: 300, border_modules: 4, module_px_size: 6)
+
+          oss_service = AliyunOssService.new
+          object_key = "qr_codes/wechat_pay_#{order_no}.png"
+
+          oss_url = oss_service.upload_data(
+            data: png.to_s,
+            object_key: object_key,
+            content_type: 'image/png'
+          )
+
+          oss_url
+        rescue StandardError => e
+          Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
+          nil
+        end
+      end
+
       namespace :memberships do
         # ==================== 支付宝异步回调（单独 namespace，提前捕获 raw body） ====================
         # Grape 会消费 rack.input 解析 params，但支付宝回调签名基于原始 URL-encoded body
@@ -279,30 +303,6 @@ module Api
             { code: 'FAIL', msg: '签名验证失败' }
           end
         end
-
-          private
-
-          # 生成微信支付二维码图片并上传到 OSS
-          def generate_qr_code(code_url, order_no)
-            require 'rqrcode'
-
-            qr = RQRCode::QRCode.new(code_url)
-            png = qr.as_png(size: 300, border_modules: 4, module_px_size: 6)
-
-            oss_service = AliyunOssService.new
-            object_key = "qr_codes/wechat_pay_#{order_no}.png"
-
-            oss_url = oss_service.upload_data(
-              data: png.to_s,
-              object_key: object_key,
-              content_type: 'image/png'
-            )
-
-            oss_url
-          rescue StandardError => e
-            Rails.logger.error("[MembershipApi] Failed to generate QR code: #{e.message}")
-            nil
-          end
       end
     end
   end
