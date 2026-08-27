@@ -32,3 +32,8 @@
 
 # macOS
 .DS_Store
+
+# 开发环境脚本
+start_dev.sh
+stop_dev.sh
+tmp/pids/*.pid
