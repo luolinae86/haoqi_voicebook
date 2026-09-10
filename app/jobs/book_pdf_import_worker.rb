@@ -41,7 +41,11 @@ class BookPdfImportWorker
       sanitized_title = sanitize_dir_name(book.name)
       images_prefix = "#{sanitized_title}/images"
 
-      # 3. PDF 导入（强制图片模式）
+      # 3. 清除旧的页面和章节数据
+      book.ebook_pages.delete_all
+      book.catalogues.delete_all
+
+      # 4. PDF 导入（强制图片模式）
       importer = Ebook::PdfImporter.new(
         book: book,
         pdf_path: pdf_path,
