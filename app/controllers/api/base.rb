@@ -38,6 +38,7 @@ module Api
     mount Api::Report::Mount
     mount Api::Push::Mount
     mount Api::Feedback::Mount
+    mount Api::Channels::Mount
 
     # ==================== Swagger 文档 ====================
     add_swagger_documentation(
@@ -59,7 +60,8 @@ module Api
         { name: 'reading', description: '阅读统计与进度' },
         { name: 'leaderboards', description: '排行榜' },
         { name: 'ranks', description: '年级推荐榜' },
-        { name: 'categories', description: '分类浏览' }
+        { name: 'categories', description: '分类浏览' },
+        { name: 'channels', description: '渠道版本' }
       ],
       hide_documentation_path: false
     )
