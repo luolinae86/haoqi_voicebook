@@ -119,6 +119,7 @@ module Api
           order = Order.create!(
             app_user: current_user,
             membership: membership,
+            package: package,
             amount: package.price,
             payment_method: params[:payment_method]
           )
