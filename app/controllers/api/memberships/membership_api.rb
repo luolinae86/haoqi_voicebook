@@ -121,7 +121,8 @@ module Api
             membership: membership,
             package: package,
             amount: package.price,
-            payment_method: params[:payment_method]
+            payment_method: params[:payment_method],
+            channel: current_user.channel
           )
 
           # 生成支付参数
