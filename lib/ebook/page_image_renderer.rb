@@ -13,6 +13,7 @@ module Ebook
     RGBA_BITMAP_INFO = 16_385
     PNG_SIGNATURE = "\x89PNG\r\n\x1a\n".b
     PDFTOCAIRO_BINARY = "pdftocairo"
+    PDFINFO_BINARY = "pdfinfo"
     CORE_GRAPHICS_FILTER = "QuartzPageRender"
     PDFTOCAIRO_FILTER = "PdftocairoPageRender"
     RENDER_FILTERS = [CORE_GRAPHICS_FILTER, PDFTOCAIRO_FILTER].freeze
@@ -144,14 +145,12 @@ module Ebook
         mod.extern("void* CGPDFDocumentCreateWithProvider(void*)")
         mod.extern("void  CGPDFDocumentRelease(void*)")
         mod.extern("void* CGPDFDocumentGetPage(void*, size_t)")
-        mod.extern("void* CGPDFPageGetDictionary(void*)")
-        mod.extern("void* CGPDFDictionaryGetObject(void*, char*)")
-        mod.extern("int CGPDFObjectGetValue(void*, int, void*)")
         mod.extern("void* CGColorSpaceCreateDeviceRGB()")
         mod.extern("void  CGColorSpaceRelease(void*)")
         mod.extern("void* CGBitmapContextCreate(void*, size_t, size_t, size_t, size_t, void*, unsigned int)")
         mod.extern("void  CGContextTranslateCTM(void*, CGFloat, CGFloat)")
         mod.extern("void  CGContextScaleCTM(void*, CGFloat, CGFloat)")
+        mod.extern("void  CGContextRotateCTM(void*, CGFloat)")
         mod.extern("void  CGContextDrawPDFPage(void*, void*)")
         mod.extern("void  CGContextRelease(void*)")
         mod
@@ -161,8 +160,22 @@ module Ebook
     end
 
     def render_with_pdftocairo(page_number:, page_width:, page_height:, bbox:, right_bleed: 0.0)
-      crop_box = normalized_bbox(bbox, page_width.to_f, page_height.to_f, right_bleed.to_f)
-      pixel_left, pixel_top, pixel_width, pixel_height = crop_pixels(crop_box, page_height.to_f)
+      raw_width = page_width.to_f
+      raw_height = page_height.to_f
+      crop_box = normalized_bbox(bbox, raw_width, raw_height, right_bleed.to_f)
+      rotation = page_rotation_number(page_number)
+      full_page = crop_box[:width] >= raw_width - 1.0 && crop_box[:height] >= raw_height - 1.0
+
+      pixel_crop =
+        if rotation.zero?
+          crop_pixels(crop_box, raw_height)
+        elsif full_page
+          # 旋转页的整页裁剪：pdftocairo 输出本身就是旋转后的显示方向，
+          # 再按原始坐标系裁剪会越界截断，直接整页输出
+          nil
+        else
+          display_crop_pixels(crop_box, raw_width, raw_height, rotation)
+        end
       dpi = [(@scale * 72).round, 1].max
 
       Dir.mktmpdir("page-renderer") do |dir|
@@ -173,14 +186,17 @@ module Ebook
           "-singlefile",
           "-r", dpi.to_s,
           "-f", page_number.to_i.to_s,
-          "-l", page_number.to_i.to_s,
-          "-x", pixel_left.to_s,
-          "-y", pixel_top.to_s,
-          "-W", pixel_width.to_s,
-          "-H", pixel_height.to_s,
-          @pdf_path.to_s,
-          prefix
+          "-l", page_number.to_i.to_s
         ]
+        if pixel_crop
+          command.concat([
+            "-x", pixel_crop[0].to_s,
+            "-y", pixel_crop[1].to_s,
+            "-W", pixel_crop[2].to_s,
+            "-H", pixel_crop[3].to_s
+          ])
+        end
+        command.concat([@pdf_path.to_s, prefix])
         stdout, stderr, status = Open3.capture3(*command)
         unless status.success?
           detail = [stderr, stdout].map { |value| value.to_s.strip }.find { |value| !value.empty? } || "unknown error"
@@ -190,12 +206,15 @@ module Ebook
         output_path = "#{prefix}.png"
         raise RenderUnavailableError, "pdftocairo 未输出 PNG 文件: #{output_path}" unless File.exist?(output_path)
 
+        bytes = File.binread(output_path)
+        image_width, image_height = pixel_crop ? [pixel_crop[2], pixel_crop[3]] : (png_size(bytes) || [0, 0])
+
         {
-          bytes: File.binread(output_path),
+          bytes: bytes,
           extension: "png",
           mime_type: "image/png",
-          image_width: pixel_width,
-          image_height: pixel_height,
+          image_width: image_width,
+          image_height: image_height,
           filter: PDFTOCAIRO_FILTER
         }
       end
@@ -204,23 +223,42 @@ module Ebook
     def render_with_core_graphics(page_number:, page_width:, page_height:, bbox:, right_bleed: 0.0)
       raise RenderUnavailableError, "当前环境不支持 PDF 页面渲染" unless @document&.to_i&.positive?
 
+      raw_width = page_width.to_f
+      raw_height = page_height.to_f
       right_bleed = [right_bleed.to_f, 0.0].max
-      crop_box = normalized_bbox(bbox, page_width.to_f, page_height.to_f, right_bleed)
-      rgba, rendered_width, rendered_height = render_page_with_core_graphics(page_number, page_width.to_f, page_height.to_f, right_bleed)
+      crop_box = normalized_bbox(bbox, raw_width, raw_height, right_bleed)
+      rgba, rendered_width, rendered_height, rotation = render_page_with_core_graphics(page_number, raw_width, raw_height, right_bleed)
       oriented_page = flip_rgba_vertically(rgba, rendered_width, rendered_height)
 
-      pixel_left, pixel_top, pixel_width, pixel_height = crop_pixels(crop_box, page_height.to_f)
-      pixel_width = [pixel_width, rendered_width - pixel_left].min
-      pixel_height = [pixel_height, rendered_height - pixel_top].min
+      pixel_crop =
+        if rotation.zero?
+          crop_pixels(crop_box, raw_height)
+        elsif crop_box[:width] >= raw_width - 1.0 && crop_box[:height] >= raw_height - 1.0
+          nil
+        else
+          display_crop_pixels(crop_box, raw_width, raw_height, rotation)
+        end
 
-      cropped = crop_rgba(
-        rgba: oriented_page,
-        source_width: rendered_width,
-        left: pixel_left,
-        top: pixel_top,
-        width: pixel_width,
-        height: pixel_height
-      )
+      if pixel_crop
+        pixel_left, pixel_top, pixel_width, pixel_height = pixel_crop
+        pixel_width = [pixel_width, rendered_width - pixel_left].min
+        pixel_height = [pixel_height, rendered_height - pixel_top].min
+        pixel_width = [pixel_width, 1].max
+        pixel_height = [pixel_height, 1].max
+
+        cropped = crop_rgba(
+          rgba: oriented_page,
+          source_width: rendered_width,
+          left: pixel_left,
+          top: pixel_top,
+          width: pixel_width,
+          height: pixel_height
+        )
+      else
+        pixel_width = rendered_width
+        pixel_height = rendered_height
+        cropped = oriented_page
+      end
 
       {
         bytes: write_png(pixel_width, pixel_height, cropped),
@@ -230,6 +268,79 @@ module Ebook
         image_height: pixel_height,
         filter: CORE_GRAPHICS_FILTER
       }
+    end
+
+    # 旋转页的整页裁剪见 render_with_*：pdftocairo/CoreGraphics 输出为旋转后的显示方向
+    def display_crop_pixels(crop_box, raw_width, raw_height, rotation)
+      right = crop_box[:left] + crop_box[:width]
+      top = crop_box[:top] || (crop_box[:bottom] + crop_box[:height])
+
+      case rotation % 360
+      when 90
+        origin_left = crop_box[:bottom]
+        origin_top = crop_box[:left]
+        width = crop_box[:height]
+        height = crop_box[:width]
+      when 180
+        origin_left = raw_width - right
+        origin_top = crop_box[:bottom]
+        width = crop_box[:width]
+        height = crop_box[:height]
+      when 270
+        origin_left = raw_height - top
+        origin_top = raw_width - right
+        width = crop_box[:height]
+        height = crop_box[:width]
+      else
+        origin_left = crop_box[:left]
+        origin_top = raw_height - top
+        width = crop_box[:width]
+        height = crop_box[:height]
+      end
+
+      pixel_left = [(origin_left * @scale).floor, 0].max
+      pixel_top = [(origin_top * @scale).floor, 0].max
+      pixel_width = [(width * @scale).ceil, 1].max
+      pixel_height = [(height * @scale).ceil, 1].max
+      [pixel_left, pixel_top, pixel_width, pixel_height]
+    end
+
+    # PDF 页面 Rotate 属性（0/90/180/270），pdfinfo 不可用时按 0 处理
+    def page_rotation_number(page_number)
+      @rotation_cache ||= {}
+      key = page_number.to_i
+      return @rotation_cache[key] if @rotation_cache.key?(key)
+
+      @rotation_cache[key] = read_page_rotation(key)
+    end
+
+    def read_page_rotation(page_number)
+      path = pdfinfo_path
+      return 0 unless path
+
+      stdout, _stderr, status = Open3.capture3(path, "-f", page_number.to_s, "-l", page_number.to_s, @pdf_path.to_s)
+      return 0 unless status.success?
+
+      # pdfinfo 元数据可能含非 UTF-8 字节，按二进制匹配
+      matched = stdout.to_s.b[/Page\s+#{page_number}\s+rot:\s+(-?\d+)/, 1]
+      matched.to_i % 360
+    rescue StandardError
+      0
+    end
+
+    def pdfinfo_path
+      return @pdfinfo_path if defined?(@pdfinfo_path)
+
+      @pdfinfo_path = ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).map { |dir| File.join(dir, PDFINFO_BINARY) }.find { |candidate| File.executable?(candidate) }
+    end
+
+    def png_size(bytes)
+      return nil unless bytes.byteslice(0, 8) == PNG_SIGNATURE
+
+      width, height = bytes.byteslice(16, 8).unpack("N2")
+      [width, height] if width.to_i.positive? && height.to_i.positive?
+    rescue StandardError
+      nil
     end
 
     def crop_pixels(crop_box, page_height)
@@ -261,8 +372,8 @@ module Ebook
       page_ref = core_graphics.CGPDFDocumentGetPage(@document, page_number)
       raise RenderUnavailableError, "无法渲染 PDF 第 #{page_number} 页" unless page_ref&.to_i&.positive?
 
-      # 获取页面旋转角度
-      rotation = page_rotation(page_ref)
+      # 与 pdftocairo 一致：通过 pdfinfo 读取生效的旋转角（含继承）
+      rotation = page_rotation_number(page_number)
       is_rotated = rotation == 90 || rotation == 270
 
       # 旋转后的实际渲染尺寸
@@ -298,25 +409,23 @@ module Ebook
 
       core_graphics.CGContextDrawPDFPage(context, page_ref)
 
-      [buffer[0, byte_count], width, height]
+      [buffer[0, byte_count], width, height, rotation]
     ensure
       core_graphics.CGContextRelease(context) if defined?(context) && context&.to_i&.positive?
       core_graphics.CGColorSpaceRelease(color_space) if defined?(color_space) && color_space&.to_i&.positive?
     end
 
     def page_rotation(page_ref)
-      # 从 PDF 页面字典中获取 Rotate 属性
+      # 从 PDF 页面字典中读取 Rotate 属性
       dict = core_graphics.CGPDFPageGetDictionary(page_ref)
       return 0 unless dict&.to_i&.positive?
 
-      rotate_obj = core_graphics.CGPDFDictionaryGetObject(dict, "Rotate")
-      return 0 unless rotate_obj&.to_i&.positive?
+      value = Fiddle::Pointer.malloc(4)
+      value[0, 4] = "\x00" * 4
+      return 0 unless core_graphics.CGPDFDictionaryGetInteger(dict, "Rotate", value).to_i == 1
 
-      # 获取整数值
-      value_ptr = Fiddle::Pointer.new(0)
-      core_graphics.CGPDFObjectGetValue(rotate_obj, 2, value_ptr)  # 2 = kCGPDFObjectTypeInteger
-      value_ptr.to_i % 360
-    rescue
+      value[0, 4].unpack1("l!") % 360
+    rescue StandardError
       0
     end
 

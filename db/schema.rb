@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_24_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_10_000000) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -217,6 +217,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_24_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_category_subs_on_category_id"
+  end
+
+  create_table "channels", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "name"
+    t.string "version"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "chapters", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "章节表（有声/视频章节）", force: :cascade do |t|
@@ -528,9 +535,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_24_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "channel", limit: 32, comment: "支付渠道（继承自用户）"
+    t.bigint "package_id"
     t.index ["app_user_id"], name: "index_orders_on_app_user_id"
     t.index ["membership_id"], name: "index_orders_on_membership_id"
     t.index ["order_no"], name: "index_orders_on_order_no", unique: true
+    t.index ["package_id"], name: "index_orders_on_package_id"
     t.index ["status"], name: "index_orders_on_status"
   end
 
