@@ -73,7 +73,36 @@ RSpec.describe EpubExportWorker do
       expect(book.epub_export_error).to include("OSS 连接失败")
     end
 
-    it "passes force_image_pages to the PDF importer" do
+    it "always re-imports the PDF in image mode, even when force_image_pages is passed as false" do
+      fake_pdf = Tempfile.new(["source", ".pdf"])
+      create_test_pdf(fake_pdf.path)
+
+      allow(AliyunOssService).to receive(:new).and_return(oss_service)
+      allow(oss_service).to receive(:download_file) do |object_key:, local_path:|
+        FileUtils.cp(fake_pdf.path, local_path)
+      end
+      allow(oss_service).to receive(:upload_data).and_return("https://epub-files.oss-cn-beijing.aliyuncs.com/test.png")
+      allow(oss_service).to receive(:upload_file) do |object_key:, **|
+        "https://epub-files.oss-cn-beijing.aliyuncs.com/#{object_key}"
+      end
+
+      importer = instance_double(Ebook::PdfImporter, call: true)
+      allow(Ebook::PdfImporter).to receive(:new).and_return(importer)
+
+      described_class.new.perform({
+                                    book_id: book.id,
+                                    pdf_oss_key: pdf_oss_key,
+                                    force_image_pages: false
+                                  })
+
+      expect(Ebook::PdfImporter).to have_received(:new).with(
+        hash_including(force_image_pages: true)
+      )
+
+      fake_pdf.close!
+    end
+
+    it "passes force_image_pages true to the PDF importer" do
       fake_pdf = Tempfile.new(["source", ".pdf"])
       create_test_pdf(fake_pdf.path)
 

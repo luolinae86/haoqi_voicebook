@@ -13,12 +13,15 @@ class EpubExportWorker
 
   sidekiq_options queue: "export", retry: 2
 
-  # @param args [Hash] {"book_id"=>Integer, "pdf_oss_key"=>String, "force_image_pages"=>Boolean}
+  # @param args [Hash] {"book_id"=>Integer, "pdf_oss_key"=>String, "force_image_pages"=>Boolean(已忽略)}
   def perform(args)
     args = args.symbolize_keys
     book_id = args[:book_id]
     pdf_oss_key = args[:pdf_oss_key]
-    force_image_pages = args[:force_image_pages] == true
+    # PDF 始终按图片模式导入（与 BookPdfImportWorker 一致）。
+    # 文本模式重导会覆盖已生成的图片页，且子集字体 PDF 文本层是乱码，
+    # 因此不再接受调用方传 false。
+    force_image_pages = true
 
     book = Book.find(book_id)
     book.update!(epub_export_status: :exporting, epub_export_error: nil)
