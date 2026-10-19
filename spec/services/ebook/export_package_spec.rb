@@ -10,6 +10,64 @@ RSpec.describe Ebook::ExportPackage do
     FileUtils.rm_rf(output_dir)
   end
 
+  it "carries bbox from rich content into exported json for image pages" do
+    create(
+      :ebook_page,
+      book: book,
+      page_number: 2,
+      page_width: 842.0,
+      page_height: 595.22,
+      image_url: "https://example.com/images/pages/2/image_1.png",
+      rich_content: {
+        text: "",
+        lines: [],
+        images: [
+          {
+            id: "image-2-1",
+            type: "image",
+            role: "hero_image",
+            mime_type: "image/png",
+            image_url: "https://example.com/images/pages/2/image_1.png",
+            bbox: { left: 0.0, bottom: 0.0, width: 842.0, height: 595.22, right: 842.0, top: 595.22 }
+          }
+        ],
+        directory: nil
+      },
+      block_count: 1,
+      image_count: 1
+    )
+
+    described_class.new(book: book, output_dir: output_dir).call
+
+    payload = JSON.parse(File.read(output_dir.join("pages/page-0002.json")))
+    image = payload.dig("images", 0)
+
+    expect(image["image_url"]).to eq("https://example.com/images/pages/2/image_1.png")
+    expect(image["bbox"]).to include("left" => 0.0, "bottom" => 0.0, "width" => 842.0, "height" => 595.22)
+  end
+
+  it "falls back to a full-page bbox when image page has no rich content" do
+    create(
+      :ebook_page,
+      book: book,
+      page_number: 3,
+      page_width: 842.0,
+      page_height: 595.22,
+      image_url: "https://example.com/images/pages/3/image_1.png",
+      rich_content: {},
+      block_count: 1,
+      image_count: 1
+    )
+
+    described_class.new(book: book, output_dir: output_dir).call
+
+    payload = JSON.parse(File.read(output_dir.join("pages/page-0003.json")))
+    image = payload.dig("images", 0)
+
+    expect(image["image_url"]).to eq("https://example.com/images/pages/3/image_1.png")
+    expect(image["bbox"]).to include("width" => 842.0, "height" => 595.22)
+  end
+
   it "strips trailing carry-over pollution from exported page json" do
     create(
       :ebook_page,

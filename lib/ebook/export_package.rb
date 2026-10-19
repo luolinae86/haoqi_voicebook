@@ -66,20 +66,34 @@ module Ebook
     private
 
     def build_image_page(page)
+      content = normalized_content(page)
+      source = HashWithIndifferentAccess.new(Array(content[:images]).first || {})
+      image = {
+        id: source[:id].presence || "image-#{page.page_number}-1",
+        type: "image",
+        role: source[:role].presence || "hero_image",
+        image_url: source[:image_url].presence || page.image_url,
+        mime_type: source[:mime_type].presence || infer_mime_type(page.image_url)
+      }
+      image[:bbox] = source[:bbox].presence || {
+        left: 0.0,
+        bottom: 0.0,
+        top: page.page_height.to_f,
+        right: page.page_width.to_f,
+        width: page.page_width.to_f,
+        height: page.page_height.to_f
+      }
+      image[:image_width] = source[:image_width] if source[:image_width].presence
+      image[:image_height] = source[:image_height] if source[:image_height].presence
+
       {
         page_number: page.page_number,
         word_count: page.word_count,
         image_count: 1,
         text: "",
         lines: [],
-        images: [{
-          id: "image-#{page.page_number}-1",
-          type: "image",
-          role: "hero_image",
-          image_url: page.image_url,
-          mime_type: infer_mime_type(page.image_url)
-        }],
-        directory: nil
+        images: [image],
+        directory: content[:directory]
       }
     end
 
