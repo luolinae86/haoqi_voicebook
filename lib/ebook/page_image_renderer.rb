@@ -144,6 +144,9 @@ module Ebook
         mod.extern("void* CGPDFDocumentCreateWithProvider(void*)")
         mod.extern("void  CGPDFDocumentRelease(void*)")
         mod.extern("void* CGPDFDocumentGetPage(void*, size_t)")
+        mod.extern("void* CGPDFPageGetDictionary(void*)")
+        mod.extern("void* CGPDFDictionaryGetObject(void*, char*)")
+        mod.extern("int CGPDFObjectGetValue(void*, int, void*)")
         mod.extern("void* CGColorSpaceCreateDeviceRGB()")
         mod.extern("void  CGColorSpaceRelease(void*)")
         mod.extern("void* CGBitmapContextCreate(void*, size_t, size_t, size_t, size_t, void*, unsigned int)")
@@ -258,8 +261,16 @@ module Ebook
       page_ref = core_graphics.CGPDFDocumentGetPage(@document, page_number)
       raise RenderUnavailableError, "无法渲染 PDF 第 #{page_number} 页" unless page_ref&.to_i&.positive?
 
-      width = [((page_width + right_bleed.to_f) * @scale).ceil, 1].max
-      height = [(page_height * @scale).ceil, 1].max
+      # 获取页面旋转角度
+      rotation = page_rotation(page_ref)
+      is_rotated = rotation == 90 || rotation == 270
+
+      # 旋转后的实际渲染尺寸
+      render_width = is_rotated ? page_height : page_width
+      render_height = is_rotated ? page_width : page_height
+
+      width = [((render_width + right_bleed.to_f) * @scale).ceil, 1].max
+      height = [(render_height * @scale).ceil, 1].max
       bytes_per_row = width * 4
       byte_count = bytes_per_row * height
       buffer = Fiddle::Pointer.malloc(byte_count)
@@ -269,14 +280,44 @@ module Ebook
       context = core_graphics.CGBitmapContextCreate(buffer, width, height, 8, bytes_per_row, color_space, RGBA_BITMAP_INFO)
       raise RenderUnavailableError, "无法创建 PDF 渲染上下文" unless context&.to_i&.positive?
 
+      # 应用旋转和翻转变换
       core_graphics.CGContextTranslateCTM(context, 0, height)
       core_graphics.CGContextScaleCTM(context, @scale, -@scale)
+
+      # 处理页面旋转
+      if rotation == 90
+        core_graphics.CGContextRotateCTM(context, Math::PI / 2)
+        core_graphics.CGContextTranslateCTM(context, 0, -page_width)
+      elsif rotation == 180
+        core_graphics.CGContextTranslateCTM(context, -page_width, -page_height)
+        core_graphics.CGContextRotateCTM(context, Math::PI)
+      elsif rotation == 270
+        core_graphics.CGContextRotateCTM(context, -Math::PI / 2)
+        core_graphics.CGContextTranslateCTM(context, -page_height, 0)
+      end
+
       core_graphics.CGContextDrawPDFPage(context, page_ref)
 
       [buffer[0, byte_count], width, height]
     ensure
       core_graphics.CGContextRelease(context) if defined?(context) && context&.to_i&.positive?
       core_graphics.CGColorSpaceRelease(color_space) if defined?(color_space) && color_space&.to_i&.positive?
+    end
+
+    def page_rotation(page_ref)
+      # 从 PDF 页面字典中获取 Rotate 属性
+      dict = core_graphics.CGPDFPageGetDictionary(page_ref)
+      return 0 unless dict&.to_i&.positive?
+
+      rotate_obj = core_graphics.CGPDFDictionaryGetObject(dict, "Rotate")
+      return 0 unless rotate_obj&.to_i&.positive?
+
+      # 获取整数值
+      value_ptr = Fiddle::Pointer.new(0)
+      core_graphics.CGPDFObjectGetValue(rotate_obj, 2, value_ptr)  # 2 = kCGPDFObjectTypeInteger
+      value_ptr.to_i % 360
+    rescue
+      0
     end
 
     def crop_rgba(rgba:, source_width:, left:, top:, width:, height:)

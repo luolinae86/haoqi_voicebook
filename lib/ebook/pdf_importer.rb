@@ -216,8 +216,8 @@ module Ebook
         exporter.export_rendered(
           rendered: renderer.render_crop(
             page_number: page.number,
-            page_width: page.width,
-            page_height: page.height,
+            page_width: full_page[:render_box][:width],
+            page_height: full_page[:render_box][:height],
             bbox: full_page[:render_box],
             right_bleed: 0.0
           ),
@@ -762,7 +762,8 @@ module Ebook
       export_box = page_render_image && (page_render_image[:export_box] || page_render_image[:visible_box])
       return { width: export_box[:width].round(2), height: export_box[:height].round(2) } if export_box
 
-      { width: page.width, height: page.height }
+      # 使用旋转后的显示尺寸
+      { width: page.width.to_f, height: page.height.to_f }
     end
 
     def full_page_candidate_for(page)
@@ -783,6 +784,15 @@ module Ebook
       page_attributes = page.respond_to?(:attributes) ? page.attributes : {}
       raw_box = %i[CropBox TrimBox ArtBox].filter_map { |key| normalized_page_box(page_attributes[key]) }.first
       return raw_box if raw_box
+
+      # 使用原始 MediaBox 尺寸（不应用旋转）
+      media_box = page_attributes[:MediaBox]
+      if media_box
+        values = Array(media_box).map(&:to_f)
+        if values.length == 4
+          return { left: values[0], bottom: values[1], width: (values[2] - values[0]).to_f, height: (values[3] - values[1]).to_f }
+        end
+      end
 
       { left: 0.0, bottom: 0.0, width: page.width.to_f, height: page.height.to_f }
     end
