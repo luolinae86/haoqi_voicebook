@@ -21,7 +21,7 @@ gem "rails", "~> 8.0.2"
 gem "redis", ">= 4.0"
 gem "rubyzip", "~> 2.3"
 gem "rqrcode", "~> 2.2"
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 6.5"
 gem "sidekiq-cron", "~> 1.12"
 gem "tzinfo-data", platforms: %i[windows jruby]
 # 绘本 ASR 走 DashScope 实时口（lib/picture_book/asr_client.rb），是直接用到的
