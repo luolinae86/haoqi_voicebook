@@ -7,7 +7,8 @@ require "fileutils"
 sidekiq_url = Rails.application.class.build_redis_url
 
 Sidekiq.configure_server do |config|
-  config.redis = { url: sidekiq_url }
+  # 生产 Redis 为 5.0，不支持 RESP3 的 HELLO 命令，强制 RESP2
+  config.redis = { url: sidekiq_url, protocol: 2 }
 
   # 持久化日志到 log/sidekiq.log（按天轮转），同时输出到 stdout
   log_path = Rails.root.join("log/sidekiq.log")
@@ -25,5 +26,5 @@ Sidekiq.configure_server do |config|
 end
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: sidekiq_url }
+  config.redis = { url: sidekiq_url, protocol: 2 }
 end
