@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_10_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_07_000003) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -155,9 +155,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_10_000000) do
     t.string "file_url", comment: "源文件URL"
     t.string "file_type", comment: "源文件类型 (pdf/epub)"
     t.string "file_name", comment: "源文件名"
+    t.string "source_book_no", comment: "外部资源编号（供应资源包名，如 61355）"
+    t.string "narration_oss_key", comment: "旁白音频 OSS 路径"
+    t.string "narration_oss_url", comment: "旁白音频公网 URL"
+    t.integer "total_duration_ms", comment: "旁白总时长（毫秒）"
+    t.json "asr_raw", comment: "实时 ASR 原始句子与词时间（重试不再重复调用）"
+    t.string "book_json_oss_key", comment: "book.json OSS 路径"
+    t.string "book_json_oss_url", comment: "book.json 公网 URL"
+    t.string "dict_json_oss_key", comment: "dict.json OSS 路径"
+    t.string "dict_json_oss_url", comment: "dict.json 公网 URL"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["name"], name: "index_books_on_name"
+    t.index ["source_book_no"], name: "index_books_on_source_book_no"
     t.index ["status"], name: "index_books_on_status"
     t.index ["supplier_id"], name: "index_books_on_supplier_id"
   end
@@ -245,6 +255,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_10_000000) do
     t.string "sd_file_path", comment: "标清文件路径"
     t.string "snap_file_path", comment: "截图文件路径"
     t.index ["book_id"], name: "index_chapters_on_book_id"
+  end
+
+  create_table "char_definitions", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "character", null: false, comment: "单字"
+    t.string "pinyin", null: false, collation: "utf8mb4_bin", comment: "读音（带声调符号，如 nǚ）"
+    t.json "defs", comment: "低幼释义数组，原样进 dict.json（[释义, 组词：…]）"
+    t.string "source", default: "kids_dict", comment: "来源：kids_dict / qwen / manual"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character", "pinyin"], name: "index_char_definitions_on_character_and_pinyin", unique: true
+    t.index ["character"], name: "index_char_definitions_on_character"
   end
 
   create_table "compilation_books", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -536,10 +557,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_10_000000) do
     t.datetime "updated_at", null: false
     t.string "channel", limit: 32, comment: "支付渠道（继承自用户）"
     t.bigint "package_id"
+    t.integer "refund_status", default: 0, null: false, comment: "退款状态：0-无退款 1-退款处理中 2-退款成功 3-退款失败"
+    t.datetime "refunded_at", comment: "退款成功时间"
+    t.string "refund_no", comment: "退款单号（支付渠道返回）"
     t.index ["app_user_id"], name: "index_orders_on_app_user_id"
     t.index ["membership_id"], name: "index_orders_on_membership_id"
     t.index ["order_no"], name: "index_orders_on_order_no", unique: true
     t.index ["package_id"], name: "index_orders_on_package_id"
+    t.index ["refund_no"], name: "index_orders_on_refund_no"
+    t.index ["refund_status"], name: "index_orders_on_refund_status"
     t.index ["status"], name: "index_orders_on_status"
   end
 
@@ -566,6 +592,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_10_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["app_user_id"], name: "index_parental_controls_on_app_user_id", unique: true
+  end
+
+  create_table "picture_book_pages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "book_id", null: false, comment: "图书ID"
+    t.integer "page_number", null: false, comment: "页码（跨页图按 01.jpg 顺序）"
+    t.string "image_key", comment: "页面图片 OSS 路径"
+    t.string "image_url", comment: "页面图片公网 URL"
+    t.text "plain_text", comment: "OCR 出的整页文字"
+    t.json "ocr_raw", comment: "OCR 原始返回（重试不再重复调用）"
+    t.integer "start_ms", comment: "本页朗读起点（由 ASR 气口定出）"
+    t.integer "end_ms", comment: "本页朗读终点"
+    t.integer "timing_start_ms", comment: "资源包 时间.txt 给的起点（对照用）"
+    t.integer "timing_end_ms", comment: "资源包 时间.txt 给的终点（对照用）"
+    t.json "lines", comment: "行窗口与逐字 token（ch/py/kw/b）"
+    t.integer "word_count", default: 0, null: false, comment: "本页汉字数"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id", "page_number"], name: "index_picture_book_pages_on_book_id_and_page_number", unique: true
+    t.index ["book_id"], name: "index_picture_book_pages_on_book_id"
   end
 
   create_table "push_notifications", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|

@@ -100,11 +100,12 @@ module Api
           )
         end
 
-        # ==================== 导入电子书（PDF/EPUB） ====================
+        # ==================== 导入电子书（PDF/EPUB）/ 绘本资源包（zip） ====================
         desc '导入电子书文件到图书（需 uuid 鉴权）'
         params do
           requires :uuid, type: String, desc: '用户uuid'
           requires :id, type: Integer, desc: '图书ID'
+          optional :file_url, type: String, desc: '资源文件OSS URL（不传则取图书已记录的 file_url）'
         end
         post 'import' do
           auth_user
@@ -112,17 +113,18 @@ module Api
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') if book.blank?
 
-          file_url = book.file_url
+          file_url = params[:file_url].presence || book.file_url
           error_pop_resp('文件URL不存在') if file_url.blank?
 
-          Ebook::ImportService.new(book: book, file_url: file_url).call
+          service = book.picture_book? ? PictureBook::ImportService : Ebook::ImportService
+          service.new(book: book, file_url: file_url).call
 
           present response: success_response(
             book_id: book.id,
             content_file_type: book.file_type,
             msg: '导入任务已提交，请轮询图书详情接口查看进度'
           )
-        rescue Ebook::ImportService::Error => e
+        rescue Ebook::ImportService::Error, PictureBook::ImportService::Error => e
           error_pop_resp(e.message)
         end
 

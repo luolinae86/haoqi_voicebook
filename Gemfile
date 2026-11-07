@@ -24,6 +24,8 @@ gem "rqrcode", "~> 2.2"
 gem "sidekiq", "~> 7.3"
 gem "sidekiq-cron", "~> 1.12"
 gem "tzinfo-data", platforms: %i[windows jruby]
+# 绘本 ASR 走 DashScope 实时口（lib/picture_book/asr_client.rb），是直接用到的
+gem "websocket-driver", "~> 0.8"
 
 group :development, :test do
   gem "annotaterb", "~> 4.22"
@@ -35,6 +37,8 @@ group :development, :test do
   gem "rubocop-gradual", require: false
   gem "rubocop-rails", require: false
   gem "rubocop-rspec", require: false
+  gem "ruby-lsp", require: false
+  gem "ruby-lsp-rails", require: false
   gem "shoulda-matchers"
   gem "simplecov", require: false
 end

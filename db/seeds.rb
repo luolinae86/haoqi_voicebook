@@ -77,4 +77,8 @@ ApiAuth.find_or_create_by!(access_key_id: "voicebook_dev_key") do |auth|
   auth.name = "VoiceBook开发环境"
 end
 
+# ==================== 绘本低幼字典 ====================
+puts "📕 灌入 char_definitions 种子（kids-dict 852 条）..."
+puts "   #{PictureBook::KidsDict.import!} 条「字+读音」已写入/更新"
+
 puts "✅ 种子数据创建完成！"

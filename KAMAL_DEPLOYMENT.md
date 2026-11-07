@@ -100,6 +100,9 @@ DATABASE_PRD_PORT=3306
 DATABASE_PRD_USERNAME=voice_book
 DATABASE_PRD_PASSWORD=你的密码
 DATABASE_PRD_DATABASE=voice_book
+
+# 百炼 DashScope：绘本 ASR 逐字时间戳（script/asr_probe.py 与后续入库识别用）
+DASHSCOPE_API_KEY=百炼控制台创建的 sk- 开头字符串
 ```
 
 **关键点：**

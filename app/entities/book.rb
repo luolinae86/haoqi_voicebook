@@ -41,6 +41,19 @@ module Entities
     expose :styles_oss_url do |instance, _|
       self.class.sign_oss_url(instance.styles_oss_url)
     end
+    # 绘本（content_type=picture_book）：播放器要取的两份 JSON 和整段旁白
+    expose :content_type
+    expose :import_status
+    expose :total_duration_ms
+    expose :book_json_oss_url do |instance, _|
+      self.class.sign_oss_url(instance.book_json_oss_url)
+    end
+    expose :dict_json_oss_url do |instance, _|
+      self.class.sign_oss_url(instance.dict_json_oss_url)
+    end
+    expose :narration_oss_url do |instance, _|
+      self.class.sign_oss_url(instance.narration_oss_url)
+    end
     expose :created_at do |instance, _|
       instance.created_at&.strftime('%Y-%m-%d %H:%M:%S')
     end

@@ -1,8 +1,8 @@
 # Kamal 部署配置
 # 用于将 VoiceBook 部署到阿里云服务器
 
-service: voicebook
-image: voicebook/voicebook
+service: haoqi_voicebook
+image: voicebook/haoqi_voicebook
 
 # ==================== 服务器配置 ====================
 # 单 web 服务器 + 单 worker 服务器
@@ -10,10 +10,10 @@ image: voicebook/voicebook
 servers:
   web:
     hosts:
-      - 114.215.208.190
+      - 47.96.81.46
   worker:
     hosts:
-      - 114.215.208.190
+      - 47.96.81.46
     cmd: "bundle exec sidekiq -C config/sidekiq.yml"
 
 # ==================== Docker Registry 配置 ====================
@@ -75,6 +75,8 @@ env:
     - GE_TUI_APP_ID
     - GE_TUI_APP_KEY
     - GE_TUI_MASTER_SECRET
+    # 百炼 DashScope（绘本 ASR 逐字时间戳）
+    - DASHSCOPE_API_KEY
 
 # ==================== SSH 配置 ====================
 ssh:
@@ -87,7 +89,7 @@ ssh:
 # SSL 由阿里云 SLB 处理（将 443 流量分发到 web 服务器的 80 端口）
 proxy:
   ssl: true
-  host: api.zheliyuedu.cn
+  host: bookapi.haoqiniu.cn
   healthcheck:
     path: /up
     interval: 5

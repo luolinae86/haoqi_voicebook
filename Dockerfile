@@ -44,7 +44,12 @@ RUN bundle exec bootsnap precompile -j 1 app/ lib/
 FROM base
 
 # Run and own only the runtime files as a non-root user for security
-RUN groupadd --system --gid 1000 rails && \
+# ffmpeg:绘本旁白是 44.1kHz 立体声 mp3,而 DashScope 实时口只收单声道
+# ("only single channel stream is allowed, actual=2"),必须先转成 16k 单声道 pcm
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y ffmpeg && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives && \
+    groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
 USER 1000:1000
 
