@@ -10,10 +10,10 @@ image: voicebook/haoqi_voicebook
 servers:
   web:
     hosts:
-      - 47.96.81.46
+      - 101.37.156.195
   worker:
     hosts:
-      - 47.96.81.46
+      - 101.37.156.195
     cmd: "bundle exec sidekiq -C config/sidekiq.yml"
 
 # ==================== Docker Registry 配置 ====================
@@ -39,12 +39,6 @@ env:
     - DATABASE_PRD_HOST
     - DATABASE_PRD_PORT
     - DATABASE_PRD_DATABASE
-    # 测试环境数据库
-    - DATABASE_DEV_USERNAME
-    - DATABASE_DEV_PASSWORD
-    - DATABASE_DEV_HOST
-    - DATABASE_DEV_PORT
-    - DATABASE_DEV_DATABASE
     - SECRET_KEY_BASE
     - ALIYUN_ACCESS_KEY_ID
     - ALIYUN_ACCESS_KEY_SECRET
@@ -89,7 +83,7 @@ ssh:
 # SSL 由阿里云 SLB 处理（将 443 流量分发到 web 服务器的 80 端口）
 proxy:
   ssl: true
-  host: bookapi.haoqiniu.cn
+  host: voicebookapi.haoqiniu.com
   healthcheck:
     path: /up
     interval: 5
