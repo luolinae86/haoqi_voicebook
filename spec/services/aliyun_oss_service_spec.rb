@@ -7,6 +7,42 @@ RSpec.describe AliyunOssService do
   let(:mock_bucket) { instance_double(Aliyun::OSS::Bucket) }
   let(:oss_service) { described_class.new(bucket: mock_bucket) }
 
+  describe ".key_from_url" do
+    # 外部（hao_qi_read）传进来的直链里，文件名是百分号编码的，而 SDK 只认原始键
+    it "decodes a percent-encoded object key" do
+      expect(described_class.key_from_url("https://bucket.oss-cn-beijing.aliyuncs.com/books/61355/%E5%A5%B3%E5%A8%B2%E8%A1%A5%E5%A4%A9.zip"))
+        .to eq("books/61355/女娲补天.zip")
+    end
+
+    it "accepts a URL whose path is not encoded, which URI.parse would reject" do
+      expect { URI.parse("https://h.oss/女娲.zip") }.to raise_error(URI::InvalidURIError)
+      expect(described_class.key_from_url("https://h.oss/女娲.zip")).to eq("女娲.zip")
+    end
+
+    it "drops the query of a signed URL" do
+      expect(described_class.key_from_url("https://h.oss/a.zip?Expires=1&OSSAccessKeyId=k&Signature=s%2Fz"))
+        .to eq("a.zip")
+    end
+
+    it "keeps a literal plus, unlike CGI.unescape which turns it into a space" do
+      expect(described_class.key_from_url("https://h.oss/a+b.zip")).to eq("a+b.zip")
+    end
+
+    it "unescapes in a single pass, so %25 becomes a literal percent" do
+      expect(described_class.key_from_url("https://h.oss/100%25.zip")).to eq("100%.zip")
+    end
+
+    it "passes through something that is already an object key" do
+      expect(described_class.key_from_url("books/61355/package.zip")).to eq("books/61355/package.zip")
+    end
+
+    it "returns blank when the URL has no path" do
+      expect(described_class.key_from_url("https://h.oss")).to eq("")
+      expect(described_class.key_from_url("")).to eq("")
+      expect(described_class.key_from_url(nil)).to eq("")
+    end
+  end
+
   describe "#upload_file" do
     it "uploads a local file and returns the public URL" do
       tempfile = Tempfile.new(["test", ".png"])

@@ -26,20 +26,16 @@ module Ebook
 
     private
 
-    def uri
-      @uri ||= URI.parse(@file_url)
-    end
-
     def file_ext
-      @file_ext ||= File.extname(uri.path).downcase.delete('.')
+      @file_ext ||= File.extname(object_key).downcase.delete('.')
     end
 
     def object_key
-      @object_key ||= uri.path.sub(%r{\A/}, '')
+      @object_key ||= AliyunOssService.key_from_url(@file_url)
     end
 
     def file_name
-      @file_name ||= File.basename(uri.path)
+      @file_name ||= File.basename(object_key)
     end
 
     def validate_url!

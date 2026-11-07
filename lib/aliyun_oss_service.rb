@@ -9,6 +9,15 @@ require "base64"
 class AliyunOssService
   class UploadError < StandardError; end
 
+  # OSS 地址 -> 对象键。外部传进来的文件名常是中文，URL 里是百分号编码的，
+  # 而 SDK 只认原始键，所以解码必须在这一步做（解码后就是下载、签名要用的那个键）。
+  # 不用 URI.parse：裸中文的 URL 会直接 InvalidURIError。
+  # 不用 CGI.unescape：它把 + 当空格，文件名里的 + 会被改掉。
+  def self.key_from_url(url)
+    path = url.to_s.sub(%r{\A[a-z][a-z0-9+.-]*://[^/?#]*}i, '').split(/[?#]/, 2).first.to_s
+    URI::DEFAULT_PARSER.unescape(path).sub(%r{\A/}, '')
+  end
+
   def initialize(bucket: nil)
     @bucket = bucket || OSS_BUCKET
   end
