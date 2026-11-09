@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_07_000003) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -531,7 +531,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_07_000003) do
   end
 
   create_table "memberships", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "会员表", force: :cascade do |t|
-    t.integer "app_user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", comment: "用户ID"
     t.integer "plan_type", default: 0, null: false, comment: "套餐：0-月度 1-季度 2-年度"
     t.decimal "price", precision: 10, scale: 2, null: false, comment: "实付价格"
     t.decimal "original_price", precision: 10, scale: 2, comment: "原价"
@@ -546,7 +546,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_07_000003) do
   end
 
   create_table "orders", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "订单表", force: :cascade do |t|
-    t.integer "app_user_id", null: false, comment: "用户ID"
+    t.integer "app_user_id", comment: "用户ID"
     t.string "order_no", null: false, comment: "订单号"
     t.decimal "amount", precision: 10, scale: 2, null: false, comment: "金额"
     t.integer "payment_method", default: 0, null: false, comment: "支付方式：0-支付宝 1-微信"
