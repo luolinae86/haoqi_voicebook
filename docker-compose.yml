@@ -43,7 +43,8 @@ services:
       ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID}
       ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET}
       OSS_BUCKET_NAME: ${OSS_BUCKET_NAME:-epub-files}
-      OSS_ENDPOINT: ${OSS_ENDPOINT:-oss-cn-beijing.aliyuncs.com}
+      ALIYUN_OSS_ENDPOINT: ${ALIYUN_OSS_ENDPOINT:-cn-beijing}
+      ALIYUN_OSS_INTERNAL: ${ALIYUN_OSS_INTERNAL:-false}
     volumes:
       - rails_storage:/rails/storage
 

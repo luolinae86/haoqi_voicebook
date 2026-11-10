@@ -17,13 +17,21 @@ require "aliyun/oss"
 require "aliyun/sts"
 
 OSS_BUCKET_NAME = ENV.fetch("OSS_BUCKET_NAME", "epub-files")
-OSS_ENDPOINT = ENV.fetch("OSS_ENDPOINT", "oss-cn-beijing.aliyuncs.com")
+OSS_REGION = ENV.fetch("ALIYUN_OSS_ENDPOINT", "cn-beijing")
+OSS_INTERNAL = ENV.fetch("ALIYUN_OSS_INTERNAL", "false") == "true"
 OSS_ACCESS_KEY_ID = ENV.fetch("ALIYUN_ACCESS_KEY_ID")
 OSS_ACCESS_KEY_SECRET = ENV.fetch("ALIYUN_ACCESS_KEY_SECRET")
 OSS_STS_ROLE_ARN = ENV.fetch("OSS_STS_ROLE_ARN")
 
+OSS_ENDPOINT = "https://oss-#{OSS_REGION}.aliyuncs.com"
+server_endpoint = if OSS_INTERNAL
+  "http://oss-#{OSS_REGION}-internal.aliyuncs.com"
+else
+  OSS_ENDPOINT
+end
+
 OSS_CLIENT = Aliyun::OSS::Client.new(
-  endpoint: "https://#{OSS_ENDPOINT}",
+  endpoint: server_endpoint,
   access_key_id: OSS_ACCESS_KEY_ID,
   access_key_secret: OSS_ACCESS_KEY_SECRET
 )
