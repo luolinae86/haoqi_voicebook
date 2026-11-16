@@ -113,6 +113,15 @@ module Api
           book = Book.find_by(id: params[:id])
           error_pop_resp('图书不存在') if book.blank?
 
+          # 如果该书已有 book_contents（haoqi_read 上传的绘本图片页），直接生成 book.json
+          if book.book_contents.any?
+            BookContentsJsonWorker.perform_async({ 'book_id' => book.id })
+            return present response: success_response(
+              book_id: book.id,
+              msg: '检测到 book_contents，book.json 生成任务已提交'
+            )
+          end
+
           file_url = params[:file_url].presence || book.file_url
           error_pop_resp('文件URL不存在') if file_url.blank?
 
@@ -126,6 +135,27 @@ module Api
           )
         rescue Ebook::ImportService::Error, PictureBook::ImportService::Error => e
           error_pop_resp(e.message)
+        end
+
+        # ==================== 从 book_contents 生成 book.json ====================
+        desc '从已有的 book_contents（图片页+时间戳）生成 book.json（需 uuid 鉴权）'
+        params do
+          requires :uuid, type: String, desc: '用户uuid'
+          requires :id, type: Integer, desc: '图书ID'
+        end
+        post 'generate_json' do
+          auth_user
+
+          book = Book.find_by(id: params[:id])
+          error_pop_resp('图书不存在') if book.blank?
+          error_pop_resp('该书没有 book_contents 记录') if book.book_contents.empty?
+
+          BookContentsJsonWorker.perform_async({ 'book_id' => book.id })
+
+          present response: success_response(
+            book_id: book.id,
+            msg: 'book.json 生成任务已提交'
+          )
         end
 
         # ==================== 页面清单 ====================
