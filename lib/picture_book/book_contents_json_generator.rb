@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative 'char_dict'
 
-# 从 book_contents（haoqi_read 写入的图片页 + 时间戳）直接生成 book.json 并上传 OSS。
+# 从 book_contents（haoqi_read 写入的图片页 + 时间戳）直接生成 book.json 和 dict.json 并上传 OSS。
 # 不走 OCR/ASR pipeline，适用于 haoqi_read 已经单独上传图片和音频的绘本。
 module PictureBook
   class BookContentsJsonGenerator
@@ -19,24 +20,35 @@ module PictureBook
       raise Error, "book_contents 为空，无法生成 book.json" if contents.empty?
 
       book_json = build_book_json(contents)
-      json_key = "#{@prefix}/book.json"
+      book_key = "#{@prefix}/book.json"
 
       @oss.upload_data(
         data: JSON.generate(book_json),
-        object_key: json_key,
+        object_key: book_key,
+        content_type: 'application/json'
+      )
+
+      dict_json = build_dict_json
+      dict_key = "#{@prefix}/dict.json"
+
+      @oss.upload_data(
+        data: JSON.generate(dict_json),
+        object_key: dict_key,
         content_type: 'application/json'
       )
 
       @book.update!(
-        book_json_oss_key: json_key,
-        book_json_oss_url: @oss.public_url(json_key),
+        book_json_oss_key: book_key,
+        book_json_oss_url: @oss.public_url(book_key),
+        dict_json_oss_key: dict_key,
+        dict_json_oss_url: @oss.public_url(dict_key),
         import_status: :ready,
         imported_at: Time.current,
         page_count: contents.size,
         total_duration_ms: parse_timestamp(contents.last.deal_at)
       )
 
-      { book_json_oss_key: json_key, pages: contents.size }
+      { book_json_oss_key: book_key, dict_json_oss_key: dict_key, pages: contents.size }
     end
 
     private
@@ -76,6 +88,20 @@ module PictureBook
       minutes = parts[0].to_f
       seconds = parts[1].to_f
       minutes * 60 + seconds
+    end
+
+    # 从书名和作者名提取汉字，生成 dict.json
+    def build_dict_json
+      chars = extract_chars
+      return {} if chars.empty?
+
+      CharDict.build(chars)
+    end
+
+    # 从书名和作者名提取不重复的汉字
+    def extract_chars
+      text = [@book.name, @book.author&.name].compact.join
+      text.scan(/[一-龥]/).uniq
     end
   end
 end
