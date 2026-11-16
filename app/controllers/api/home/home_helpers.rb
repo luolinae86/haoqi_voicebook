@@ -119,7 +119,10 @@ module Api
           content_description: book.content_description,
           supplier_name: book.supplier&.name,
           category_subs: book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } },
-          is_free: book.is_free
+          is_free: book.is_free,
+          book_json_url: book.book_json_oss_url,
+          total_duration_ms: book.total_duration_ms,
+          page_count: book.page_count
         }
       end
 
