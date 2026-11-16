@@ -74,7 +74,7 @@ class AliyunOssService
   # @param object_key [String] OSS 对象路径
   # @return [String] 公网可访问 URL
   def public_url(object_key)
-    "https://#{OSS_BUCKET_NAME}.#{OSS_ENDPOINT}/#{object_key}"
+    "https://#{OSS_BUCKET_NAME}.oss-#{OSS_REGION}.aliyuncs.com/#{object_key}"
   end
 
   # 生成签名 URL（临时授权访问私有 bucket）
@@ -95,7 +95,7 @@ class AliyunOssService
     )
 
     query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
-    "https://#{OSS_BUCKET_NAME}.#{OSS_ENDPOINT}/#{object_key}?#{query}"
+    "https://#{OSS_BUCKET_NAME}.oss-#{OSS_REGION}.aliyuncs.com/#{object_key}?#{query}"
   rescue StandardError => e
     raise UploadError, "OSS 签名失败: #{e.message}"
   end
