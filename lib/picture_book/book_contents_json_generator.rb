@@ -1,13 +1,12 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'open-uri'
-require 'tmpdir'
 require_relative 'char_dict'
 require_relative 'pinyin'
 require_relative 'segmenter'
 require_relative 'audio'
 require_relative 'asr_client'
+require_relative '../dash_scope/asr_service'
 
 # 从 book_contents（图片页 + 时间戳）+ ASR 语音识别生成 book.json 和 dict.json 并上传 OSS。
 # 适用于 haoqi_read 已经上传图片和音频、但没有文本内容的绘本。
@@ -16,7 +15,6 @@ module PictureBook
     class Error < StandardError; end
 
     HAN = Pinyin::HAN
-    PUNCT = /\p{P}/
     WIDTH_MAP = Segmenter::WIDTH_MAP
 
     def initialize(book:)
@@ -66,29 +64,15 @@ module PictureBook
       audio_url = @book.file_url.to_s
       raise Error, '绘本没有音频文件' if audio_url.blank?
 
-      Dir.mktmpdir('voicebook-asr-') do |dir|
-        raw_path = File.join(dir, 'audio.mp3')
-        transcode_path = File.join(dir, 'audio-16k.mp3')
+      signed_url = sign_url_if_needed(audio_url, expires: 3600)
+      sentences = DashScope::AsrService.new(api_key: ENV.fetch('DASHSCOPE_API_KEY')).transcribe(signed_url)
+      raise Error, 'ASR 未返回任何句子' if sentences.empty?
 
-        # 下载音频到临时文件（跨 bucket 时先签名）
-        download_audio(audio_url, raw_path)
-        # 转码为 16kHz 单声道 mp3（AsrClient 要求）
-        Audio.transcode(raw_path, transcode_path)
-        # 实时 ASR（WebSocket 流式识别，字级时间是声学对齐的）
-        sentences = AsrClient.new(api_key: ENV.fetch('DASHSCOPE_API_KEY')).transcribe(transcode_path)
-        raise Error, 'ASR 未返回任何句子' if sentences.empty?
-
-        @book.update!(asr_raw: sentences)
-        sentences
-      end
+      @book.update!(asr_raw: sentences)
+      sentences
     end
 
-    def download_audio(url, dest_path)
-      signed = sign_url_if_needed(url)
-      URI.open(signed) { |remote| File.open(dest_path, 'wb') { |local| local.write(remote.read) } }
-    end
-
-    # 音频可能在不同的 OSS bucket（如 haoqi-read@cn-hangzhou），需要签名才能下载
+    # 音频可能在不同的 OSS bucket（如 haoqi-read@cn-hangzhou），需要签名才能访问
     def sign_url_if_needed(url, expires: 1800)
       return url unless url.include?('aliyuncs.com') && url.include?('oss-')
 
@@ -119,48 +103,19 @@ module PictureBook
     end
 
     # 把句子展平成逐字条目（汉字 + 标点，毫秒时间戳）。
-    # ASR 的 words 只有汉字，标点在 sentence.text 里；
-    # 用两指针对齐 text 和 word chars，把标点插回时间线。
+    # paraformer-v2 的 words 是逐字的，标点在 punctuation 字段里。
     def flatten_sentences(sentences)
       out = []
       sentences.each do |sentence|
-        words = Array(sentence['words'])
-        text = sentence['text'].to_s
-
-        word_chars = []
-        words.each do |word|
-          chars = word['text'].to_s.each_char.select { |c| c.match?(HAN) }
-          next if chars.empty?
-
+        Array(sentence['words']).each do |word|
+          ch = word['text'].to_s
           begin_ms = word['begin_time'].to_i
-          end_ms = word['end_time'].to_i
-          span = chars.length > 1 ? (end_ms - begin_ms).fdiv(chars.length) : 0
-          chars.each_with_index do |ch, k|
-            word_chars << { ch: ch, begin_ms: (begin_ms + k * span).round }
-          end
-        end
+          out << { 'ch' => ch, 'begin_ms' => begin_ms } if ch.present?
 
-        wi = 0
-        last_ms = 0
-        text.each_char do |ch|
-          if ch.match?(HAN)
-            if wi < word_chars.length && word_chars[wi][:ch] == ch
-              out << { 'ch' => ch, 'begin_ms' => word_chars[wi][:begin_ms] }
-              last_ms = word_chars[wi][:begin_ms]
-              wi += 1
-            end
-          elsif ch.match?(PUNCT)
-            punct_ms = if wi > 0 && wi < word_chars.length
-                         (word_chars[wi - 1][:begin_ms] + word_chars[wi][:begin_ms]) / 2
-                       elsif wi > 0
-                         last_ms
-                       elsif wi < word_chars.length
-                         word_chars[wi][:begin_ms]
-                       else
-                         0
-                       end
-            out << { 'ch' => ch, 'begin_ms' => punct_ms }
-            last_ms = punct_ms
+          punct = word['punctuation'].to_s
+          if punct.present?
+            punct_ms = word['end_time'].to_i
+            out << { 'ch' => punct, 'begin_ms' => punct_ms }
           end
         end
       end

@@ -33,11 +33,11 @@ module DashScope
     def submit_task(audio_url)
       response = HTTParty.post(
         SUBMIT_URL,
-        headers: headers,
+        headers: headers.merge('X-DashScope-Async' => 'enable'),
         body: {
           model: MODEL,
           input: { file_urls: [audio_url] },
-          parameters: { diarization_enabled: false, speaker_count: 0, channel: 0 }
+          parameters: { language_hints: ['zh'] }
         }.to_json
       )
 
@@ -93,11 +93,13 @@ module DashScope
 
       raw_sentences.each_with_index.map do |s, i|
         words = (s['words'] || []).map do |w|
-          {
+          word = {
             'text' => w['text'].to_s,
             'begin_time' => to_ms(w['begin_time']),
             'end_time' => to_ms(w['end_time'])
           }
+          word['punctuation'] = w['punctuation'] if w.key?('punctuation')
+          word
         end
 
         {
@@ -117,12 +119,11 @@ module DashScope
       JSON.parse(response.body)
     end
 
-    # file-based API 的时间戳单位可能是秒（浮点）或毫秒（整数），统一转毫秒
+    # paraformer-v2 返回的时间戳已是毫秒
     def to_ms(value)
       return 0 if value.nil?
 
-      f = value.to_f
-      f < 100_000 ? (f * 1000).round : f.round
+      value.to_i
     end
 
     def headers
