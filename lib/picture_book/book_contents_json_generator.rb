@@ -200,41 +200,26 @@ module PictureBook
       start_ms = (parse_timestamp(content.start_at) * 1000).round
       end_ms = (parse_timestamp(content.deal_at) * 1000).round
 
-      # merge 模式下，封面和正文第一页的 ASR 内容从 0s 起，
-      # 时间起点必须用 0 而非页面自身的 start_ms，否则高亮整体偏移
-      timing_start_ms = (merge_until > 0 && index <= 1) ? 0 : start_ms
-
-      # 封面页：合并正文泄漏的内容到下一页
+      # 封面页：只显示书名（去掉 ASR 中书名后泄漏的正文汉字）
       if index.zero? && merge_until > 0
-        # 封面页只显示书名部分
         title = @book.name.to_s
-        title_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
-        # 截取到书名结束
+        page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
+        # 截取到书名结束，去掉泄漏到封面的正文
         han_count = 0
-        cut_idx = title_items.length
-        title_items.each_with_index do |item, i|
+        cut_idx = page_items.length
+        page_items.each_with_index do |item, i|
           han_count += 1 if item['ch'].match?(HAN)
           if han_count >= title.length
             cut_idx = i + 1
             break
           end
         end
-        title_items = title_items.first(cut_idx)
-        page_items = title_items
+        page_items = page_items.first(cut_idx)
       elsif merge_until > 0 && index == 1
-        # 正文第一页：从 0 开始，但跳过已在封面页显示的书名
-        page_items = asr_items.select { |item| item['begin_ms'] < end_ms }
-        title = @book.name.to_s
-        han_skipped = 0
-        skip_idx = page_items.length
-        page_items.each_with_index do |item, i|
-          han_skipped += 1 if item['ch'].match?(HAN)
-          if han_skipped >= title.length
-            skip_idx = i + 1
-            break
-          end
-        end
-        page_items = page_items[skip_idx..] || []
+        # 正文第一页：只保留 ≥ 封面截止时间的 ASR 内容
+        # 封面时间范围内的文字（如"远古时代"）属于封面音频，不能放在第一页
+        # 否则 iPad 在 2.5s 切到第一页时，音频已越过这些字，字幕超前
+        page_items = asr_items.select { |item| item['begin_ms'] >= merge_until && item['begin_ms'] < end_ms }
       else
         page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
       end
