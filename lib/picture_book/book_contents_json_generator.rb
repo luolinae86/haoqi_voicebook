@@ -68,7 +68,7 @@ module PictureBook
         raw_path = File.join(dir, 'audio.mp3')
         transcode_path = File.join(dir, 'audio-16k.mp3')
 
-        # 下载音频到临时文件
+        # 下载音频到临时文件（跨 bucket 时先签名）
         download_audio(audio_url, raw_path)
         # 转码为 16kHz 单声道 mp3（AsrClient 要求）
         Audio.transcode(raw_path, transcode_path)
@@ -82,12 +82,31 @@ module PictureBook
     end
 
     def download_audio(url, dest_path)
+      signed = sign_url_if_needed(url)
+      URI.open(signed) { |remote| File.open(dest_path, 'wb') { |local| local.write(remote.read) } }
+    end
+
+    # 音频可能在不同的 OSS bucket（如 haoqi-read@cn-hangzhou），需要签名才能下载
+    def sign_url_if_needed(url)
+      return url unless url.include?('aliyuncs.com') && url.include?('oss-')
+
+      # 从 URL 解析 bucket 和 region: http(s)://BUCKET.oss-REGION.aliyuncs.com/KEY
       uri = URI.parse(url)
-      if uri.scheme == 'https' || uri.scheme == 'http'
-        URI.open(url) { |remote| File.open(dest_path, 'wb') { |local| local.write(remote.read) } }
-      else
-        raise Error, "不支持的音频 URL 协议: #{uri.scheme}"
-      end
+      host_parts = uri.host.split('.')
+      bucket = host_parts[0]
+      region = host_parts[1].sub('oss-', '').sub('-internal', '')
+      object_key = uri.path.sub(%r{\A/}, '')
+
+      client = Aliyun::OSS::Client.new(
+        endpoint: "https://oss-#{region}.aliyuncs.com",
+        access_key_id: OSS_ACCESS_KEY_ID,
+        access_key_secret: OSS_ACCESS_KEY_SECRET
+      )
+      bucket_obj = client.get_bucket(bucket)
+      bucket_obj.object_url(object_key, true, 1800)
+    rescue StandardError => e
+      Rails.logger.warn("[BookContentsJson] URL 签名失败: #{e.message}, 尝试直接下载")
+      url
     end
 
     # 把句子展平成逐字条目（和 Timeline#flatten_sentences 同口径，毫秒时间戳）
