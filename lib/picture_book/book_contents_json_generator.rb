@@ -7,6 +7,7 @@ require_relative 'segmenter'
 require_relative 'audio'
 require_relative 'asr_client'
 require_relative '../dash_scope/asr_service'
+require_relative '../dash_scope/text_corrector'
 
 # 从 book_contents（图片页 + 时间戳）+ ASR 语音识别生成 book.json 和 dict.json 并上传 OSS。
 # 适用于 haoqi_read 已经上传图片和音频、但没有文本内容的绘本。
@@ -29,6 +30,7 @@ module PictureBook
 
       sentences = fetch_asr_sentences
       asr_items = flatten_sentences(sentences)
+      asr_items = correct_asr_text(asr_items)
 
       pages_data = contents.map.with_index { |c, i| build_page(c, i, asr_items) }
       book_json = build_book_json(contents, pages_data)
@@ -120,6 +122,85 @@ module PictureBook
         end
       end
       out
+    end
+
+    # ── Text correction ──
+
+    # 用 LLM 修正 ASR 文本中的同音错别字，保持时间戳对齐。
+    def correct_asr_text(asr_items)
+      return asr_items if asr_items.empty?
+
+      raw_text = asr_items.map { |i| i['ch'] }.join
+      corrected = DashScope::TextCorrector.new.correct(raw_text)
+
+      return asr_items if corrected.blank? || corrected == raw_text
+
+      Rails.logger.info("[BookContentsJson] LLM 纠错: #{raw_text.length}→#{corrected.length} 字")
+      align_and_replace(asr_items, raw_text, corrected)
+    end
+
+    # LCS 对齐：把修正后的文本映射回原始时间戳。
+    def align_and_replace(asr_items, raw_text, corrected_text)
+      n, m = raw_text.length, corrected_text.length
+
+      # LCS 动态规划
+      dp = Array.new(n + 1) { Array.new(m + 1, 0) }
+      (1..n).each do |i|
+        (1..m).each do |j|
+          dp[i][j] = if raw_text[i - 1] == corrected_text[j - 1]
+                       dp[i - 1][j - 1] + 1
+                     else
+                       [dp[i - 1][j], dp[i][j - 1]].max
+                     end
+        end
+      end
+
+      # 回溯找匹配对 [orig_idx, corr_idx]
+      pairs = []
+      i, j = n, m
+      while i > 0 && j > 0
+        if raw_text[i - 1] == corrected_text[j - 1]
+          pairs << [i - 1, j - 1]
+          i -= 1
+          j -= 1
+        elsif dp[i - 1][j] >= dp[i][j - 1]
+          i -= 1
+        else
+          j -= 1
+        end
+      end
+      pairs.reverse!
+
+      corr_to_orig = pairs.each_with_object({}) { |(oi, ci), h| h[ci] = oi }
+
+      # 为修正文本的每个字符分配时间戳
+      result = []
+      corrected_text.each_char.with_index do |ch, ci|
+        if corr_to_orig.key?(ci)
+          result << { 'ch' => ch, 'begin_ms' => asr_items[corr_to_orig[ci]]['begin_ms'] }
+        else
+          prev_ci = (ci - 1).downto(0).find { |k| corr_to_orig.key?(k) }
+          next_ci = (ci + 1..m - 1).find { |k| corr_to_orig.key?(k) }
+          ms = interpolate_time(prev_ci, next_ci, ci, corr_to_orig, asr_items)
+          result << { 'ch' => ch, 'begin_ms' => ms }
+        end
+      end
+      result
+    end
+
+    def interpolate_time(prev_ci, next_ci, ci, corr_to_orig, asr_items)
+      if prev_ci && next_ci
+        prev_ms = asr_items[corr_to_orig[prev_ci]]['begin_ms']
+        next_ms = asr_items[corr_to_orig[next_ci]]['begin_ms']
+        frac = (ci - prev_ci).fdiv(next_ci - prev_ci)
+        (prev_ms + (next_ms - prev_ms) * frac).round
+      elsif prev_ci
+        asr_items[corr_to_orig[prev_ci]]['begin_ms']
+      elsif next_ci
+        asr_items[corr_to_orig[next_ci]]['begin_ms']
+      else
+        0
+      end
     end
 
     # ── Page building ──
