@@ -135,6 +135,11 @@ module PictureBook
 
       return asr_items if corrected.blank? || corrected == raw_text
 
+      if (corrected.length - raw_text.length).abs > raw_text.length * 0.05
+        Rails.logger.warn("[BookContentsJson] LLM 纠错文本长度差异过大 (#{raw_text.length}→#{corrected.length})，跳过")
+        return asr_items
+      end
+
       Rails.logger.info("[BookContentsJson] LLM 纠错: #{raw_text.length}→#{corrected.length} 字")
       align_and_replace(asr_items, raw_text, corrected)
     end
@@ -176,11 +181,12 @@ module PictureBook
       # 为修正文本的每个字符分配时间戳
       result = []
       corrected_text.each_char.with_index do |ch, ci|
-        if corr_to_orig.key?(ci)
-          result << { 'ch' => ch, 'begin_ms' => asr_items[corr_to_orig[ci]]['begin_ms'] }
+        orig_idx = corr_to_orig[ci]
+        if orig_idx && orig_idx < asr_items.length
+          result << { 'ch' => ch, 'begin_ms' => asr_items[orig_idx]['begin_ms'] }
         else
-          prev_ci = (ci - 1).downto(0).find { |k| corr_to_orig.key?(k) }
-          next_ci = (ci + 1..m - 1).find { |k| corr_to_orig.key?(k) }
+          prev_ci = (ci - 1).downto(0).find { |k| corr_to_orig.key?(k) && corr_to_orig[k] < asr_items.length }
+          next_ci = (ci + 1..m - 1).find { |k| corr_to_orig.key?(k) && corr_to_orig[k] < asr_items.length }
           ms = interpolate_time(prev_ci, next_ci, ci, corr_to_orig, asr_items)
           result << { 'ch' => ch, 'begin_ms' => ms }
         end
@@ -189,14 +195,15 @@ module PictureBook
     end
 
     def interpolate_time(prev_ci, next_ci, ci, corr_to_orig, asr_items)
-      if prev_ci && next_ci
+      valid = ->(idx) { corr_to_orig[idx] && corr_to_orig[idx] < asr_items.length }
+      if prev_ci && valid.call(prev_ci) && next_ci && valid.call(next_ci)
         prev_ms = asr_items[corr_to_orig[prev_ci]]['begin_ms']
         next_ms = asr_items[corr_to_orig[next_ci]]['begin_ms']
         frac = (ci - prev_ci).fdiv(next_ci - prev_ci)
         (prev_ms + (next_ms - prev_ms) * frac).round
-      elsif prev_ci
+      elsif prev_ci && valid.call(prev_ci)
         asr_items[corr_to_orig[prev_ci]]['begin_ms']
-      elsif next_ci
+      elsif next_ci && valid.call(next_ci)
         asr_items[corr_to_orig[next_ci]]['begin_ms']
       else
         0
