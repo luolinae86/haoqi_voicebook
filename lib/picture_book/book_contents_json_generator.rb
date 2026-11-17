@@ -200,6 +200,10 @@ module PictureBook
       start_ms = (parse_timestamp(content.start_at) * 1000).round
       end_ms = (parse_timestamp(content.deal_at) * 1000).round
 
+      # merge 模式下，音频从 0s 起，charTime 用相对时间（从 0 起）
+      # 因为 iPad app 的 charTime 是相对于页面显示时刻的
+      timing_start_ms = (merge_until > 0 && index <= 1) ? 0 : start_ms
+
       # 封面页：只显示书名（去掉 ASR 中书名后泄漏的正文汉字）
       if index.zero? && merge_until > 0
         title = @book.name.to_s
@@ -215,7 +219,7 @@ module PictureBook
         end
         page_items = page_items.first(cut_idx)
       elsif merge_until > 0 && index == 1
-        # 正文第一页：包含从 0s 起的全文（音频含书名），但跳过书名避免与封面重复
+        # 正文第一页：包含从 0s 起的全文，跳过书名避免与封面重复
         page_items = asr_items.select { |item| item['begin_ms'] < end_ms }
         title = @book.name.to_s
         han_skipped = 0
@@ -238,8 +242,7 @@ module PictureBook
 
       # 按顺序消费 page_items，给每行每个字分配时间
       cursor = { index: 0, items: page_items }
-      # 先算每行的起止时间（行边界落在句间停顿的 0.64 处，和 Timeline 同口径）
-      line_boundaries = compute_line_boundaries(line_texts, page_items, start_ms, end_ms)
+      line_boundaries = compute_line_boundaries(line_texts, page_items, timing_start_ms, end_ms)
 
       lines = line_texts.map.with_index do |text, line_idx|
         boundary = line_boundaries[line_idx]
