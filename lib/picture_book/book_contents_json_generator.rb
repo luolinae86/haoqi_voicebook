@@ -97,10 +97,17 @@ module PictureBook
       region = host_parts[1].sub('oss-', '').sub('-internal', '')
       object_key = uri.path.sub(%r{\A/}, '')
 
+      # haoqi-read bucket 用单独的凭证
+      access_key_id, access_key_secret = if bucket == 'haoqi-read'
+                                           [ENV['HAOQI_READ_ACCESS_KEY_ID'], ENV['HAOQI_READ_ACCESS_KEY_SECRET']]
+                                         else
+                                           [OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET]
+                                         end
+
       client = Aliyun::OSS::Client.new(
         endpoint: "https://oss-#{region}.aliyuncs.com",
-        access_key_id: OSS_ACCESS_KEY_ID,
-        access_key_secret: OSS_ACCESS_KEY_SECRET
+        access_key_id: access_key_id,
+        access_key_secret: access_key_secret
       )
       bucket_obj = client.get_bucket(bucket)
       bucket_obj.object_url(object_key, true, 1800)
