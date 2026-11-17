@@ -150,7 +150,7 @@ module PictureBook
       # 按顺序消费 page_items，给每行每个字分配时间
       cursor = { index: 0, items: page_items }
       # 先算每行的起止时间（行边界落在句间停顿的 0.64 处，和 Timeline 同口径）
-      line_boundaries = compute_line_boundaries(line_texts, page_items, page_start_ms, page_end_ms)
+      line_boundaries = compute_line_boundaries(line_texts, page_items, start_ms, end_ms)
 
       lines = line_texts.map.with_index do |text, line_idx|
         boundary = line_boundaries[line_idx]
