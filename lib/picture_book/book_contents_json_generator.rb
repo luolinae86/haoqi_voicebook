@@ -218,8 +218,19 @@ module PictureBook
         title_items = title_items.first(cut_idx)
         page_items = title_items
       elsif merge_until > 0 && index == 1
-        # 正文第一页：从 0 开始，包含封面页的所有内容
+        # 正文第一页：从 0 开始，但跳过已在封面页显示的书名
         page_items = asr_items.select { |item| item['begin_ms'] < end_ms }
+        title = @book.name.to_s
+        han_skipped = 0
+        skip_idx = page_items.length
+        page_items.each_with_index do |item, i|
+          han_skipped += 1 if item['ch'].match?(HAN)
+          if han_skipped >= title.length
+            skip_idx = i + 1
+            break
+          end
+        end
+        page_items = page_items[skip_idx..] || []
       else
         page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
       end
