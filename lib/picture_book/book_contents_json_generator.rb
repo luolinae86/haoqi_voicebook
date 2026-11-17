@@ -17,7 +17,6 @@ module PictureBook
 
     HAN = Pinyin::HAN
     PUNCT = /\p{P}/
-    KEEP = /\A[\p{Han}\p{P}]\z/
     WIDTH_MAP = Segmenter::WIDTH_MAP
 
     def initialize(book:)
@@ -119,18 +118,49 @@ module PictureBook
       url
     end
 
-    # 把句子展平成逐字条目（汉字 + 标点，毫秒时间戳）
+    # 把句子展平成逐字条目（汉字 + 标点，毫秒时间戳）。
+    # ASR 的 words 只有汉字，标点在 sentence.text 里；
+    # 用两指针对齐 text 和 word chars，把标点插回时间线。
     def flatten_sentences(sentences)
       out = []
       sentences.each do |sentence|
-        Array(sentence['words']).each do |word|
-          chars = word['text'].to_s.each_char.select { |c| c.match?(KEEP) }
+        words = Array(sentence['words'])
+        text = sentence['text'].to_s
+
+        word_chars = []
+        words.each do |word|
+          chars = word['text'].to_s.each_char.select { |c| c.match?(HAN) }
           next if chars.empty?
 
           begin_ms = word['begin_time'].to_i
-          span = chars.length > 1 ? (word['end_time'].to_i - begin_ms).fdiv(chars.length) : 0
+          end_ms = word['end_time'].to_i
+          span = chars.length > 1 ? (end_ms - begin_ms).fdiv(chars.length) : 0
           chars.each_with_index do |ch, k|
-            out << { 'ch' => ch, 'begin_ms' => (begin_ms + (k * span)).round }
+            word_chars << { ch: ch, begin_ms: (begin_ms + k * span).round }
+          end
+        end
+
+        wi = 0
+        last_ms = 0
+        text.each_char do |ch|
+          if ch.match?(HAN)
+            if wi < word_chars.length && word_chars[wi][:ch] == ch
+              out << { 'ch' => ch, 'begin_ms' => word_chars[wi][:begin_ms] }
+              last_ms = word_chars[wi][:begin_ms]
+              wi += 1
+            end
+          elsif ch.match?(PUNCT)
+            punct_ms = if wi > 0 && wi < word_chars.length
+                         (word_chars[wi - 1][:begin_ms] + word_chars[wi][:begin_ms]) / 2
+                       elsif wi > 0
+                         last_ms
+                       elsif wi < word_chars.length
+                         word_chars[wi][:begin_ms]
+                       else
+                         0
+                       end
+            out << { 'ch' => ch, 'begin_ms' => punct_ms }
+            last_ms = punct_ms
           end
         end
       end
