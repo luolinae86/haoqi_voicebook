@@ -127,87 +127,40 @@ module PictureBook
     # ── Text correction ──
 
     # 用 LLM 修正 ASR 文本中的同音错别字，保持时间戳对齐。
+    # 策略：只提取汉字送 LLM 纠错（不含标点），避免 LLM 改标点/加字导致对齐失败。
     def correct_asr_text(asr_items)
       return asr_items if asr_items.empty?
 
-      raw_text = asr_items.map { |i| i['ch'] }.join
-      corrected = DashScope::TextCorrector.new.correct(raw_text)
+      # 记录每个汉字在 asr_items 中的位置
+      han_positions = []
+      han_text = +""
+      asr_items.each_with_index do |item, i|
+        if item['ch'].match?(HAN)
+          han_positions << i
+          han_text << item['ch']
+        end
+      end
+      return asr_items if han_text.empty?
 
-      return asr_items if corrected.blank? || corrected == raw_text
+      corrected = DashScope::TextCorrector.new.correct(han_text)
+      return asr_items if corrected.blank? || corrected == han_text
 
-      if (corrected.length - raw_text.length).abs > raw_text.length * 0.05
-        Rails.logger.warn("[BookContentsJson] LLM 纠错文本长度差异过大 (#{raw_text.length}→#{corrected.length})，跳过")
+      if (corrected.length - han_text.length).abs > han_text.length * 0.05
+        Rails.logger.warn("[BookContentsJson] LLM 纠错文本长度差异过大 (#{han_text.length}→#{corrected.length})，跳过")
         return asr_items
       end
 
-      Rails.logger.info("[BookContentsJson] LLM 纠错: #{raw_text.length}→#{corrected.length} 字")
-      align_and_replace(asr_items, raw_text, corrected)
-    end
+      Rails.logger.info("[BookContentsJson] LLM 纠错: #{han_text.length}→#{corrected.length} 汉字")
 
-    # LCS 对齐：把修正后的文本映射回原始时间戳。
-    def align_and_replace(asr_items, raw_text, corrected_text)
-      n, m = raw_text.length, corrected_text.length
+      # 用纠错后的汉字替换 asr_items 中对应位置的字符
+      result = asr_items.dup
+      corrected.chars.each_with_index do |ch, ci|
+        next unless ci < han_positions.length
 
-      # LCS 动态规划
-      dp = Array.new(n + 1) { Array.new(m + 1, 0) }
-      (1..n).each do |i|
-        (1..m).each do |j|
-          dp[i][j] = if raw_text[i - 1] == corrected_text[j - 1]
-                       dp[i - 1][j - 1] + 1
-                     else
-                       [dp[i - 1][j], dp[i][j - 1]].max
-                     end
-        end
-      end
-
-      # 回溯找匹配对 [orig_idx, corr_idx]
-      pairs = []
-      i, j = n, m
-      while i > 0 && j > 0
-        if raw_text[i - 1] == corrected_text[j - 1]
-          pairs << [i - 1, j - 1]
-          i -= 1
-          j -= 1
-        elsif dp[i - 1][j] >= dp[i][j - 1]
-          i -= 1
-        else
-          j -= 1
-        end
-      end
-      pairs.reverse!
-
-      corr_to_orig = pairs.each_with_object({}) { |(oi, ci), h| h[ci] = oi }
-
-      # 为修正文本的每个字符分配时间戳
-      result = []
-      corrected_text.each_char.with_index do |ch, ci|
-        orig_idx = corr_to_orig[ci]
-        if orig_idx && orig_idx < asr_items.length
-          result << { 'ch' => ch, 'begin_ms' => asr_items[orig_idx]['begin_ms'] }
-        else
-          prev_ci = (ci - 1).downto(0).find { |k| corr_to_orig.key?(k) && corr_to_orig[k] < asr_items.length }
-          next_ci = (ci + 1..m - 1).find { |k| corr_to_orig.key?(k) && corr_to_orig[k] < asr_items.length }
-          ms = interpolate_time(prev_ci, next_ci, ci, corr_to_orig, asr_items)
-          result << { 'ch' => ch, 'begin_ms' => ms }
-        end
+        orig_idx = han_positions[ci]
+        result[orig_idx] = result[orig_idx].merge('ch' => ch)
       end
       result
-    end
-
-    def interpolate_time(prev_ci, next_ci, ci, corr_to_orig, asr_items)
-      valid = ->(idx) { corr_to_orig[idx] && corr_to_orig[idx] < asr_items.length }
-      if prev_ci && valid.call(prev_ci) && next_ci && valid.call(next_ci)
-        prev_ms = asr_items[corr_to_orig[prev_ci]]['begin_ms']
-        next_ms = asr_items[corr_to_orig[next_ci]]['begin_ms']
-        frac = (ci - prev_ci).fdiv(next_ci - prev_ci)
-        (prev_ms + (next_ms - prev_ms) * frac).round
-      elsif prev_ci && valid.call(prev_ci)
-        asr_items[corr_to_orig[prev_ci]]['begin_ms']
-      elsif next_ci && valid.call(next_ci)
-        asr_items[corr_to_orig[next_ci]]['begin_ms']
-      else
-        0
-      end
     end
 
     # ── Page building ──
