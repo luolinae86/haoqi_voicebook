@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'open-uri'
+require 'tmpdir'
 require_relative 'char_dict'
 require_relative 'pinyin'
 require_relative 'segmenter'
+require_relative 'audio'
+require_relative 'asr_client'
 
 # 从 book_contents（图片页 + 时间戳）+ ASR 语音识别生成 book.json 和 dict.json 并上传 OSS。
 # 适用于 haoqi_read 已经上传图片和音频、但没有文本内容的绘本。
@@ -57,23 +61,33 @@ module PictureBook
     def fetch_asr_sentences
       return @book.asr_raw if @book.asr_raw.present?
 
-      audio_url = signed_audio_url
+      audio_url = @book.file_url.to_s
       raise Error, '绘本没有音频文件' if audio_url.blank?
 
-      service = DashScope::AsrService.new
-      sentences = service.transcribe(audio_url)
-      raise Error, 'ASR 未返回任何句子' if sentences.empty?
+      Dir.mktmpdir('voicebook-asr-') do |dir|
+        raw_path = File.join(dir, 'audio.mp3')
+        transcode_path = File.join(dir, 'audio-16k.mp3')
 
-      @book.update!(asr_raw: sentences)
-      sentences
+        # 下载音频到临时文件
+        download_audio(audio_url, raw_path)
+        # 转码为 16kHz 单声道 mp3（AsrClient 要求）
+        Audio.transcode(raw_path, transcode_path)
+        # 实时 ASR（WebSocket 流式识别，字级时间是声学对齐的）
+        sentences = AsrClient.new(api_key: ENV.fetch('DASHSCOPE_API_KEY')).transcribe(transcode_path)
+        raise Error, 'ASR 未返回任何句子' if sentences.empty?
+
+        @book.update!(asr_raw: sentences)
+        sentences
+      end
     end
 
-    def signed_audio_url
-      url = @book.file_url.to_s
-      return '' if url.blank?
-
-      object_key = AliyunOssService.key_from_url(url)
-      @oss.generate_signed_url(object_key, expires: 1800)
+    def download_audio(url, dest_path)
+      uri = URI.parse(url)
+      if uri.scheme == 'https' || uri.scheme == 'http'
+        URI.open(url) { |remote| File.open(dest_path, 'wb') { |local| local.write(remote.read) } }
+      else
+        raise Error, "不支持的音频 URL 协议: #{uri.scheme}"
+      end
     end
 
     # 把句子展平成逐字条目（和 Timeline#flatten_sentences 同口径，毫秒时间戳）
