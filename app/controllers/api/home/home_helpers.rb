@@ -120,8 +120,8 @@ module Api
           supplier_name: book.supplier&.name,
           category_subs: book.category_subs.map { |cs| { id: cs.id, name: cs.name, sn: cs.sn } },
           is_free: book.is_free,
-          book_json_url: book.book_json_oss_url,
-          dict_json_url: book.dict_json_oss_url,
+          book_json_url: signed_oss_url(book.book_json_oss_url),
+          dict_json_url: signed_oss_url(book.dict_json_oss_url),
           total_duration_ms: book.total_duration_ms,
           page_count: book.page_count
         }

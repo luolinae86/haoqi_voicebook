@@ -107,37 +107,8 @@ class Book < ApplicationRecord
     return nil if url.blank?
     return url unless url.include?("aliyuncs.com")
 
-    # 提取 object_key（使用 URL 中的实际 bucket 名称）
-    begin
-      uri = URI.parse(url)
-      host_parts = uri.host.to_s.split(".", 2)
-      return url if host_parts.size < 2
-      object_key = uri.path.sub(/\A\//, "")
-    rescue URI::InvalidURIError
-      # 非 ASCII URL（含中文），用正则提取
-      if url =~ %r{\Ahttps?://([^/]+)(/.*)?\z}
-        host_parts = $1.split(".", 2)
-        return url if host_parts.size < 2
-        object_key = ($2 || "/").sub(/\A\//, "")
-      else
-        return url
-      end
-    end
-
-    bucket_name = host_parts.first
-    endpoint = host_parts.last
-    object_key = CGI.unescape(object_key)
-
-    expires_at = Time.now.to_i + expires
-    canonicalized_resource = "/#{bucket_name}/#{object_key}"
-    string_to_sign = "GET\n\n\n#{expires_at}\n#{canonicalized_resource}"
-
-    signature = Base64.strict_encode64(
-      OpenSSL::HMAC.digest("sha1", OSS_ACCESS_KEY_SECRET, string_to_sign)
-    )
-
-    query = "Expires=#{expires_at}&OSSAccessKeyId=#{OSS_ACCESS_KEY_ID}&Signature=#{CGI.escape(signature)}"
-    "https://#{bucket_name}.#{endpoint}/#{CGI.escape(object_key)}?#{query}"
+    object_key = AliyunOssService.key_from_url(url)
+    AliyunOssService.new.generate_signed_url(object_key, expires: expires)
   rescue StandardError
     url
   end
