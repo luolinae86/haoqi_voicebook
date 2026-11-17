@@ -32,7 +32,10 @@ module PictureBook
       asr_items = flatten_sentences(sentences)
       asr_items = correct_asr_text(asr_items)
 
-      pages_data = contents.map.with_index { |c, i| build_page(c, i, asr_items) }
+      # 如果封面页（第1页）时间很短且 ASR 以书名开头，把封面页的 ASR 合并到正文第一页
+      merge_until = compute_cover_merge(asr_items, contents)
+
+      pages_data = contents.map.with_index { |c, i| build_page(c, i, asr_items, i.zero? ? 0 : merge_until) }
       book_json = build_book_json(contents, pages_data)
 
       book_key = "#{@prefix}/book.json"
@@ -165,38 +168,60 @@ module PictureBook
 
     # ── Page building ──
 
-    # 封面页（index=0）：去掉开头朗读书名的汉字部分。
-    # 如果去掉书名后只剩零碎的几个字（说明 narrator 刚读完书名就开始读正文了），
-    # 这几个字属于正文而非封面，全部去掉，让正文完整出现在下一页。
-    def strip_book_title(page_items)
-      title_chars = @book.name.to_s.chars
-      return page_items if title_chars.empty?
+    # 检查封面页是否应该合并到正文第一页。
+    # 条件：第1页时长 ≤ 5s 且 ASR 以书名开头。
+    # 返回合并的截止时间（毫秒），0 表示不合并。
+    def compute_cover_merge(asr_items, contents)
+      return 0 if contents.size < 2
 
-      remaining = page_items.dup
-      title_chars.each do |tc|
-        idx = remaining.index { |item| item['ch'] == tc }
-        if idx
-          remaining.shift(idx + 1)
-        else
-          return page_items
-        end
-      end
+      cover = contents.first
+      cover_duration = parse_timestamp(cover.deal_at) - parse_timestamp(cover.start_at)
+      return 0 if cover_duration > 5
 
-      # 书名后紧跟的正文汉字 ≤ 4 个，视为正文开头泄漏，全部去掉
-      han_count = remaining.count { |item| item['ch'].match?(HAN) }
-      han_count <= 4 ? [] : remaining
+      cover_end_ms = (parse_timestamp(cover.deal_at) * 1000).round
+      cover_items = asr_items.select { |item| item['begin_ms'] < cover_end_ms }
+
+      # 检查 ASR 是否以书名开头
+      title = @book.name.to_s
+      cover_text = cover_items.map { |item| item['ch'] }.join
+      return 0 unless cover_text.start_with?(title)
+
+      # 找到书名结束后的下一个汉字的位置，合并到那里
+      title_len = title.length
+      han_items = cover_items.select { |item| item['ch'].match?(HAN) }
+      return 0 if han_items.length <= title_len
+
+      # 书名后有泄漏的正文汉字，返回最后一个泄漏汉字的时间 + 1ms
+      # 这样正文第一页会包含封面页的所有文字
+      cover_end_ms
     end
 
-    def build_page(content, index, asr_items)
+    def build_page(content, index, asr_items, merge_until = 0)
       start_ms = (parse_timestamp(content.start_at) * 1000).round
       end_ms = (parse_timestamp(content.deal_at) * 1000).round
 
-      # 按时间窗口选出本页的 ASR 逐字条目
-      page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
-
-      # 封面页：去掉开头朗读书名的部分
-      if index.zero?
-        page_items = strip_book_title(page_items)
+      # 封面页：合并正文泄漏的内容到下一页
+      if index.zero? && merge_until > 0
+        # 封面页只显示书名部分
+        title = @book.name.to_s
+        title_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
+        # 截取到书名结束
+        han_count = 0
+        cut_idx = title_items.length
+        title_items.each_with_index do |item, i|
+          han_count += 1 if item['ch'].match?(HAN)
+          if han_count >= title.length
+            cut_idx = i + 1
+            break
+          end
+        end
+        title_items = title_items.first(cut_idx)
+        page_items = title_items
+      elsif merge_until > 0 && index == 1
+        # 正文第一页：从 0 开始，包含封面页的所有内容
+        page_items = asr_items.select { |item| item['begin_ms'] < end_ms }
+      else
+        page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
       end
 
       # ASR 识别出的文字 → Segmenter 切成朗读行
