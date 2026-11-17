@@ -200,6 +200,10 @@ module PictureBook
       start_ms = (parse_timestamp(content.start_at) * 1000).round
       end_ms = (parse_timestamp(content.deal_at) * 1000).round
 
+      # merge 模式下，封面和正文第一页的 ASR 内容从 0s 起，
+      # 时间起点必须用 0 而非页面自身的 start_ms，否则高亮整体偏移
+      timing_start_ms = (merge_until > 0 && index <= 1) ? 0 : start_ms
+
       # 封面页：合并正文泄漏的内容到下一页
       if index.zero? && merge_until > 0
         # 封面页只显示书名部分
@@ -242,7 +246,7 @@ module PictureBook
       # 按顺序消费 page_items，给每行每个字分配时间
       cursor = { index: 0, items: page_items }
       # 先算每行的起止时间（行边界落在句间停顿的 0.64 处，和 Timeline 同口径）
-      line_boundaries = compute_line_boundaries(line_texts, page_items, start_ms, end_ms)
+      line_boundaries = compute_line_boundaries(line_texts, page_items, timing_start_ms, end_ms)
 
       lines = line_texts.map.with_index do |text, line_idx|
         boundary = line_boundaries[line_idx]
