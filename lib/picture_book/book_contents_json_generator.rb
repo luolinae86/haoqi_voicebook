@@ -165,7 +165,9 @@ module PictureBook
 
     # ── Page building ──
 
-    # 封面页（index=0）：去掉 ASR 开头朗读书名的汉字部分，只保留正文。
+    # 封面页（index=0）：去掉开头朗读书名的汉字部分。
+    # 如果去掉书名后只剩零碎的几个字（说明 narrator 刚读完书名就开始读正文了），
+    # 这几个字属于正文而非封面，全部去掉，让正文完整出现在下一页。
     def strip_book_title(page_items)
       title_chars = @book.name.to_s.chars
       return page_items if title_chars.empty?
@@ -179,7 +181,10 @@ module PictureBook
           return page_items
         end
       end
-      remaining
+
+      # 书名后紧跟的正文汉字 ≤ 4 个，视为正文开头泄漏，全部去掉
+      han_count = remaining.count { |item| item['ch'].match?(HAN) }
+      han_count <= 4 ? [] : remaining
     end
 
     def build_page(content, index, asr_items)
