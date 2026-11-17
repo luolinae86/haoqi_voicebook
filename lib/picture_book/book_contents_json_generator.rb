@@ -204,7 +204,6 @@ module PictureBook
       if index.zero? && merge_until > 0
         title = @book.name.to_s
         page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
-        # 截取到书名结束，去掉泄漏到封面的正文
         han_count = 0
         cut_idx = page_items.length
         page_items.each_with_index do |item, i|
@@ -216,10 +215,19 @@ module PictureBook
         end
         page_items = page_items.first(cut_idx)
       elsif merge_until > 0 && index == 1
-        # 正文第一页：只保留 ≥ 封面截止时间的 ASR 内容
-        # 封面时间范围内的文字（如"远古时代"）属于封面音频，不能放在第一页
-        # 否则 iPad 在 2.5s 切到第一页时，音频已越过这些字，字幕超前
-        page_items = asr_items.select { |item| item['begin_ms'] >= merge_until && item['begin_ms'] < end_ms }
+        # 正文第一页：包含从 0s 起的全文（音频含书名），但跳过书名避免与封面重复
+        page_items = asr_items.select { |item| item['begin_ms'] < end_ms }
+        title = @book.name.to_s
+        han_skipped = 0
+        skip_idx = page_items.length
+        page_items.each_with_index do |item, i|
+          han_skipped += 1 if item['ch'].match?(HAN)
+          if han_skipped >= title.length
+            skip_idx = i + 1
+            break
+          end
+        end
+        page_items = page_items[skip_idx..] || []
       else
         page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
       end
@@ -263,7 +271,7 @@ module PictureBook
             break
           end
         end
-        onsets << [onset, page_start_ms].max
+        onsets << onset
       end
 
       line_texts.map.with_index do |_text, i|
