@@ -165,12 +165,34 @@ module PictureBook
 
     # ── Page building ──
 
+    # 封面页（index=0）：去掉 ASR 开头朗读书名的汉字部分，只保留正文。
+    def strip_book_title(page_items)
+      title_chars = @book.name.to_s.chars
+      return page_items if title_chars.empty?
+
+      remaining = page_items.dup
+      title_chars.each do |tc|
+        idx = remaining.index { |item| item['ch'] == tc }
+        if idx
+          remaining.shift(idx + 1)
+        else
+          return page_items
+        end
+      end
+      remaining
+    end
+
     def build_page(content, index, asr_items)
       start_ms = (parse_timestamp(content.start_at) * 1000).round
       end_ms = (parse_timestamp(content.deal_at) * 1000).round
 
       # 按时间窗口选出本页的 ASR 逐字条目
       page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
+
+      # 封面页：去掉开头朗读书名的部分
+      if index.zero?
+        page_items = strip_book_title(page_items)
+      end
 
       # ASR 识别出的文字 → Segmenter 切成朗读行
       page_text = page_items.map { |item| item['ch'] }.join
