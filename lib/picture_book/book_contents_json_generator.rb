@@ -16,6 +16,9 @@ module PictureBook
     class Error < StandardError; end
 
     HAN = Pinyin::HAN
+    PUNCT = /\p{P}/
+    KEEP = /\A[\p{Han}\p{P}]\z/
+    WIDTH_MAP = Segmenter::WIDTH_MAP
 
     def initialize(book:)
       @book = book
@@ -116,12 +119,12 @@ module PictureBook
       url
     end
 
-    # 把句子展平成逐字条目（和 Timeline#flatten_sentences 同口径，毫秒时间戳）
+    # 把句子展平成逐字条目（汉字 + 标点，毫秒时间戳）
     def flatten_sentences(sentences)
       out = []
       sentences.each do |sentence|
         Array(sentence['words']).each do |word|
-          chars = word['text'].to_s.each_char.grep(HAN)
+          chars = word['text'].to_s.each_char.select { |c| c.match?(KEEP) }
           next if chars.empty?
 
           begin_ms = word['begin_time'].to_i
@@ -216,19 +219,18 @@ module PictureBook
       last_time = line_start_ms
 
       text.each_char.with_index do |ch, i|
+        # 尝试从 cursor 中消费一个条目（匹配时考虑 Segmenter.normalize 的全半角转换）
+        cursor_time = consume_cursor_time(cursor, ch)
+
         if ch.match?(HAN)
-          time_ms = if cursor[:index] < cursor[:items].length && cursor[:items][cursor[:index]]['ch'] == ch
-                      consumed = cursor[:items][cursor[:index]]
-                      cursor[:index] += 1
-                      consumed['begin_ms']
-                    else
-                      remaining_han = han_count - han_assigned
-                      if remaining_han > 0
-                        (last_time + (line_end_ms - last_time).fdiv(remaining_han)).round
-                      else
-                        last_time
-                      end
-                    end
+          time_ms = cursor_time || begin
+            remaining_han = han_count - han_assigned
+            if remaining_han > 0
+              (last_time + (line_end_ms - last_time).fdiv(remaining_han)).round
+            else
+              last_time
+            end
+          end
 
           time_ms = [[time_ms, line_start_ms].max, line_end_ms].min
           tokens << { 'ch' => ch, 'py' => syllables[i].to_s }
@@ -236,8 +238,10 @@ module PictureBook
           last_time = time_ms
           han_assigned += 1
         else
+          time_ms = cursor_time || (char_times.last ? (char_times.last * 1000).round : line_start_ms)
           tokens << { 'ch' => ch, 'py' => '' }
-          char_times << (char_times.last || (line_start_ms / 1000.0).round(3))
+          char_times << (time_ms / 1000.0).round(3)
+          last_time = time_ms
         end
       end
 
@@ -247,6 +251,25 @@ module PictureBook
         'tokens' => tokens,
         char_times: char_times
       }
+    end
+
+    # 从 cursor 中消费一个条目，返回其时间戳（毫秒）。
+    # 匹配时考虑 Segmenter.normalize 的全半角转换（，→, ！→! 等）。
+    # 如果不匹配（ASR 和文本不一致），返回 nil 且不消费 cursor。
+    def consume_cursor_time(cursor, ch)
+      return nil if cursor[:index] >= cursor[:items].length
+
+      item = cursor[:items][cursor[:index]]
+      item_ch = item['ch']
+      normalized_item = WIDTH_MAP.fetch(item_ch, item_ch)
+      normalized_ch = WIDTH_MAP.fetch(ch, ch)
+
+      if item_ch == ch || normalized_item == normalized_ch
+        cursor[:index] += 1
+        item['begin_ms']
+      else
+        nil
+      end
     end
 
     # ── JSON builders ──
