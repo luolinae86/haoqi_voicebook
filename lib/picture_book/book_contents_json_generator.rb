@@ -89,7 +89,7 @@ module PictureBook
     end
 
     # 音频可能在不同的 OSS bucket（如 haoqi-read@cn-hangzhou），需要签名才能下载
-    def sign_url_if_needed(url)
+    def sign_url_if_needed(url, expires: 1800)
       return url unless url.include?('aliyuncs.com') && url.include?('oss-')
 
       # 从 URL 解析 bucket 和 region: http(s)://BUCKET.oss-REGION.aliyuncs.com/KEY
@@ -112,9 +112,9 @@ module PictureBook
         access_key_secret: access_key_secret
       )
       bucket_obj = client.get_bucket(bucket)
-      bucket_obj.object_url(object_key, true, 1800)
+      bucket_obj.object_url(object_key, true, expires)
     rescue StandardError => e
-      Rails.logger.warn("[BookContentsJson] URL 签名失败: #{e.message}, 尝试直接下载")
+      Rails.logger.warn("[BookContentsJson] URL 签名失败: #{e.message}, 尝试直接使用")
       url
     end
 
@@ -304,20 +304,22 @@ module PictureBook
 
     # ── JSON builders ──
 
+    LONG_EXPIRY = 10 * 365 * 24 * 3600 # 10 年，绘本资源不变
+
     def build_book_json(contents, pages_data)
       {
         'id' => @book.source_book_no.presence || @book.id.to_s,
         'title' => @book.name,
         'author' => @book.author&.name,
-        'cover' => oss_key_from_url(@book.cover_image_url.to_s),
-        'audio' => oss_key_from_url(@book.file_url.to_s),
+        'cover' => sign_url_if_needed(@book.cover_image_url.to_s, expires: LONG_EXPIRY),
+        'audio' => sign_url_if_needed(@book.file_url.to_s, expires: LONG_EXPIRY),
         'totalDuration' => parse_timestamp(contents.last.deal_at),
         'pageCount' => contents.size,
         'pages' => contents.each_with_index.map do |content, i|
           pd = pages_data[i]
           {
             'index' => i,
-            'image' => oss_key_from_url(content.img_path.to_s),
+            'image' => sign_url_if_needed(content.img_path.to_s, expires: LONG_EXPIRY),
             'start' => parse_timestamp(content.start_at),
             'end' => parse_timestamp(content.deal_at),
             'lines' => pd[:lines],
@@ -343,14 +345,6 @@ module PictureBook
     end
 
     # ── Helpers ──
-
-    def oss_key_from_url(url)
-      return '' if url.blank?
-
-      AliyunOssService.key_from_url(url)
-    rescue StandardError
-      url
-    end
 
     def parse_timestamp(str)
       return 0.0 if str.blank?
