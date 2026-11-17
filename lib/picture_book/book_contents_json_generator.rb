@@ -35,7 +35,7 @@ module PictureBook
       # 如果封面页（第1页）时间很短且 ASR 以书名开头，把封面页的 ASR 合并到正文第一页
       merge_until = compute_cover_merge(asr_items, contents)
 
-      pages_data = contents.map.with_index { |c, i| build_page(c, i, asr_items, i.zero? ? 0 : merge_until) }
+      pages_data = contents.map.with_index { |c, i| build_page(c, i, asr_items, merge_until) }
       book_json = build_book_json(contents, pages_data)
 
       book_key = "#{@prefix}/book.json"
