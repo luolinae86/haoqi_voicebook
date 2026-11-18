@@ -6,6 +6,8 @@ require_relative 'pinyin'
 require_relative 'segmenter'
 require_relative 'audio'
 require_relative 'asr_client'
+require_relative 'ocr_client'
+require_relative 'timeline'
 require_relative '../dash_scope/asr_service'
 require_relative '../dash_scope/text_corrector'
 require_relative '../dash_scope/punctuation_corrector'
@@ -18,6 +20,7 @@ module PictureBook
 
     HAN = Pinyin::HAN
     WIDTH_MAP = Segmenter::WIDTH_MAP
+    ContentPage = Struct.new(:number, :image_name, :start_ms, :end_ms, keyword_init: true)
 
     def initialize(book:)
       @book = book
@@ -30,13 +33,186 @@ module PictureBook
       raise Error, 'book_contents 为空，无法生成 book.json' if contents.empty?
 
       sentences = fetch_asr_sentences
+      @stats = { ocr_reused: 0, ocr_called: 0 }
+
+      if ocr_available?
+        call_with_ocr(contents, sentences)
+      else
+        call_without_ocr(contents, sentences)
+      end
+    end
+
+    private
+
+    # ── OCR path (preferred) ──
+
+    def ocr_available?
+      ENV['DASHSCOPE_API_KEY'].present?
+    end
+
+    def call_with_ocr(contents, sentences)
+      ocr_lines = collect_ocr(contents)
+      page_structs = build_page_structs(contents)
+
+      result = Timeline.build(pages: page_structs, ocr_lines: ocr_lines, sentences: sentences)
+      compute_match_rates(result, ocr_lines)
+
+      book_json = build_book_json_from_timeline(contents, result)
+      book_key = "#{@prefix}/book.json"
+      @oss.upload_data(data: JSON.generate(book_json), object_key: book_key, content_type: 'application/json')
+
+      dict_json = build_dict_json_from_timeline(result)
+      dict_key = "#{@prefix}/dict.json"
+      @oss.upload_data(data: JSON.generate(dict_json), object_key: dict_key, content_type: 'application/json')
+
+      store_pages_from_timeline(result, contents)
+
+      @book.update!(
+        book_json_oss_key: book_key,
+        book_json_oss_url: @oss.public_url(book_key),
+        dict_json_oss_key: dict_key,
+        dict_json_oss_url: @oss.public_url(dict_key),
+        import_status: :ready,
+        imported_at: Time.current,
+        page_count: contents.size,
+        total_duration_ms: parse_timestamp(contents.last.deal_at)
+      )
+
+      {
+        book_json_oss_key: book_key, dict_json_oss_key: dict_key, pages: contents.size,
+        anchored: result.anchored, total_chars: result.char_count, stats: @stats
+      }
+    end
+
+    def collect_ocr(contents)
+      @ocr_client ||= OcrClient.new
+      ocr_lines = {}
+
+      contents.each_with_index do |content, index|
+        page_number = index + 1
+        record = @book.picture_book_pages.find_or_initialize_by(page_number: page_number)
+
+        raw = record.ocr_raw.presence
+        if raw
+          @stats[:ocr_reused] += 1
+        else
+          image_url = sign_url_if_needed(content.img_path.to_s, expires: 600)
+          raw = @ocr_client.call(image_url)
+          @stats[:ocr_called] += 1
+        end
+
+        lines = Segmenter.lines(raw['lines'])
+        ocr_lines[page_number] = lines
+
+        record.ocr_raw = raw
+        record.plain_text = lines.join("\n")
+        record.timing_start_ms = (parse_timestamp(content.start_at) * 1000).round
+        record.timing_end_ms = (parse_timestamp(content.deal_at) * 1000).round
+        record.save!
+      end
+
+      ocr_lines
+    end
+
+    def build_page_structs(contents)
+      contents.each_with_index.map do |content, index|
+        ContentPage.new(
+          number: index + 1,
+          image_name: content.img_path.to_s,
+          start_ms: (parse_timestamp(content.start_at) * 1000).round,
+          end_ms: (parse_timestamp(content.deal_at) * 1000).round
+        )
+      end
+    end
+
+    def build_book_json_from_timeline(contents, result)
+      {
+        'id' => @book.source_book_no.presence || @book.id.to_s,
+        'title' => @book.name,
+        'author' => @book.author&.name,
+        'cover' => sign_url_if_needed(@book.cover_image_url.to_s, expires: LONG_EXPIRY),
+        'audio' => sign_url_if_needed(@book.file_url.to_s, expires: LONG_EXPIRY),
+        'totalDuration' => parse_timestamp(contents.last.deal_at),
+        'pageCount' => contents.size,
+        'pages' => contents.each_with_index.map do |content, i|
+          page = result.pages[i]
+          tokens = page.lines.flat_map(&:tokens)
+          {
+            'index' => i,
+            'image' => sign_url_if_needed(content.img_path.to_s, expires: LONG_EXPIRY),
+            'start' => ms_to_seconds(page.start_ms),
+            'end' => ms_to_seconds(page.end_ms),
+            'lines' => page.lines.map do |line|
+              {
+                'start' => ms_to_seconds(line.start_ms),
+                'end' => ms_to_seconds(line.end_ms),
+                'tokens' => line.tokens
+              }
+            end,
+            'charTimes' => page.lines.flat_map(&:char_times).map { |ms| ms_to_seconds(ms) }
+              .first(tokens.length)
+          }
+        end
+      }
+    end
+
+    def build_dict_json_from_timeline(result)
+      title_chars = @book.name.to_s.each_char.grep(HAN)
+      author_chars = @book.author&.name.to_s.each_char.grep(HAN)
+      page_chars = result.pages.flat_map { |p| p.lines }
+                      .flat_map { |l| l.tokens.map { |t| t['ch'] } }
+                      .grep(HAN)
+      chars = (title_chars + author_chars + page_chars).uniq
+      CharDict.build(chars)
+    end
+
+    def store_pages_from_timeline(result, contents)
+      result.pages.each_with_index do |page, index|
+        content = contents[index]
+        record = @book.picture_book_pages.find_or_initialize_by(page_number: index + 1)
+        record.assign_attributes(
+          image_key: content.img_path.to_s,
+          start_ms: page.start_ms,
+          end_ms: page.end_ms,
+          word_count: page.lines.flat_map(&:tokens).count { |t| t['ch'].match?(HAN) },
+          lines: {
+            'index' => page.index,
+            'image' => content.img_path.to_s,
+            'start' => ms_to_seconds(page.start_ms),
+            'end' => ms_to_seconds(page.end_ms),
+            'lines' => page.lines.map do |line|
+              { 'start' => ms_to_seconds(line.start_ms),
+                'end' => ms_to_seconds(line.end_ms),
+                'tokens' => line.tokens }
+            end,
+            'char_times' => page.lines.flat_map(&:char_times).map { |ms| ms_to_seconds(ms) }
+          }
+        )
+        record.save!
+      end
+    end
+
+    def compute_match_rates(result, ocr_lines)
+      total_ocr = ocr_lines.values.flat_map { |lines| lines.join.each_char.grep(HAN) }.length
+      return if total_ocr.zero?
+
+      rate = (result.anchored.to_f / total_ocr * 100).round(1)
+      Rails.logger.info("[BookContentsJson] OCR+对齐: #{result.anchored}/#{total_ocr} 字命中 (#{rate}%)")
+      Rails.logger.warn("[BookContentsJson] 低匹配率 (#{rate}%): OCR 与 ASR 文本差异较大") if rate < 80
+    end
+
+    def ms_to_seconds(ms)
+      (ms.to_f / 1000).round(3)
+    end
+
+    # ── Fallback path (ASR + LLM + linear stretch) ──
+
+    def call_without_ocr(contents, sentences)
       asr_items = flatten_sentences(sentences)
       asr_items = correct_asr_text(asr_items)
       asr_items = correct_asr_punctuation(asr_items)
 
-      # 如果封面页（第1页）时间很短且 ASR 以书名开头，把封面页的 ASR 合并到正文第一页
       merge_until = compute_cover_merge(asr_items, contents)
-
       pages_data = contents.map.with_index { |c, i| build_page(c, i, asr_items, merge_until) }
       book_json = build_book_json(contents, pages_data)
 
@@ -60,8 +236,6 @@ module PictureBook
 
       { book_json_oss_key: book_key, dict_json_oss_key: dict_key, pages: contents.size }
     end
-
-    private
 
     # ── ASR ──
 
