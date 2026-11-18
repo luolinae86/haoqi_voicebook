@@ -239,7 +239,20 @@ module PictureBook
       # 按字数比例分配时间（与参考实现一致）
       total_chars = line_texts.sum { |t| t.length }
       span_ms = end_ms - start_ms
-      cursor_ms = start_ms
+
+      # 参考实现中，每个页面开始后有延迟（约 0.6s），让叙述者有时间开始说话
+      # 封面页没有延迟，正文页有延迟
+      page_delay_ms = if index.zero? && merge_until > 0
+                         0  # 封面页：无延迟
+                       elsif merge_until > 0 && index == 1
+                         600  # 正文第一页（封面合并后）：0.6s 延迟
+                       else
+                         600  # 其他页面：0.6s 延迟
+                       end
+
+      effective_start_ms = start_ms + page_delay_ms
+      effective_span_ms = end_ms - effective_start_ms
+      cursor_ms = effective_start_ms
 
       lines = line_texts.map.with_index do |text, line_idx|
         len = text.length
@@ -247,7 +260,7 @@ module PictureBook
         line_end_ms = if line_idx == line_texts.length - 1
                         end_ms
                       else
-                        cursor_ms + (span_ms * len) / total_chars
+                        cursor_ms + (effective_span_ms * len) / total_chars
                       end
         cursor_ms = line_end_ms
 
@@ -269,7 +282,13 @@ module PictureBook
       span_ms = line_end_ms - line_start_ms
 
       text.each_char.with_index do |ch, i|
-        time_ms = line_start_ms + (span_ms * i) / [len, 1].max
+        # 使用与参考一致的分布公式：charTime[i] = start + (span * i / len)
+        # 这样最后一个字符的时间 < end，留出页面间的间隔
+        time_ms = if len > 0
+                    line_start_ms + (span_ms * i) / len
+                  else
+                    line_start_ms
+                  end
         time_ms = [[time_ms, line_start_ms].max, line_end_ms].min
 
         if ch.match?(HAN)
