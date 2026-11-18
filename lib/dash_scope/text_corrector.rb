@@ -53,7 +53,14 @@ module DashScope
 
       result = JSON.parse(response.body)
       corrected = result.dig('choices', 0, 'message', 'content')&.strip
-      corrected.presence || text
+
+      # 验证输出长度必须与输入相同（LLM 有时会违反规则增删字符）
+      if corrected.present? && corrected.length == text.length
+        corrected
+      else
+        Rails.logger.warn("[TextCorrector] LLM 输出长度不匹配 (输入: #{text.length}, 输出: #{corrected&.length || 0})，使用原文")
+        text
+      end
     rescue StandardError => e
       Rails.logger.warn("[TextCorrector] 纠错失败，使用原文: #{e.message}")
       text

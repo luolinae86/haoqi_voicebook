@@ -150,12 +150,13 @@ module PictureBook
       corrected = DashScope::TextCorrector.new.correct(han_text)
       return asr_items if corrected.blank? || corrected == han_text
 
-      if (corrected.length - han_text.length).abs > han_text.length * 0.05
-        Rails.logger.warn("[BookContentsJson] LLM 纠错文本长度差异过大 (#{han_text.length}→#{corrected.length})，跳过")
+      # 要求长度完全匹配（TextCorrector 已经做了验证，这里双重检查）
+      if corrected.length != han_text.length
+        Rails.logger.warn("[BookContentsJson] LLM 纠错文本长度不匹配 (#{han_text.length}→#{corrected.length})，跳过")
         return asr_items
       end
 
-      Rails.logger.info("[BookContentsJson] LLM 纠错: #{han_text.length}→#{corrected.length} 汉字")
+      Rails.logger.info("[BookContentsJson] LLM 纠错: #{han_text.length} 汉字")
 
       # 用纠错后的汉字替换 asr_items 中对应位置的字符
       result = asr_items.dup
@@ -180,14 +181,13 @@ module PictureBook
       orig_han = full_text.each_char.select { |c| c.match?(HAN) }.join
       corrected_han = corrected.each_char.select { |c| c.match?(HAN) }.join
 
-      # 允许 LLM 小幅修改汉字（≤5%），超出则跳过
-      han_diff = (orig_han.length - corrected_han.length).abs
-      if han_diff > orig_han.length * 0.05
-        Rails.logger.warn("[BookContentsJson] LLM 标点纠错汉字变化过大 (#{orig_han.length}→#{corrected_han.length})，跳过")
+      # 要求汉字数量完全匹配（LLM 有时会增删汉字，导致时间对齐失败）
+      if orig_han.length != corrected_han.length
+        Rails.logger.warn("[BookContentsJson] LLM 标点纠错汉字数量变化 (#{orig_han.length}→#{corrected_han.length})，跳过")
         return asr_items
       end
 
-      Rails.logger.info("[BookContentsJson] LLM 标点纠错: #{full_text.length}→#{corrected.length} 字符 (汉字差异 #{han_diff})")
+      Rails.logger.info("[BookContentsJson] LLM 标点纠错: #{full_text.length}→#{corrected.length} 字符 (汉字数量不变)")
 
       # 收集原始汉字的 asr_items（保留时间戳）
       han_items = asr_items.select { |item| item['ch'].match?(HAN) }
