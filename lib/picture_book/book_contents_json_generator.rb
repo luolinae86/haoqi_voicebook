@@ -8,6 +8,7 @@ require_relative 'audio'
 require_relative 'asr_client'
 require_relative '../dash_scope/asr_service'
 require_relative '../dash_scope/text_corrector'
+require_relative '../dash_scope/punctuation_corrector'
 
 # 从 book_contents（图片页 + 时间戳）+ ASR 语音识别生成 book.json 和 dict.json 并上传 OSS。
 # 适用于 haoqi_read 已经上传图片和音频、但没有文本内容的绘本。
@@ -31,6 +32,7 @@ module PictureBook
       sentences = fetch_asr_sentences
       asr_items = flatten_sentences(sentences)
       asr_items = correct_asr_text(asr_items)
+      asr_items = correct_asr_punctuation(asr_items)
 
       # 如果封面页（第1页）时间很短且 ASR 以书名开头，把封面页的 ASR 合并到正文第一页
       merge_until = compute_cover_merge(asr_items, contents)
@@ -166,6 +168,56 @@ module PictureBook
       result
     end
 
+    # 用 LLM 修正标点符号错误（错误标点、缺失标点、多余标点）。
+    # 策略：先构建完整文本（汉字+标点），送 LLM 修正标点，再映射回时间戳。
+    def correct_asr_punctuation(asr_items)
+      return asr_items if asr_items.empty?
+
+      full_text = asr_items.map { |item| item['ch'] }.join
+      corrected = DashScope::PunctuationCorrector.new.correct(full_text)
+      return asr_items if corrected.blank? || corrected == full_text
+
+      # 验证 LLM 没有修改汉字（只应修改标点）
+      orig_han = full_text.each_char.select { |c| c.match?(HAN) }.join
+      corrected_han = corrected.each_char.select { |c| c.match?(HAN) }.join
+
+      if orig_han != corrected_han
+        Rails.logger.warn("[BookContentsJson] LLM 标点纠错修改了汉字，跳过")
+        return asr_items
+      end
+
+      Rails.logger.info("[BookContentsJson] LLM 标点纠错: #{full_text.length}→#{corrected.length} 字符")
+
+      # 收集原始汉字的 asr_items（保留时间戳）
+      han_items = asr_items.select { |item| item['ch'].match?(HAN) }
+
+      # 从修正后的文本重建 asr_items
+      han_index = 0
+      result = []
+
+      corrected.each_char.with_index do |ch, ci|
+        if ch.match?(HAN)
+          # 汉字：使用对应的原始时间戳
+          if han_index < han_items.length
+            result << han_items[han_index].dup
+          end
+          han_index += 1
+        else
+          # 标点：使用下一个汉字的时间戳（或前一个汉字 + 偏移）
+          punct_ms = if han_index < han_items.length
+                       han_items[han_index]['begin_ms']
+                     elsif result.any?
+                       result.last['begin_ms'] + 300
+                     else
+                       0
+                     end
+          result << { 'ch' => ch, 'begin_ms' => punct_ms }
+        end
+      end
+
+      result
+    end
+
     # ── Page building ──
 
     # 检查封面页是否应该合并到正文第一页。
@@ -231,6 +283,11 @@ module PictureBook
       else
         page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
       end
+
+      # 裁剪页尾不完整的片段（避免跨页泄漏）
+      page_items = trim_incomplete_trailing(page_items) unless index.zero? && merge_until > 0
+      # 裁剪页首游离的标点（跨页泄漏的另一端）
+      page_items = trim_leading_stray(page_items)
 
       # ASR 识别出的文字 → Segmenter 切成朗读行
       page_text = page_items.map { |item| item['ch'] }.join
@@ -338,6 +395,57 @@ module PictureBook
       end
 
       page_end_ms
+    end
+
+    # 裁剪页尾不完整的片段，避免跨页文字泄漏。
+    # 如果页尾的最后一个片段（到最近的标点为止）只有 ≤3 个汉字，
+    # 认为它是从下一页泄漏过来的，裁剪掉。
+    def trim_incomplete_trailing(page_items)
+      return page_items if page_items.empty?
+
+      # 从后往前找，找到最后一个标点（closer）的位置
+      last_closer_idx = nil
+      page_items.each_with_index do |item, i|
+        last_closer_idx = i if Segmenter.closer?(item['ch'])
+      end
+
+      # 如果整个页面都没有标点，不裁剪
+      return page_items if last_closer_idx.nil?
+
+      # 最后一个标点之后的内容就是"不完整片段"
+      trailing = page_items[(last_closer_idx + 1)..] || []
+      trailing_han_count = trailing.count { |item| item['ch'].match?(HAN) }
+
+      # 如果不完整片段 ≤3 个汉字，裁剪掉
+      if trailing_han_count > 0 && trailing_han_count <= 3
+        page_items.first(last_closer_idx + 1)
+      else
+        page_items
+      end
+    end
+
+    # 裁剪页首游离的标点符号（无汉字前缀的标点，从上一页泄漏过来的）。
+    def trim_leading_stray(page_items)
+      return page_items if page_items.empty?
+
+      # 找到第一个汉字的位置
+      first_han_idx = nil
+      page_items.each_with_index do |item, i|
+        if item['ch'].match?(HAN)
+          first_han_idx = i
+          break
+        end
+      end
+
+      # 如果没有汉字，全部裁剪
+      return [] if first_han_idx.nil?
+
+      # 如果第一个汉字之前有内容（游离的标点），裁剪掉
+      if first_han_idx > 0
+        page_items[first_han_idx..]
+      else
+        page_items
+      end
     end
 
     # 算行边界：每行起点 = 该行首个汉字在 ASR 里的时刻；
