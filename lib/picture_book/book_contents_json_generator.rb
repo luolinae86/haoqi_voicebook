@@ -334,26 +334,37 @@ module PictureBook
         offset += text.length
       end
 
-      # 获取第一行的 ASR onset，用于计算偏移量
-      first_line_onset = find_line_start_time(page_items, 0, end_ms)
-      # 如果第一行 ASR onset 早于 effective_start_ms，需要偏移所有时间
-      time_offset_ms = [effective_start_ms - first_line_onset, 0].max
+      # 计算 ASR 时间范围（第一个和最后一个汉字的时间戳）
+      han_items_page = page_items.select { |item| item['ch'].match?(HAN) }
+      asr_first_ms = han_items_page.first&.fetch('begin_ms', start_ms) || start_ms
+      asr_last_ms = han_items_page.last&.fetch('begin_ms', end_ms) || end_ms
+      asr_span_ms = asr_last_ms - asr_first_ms
+      page_span_ms = end_ms - effective_start_ms
 
-      # 使用 ASR 字级别时间戳进行精准对齐
-      cursor = { items: page_items, index: 0, time_offset: time_offset_ms }
+      # 线性映射：将 ASR 时间戳从 [asr_first_ms, asr_last_ms] 映射到 [effective_start_ms, end_ms]
+      # 这样既保持 ASR 的相对时间关系，又确保不超出页面范围
+      if asr_span_ms > 0
+        time_scale = page_span_ms.to_f / asr_span_ms
+      else
+        time_scale = 1.0
+      end
+      time_offset_ms = effective_start_ms - (asr_first_ms * time_scale).round
+
+      # 使用 ASR 字级别时间戳进行精准对齐（应用缩放 + 偏移）
+      cursor = { items: page_items, index: 0, time_offset: time_offset_ms, time_scale: time_scale }
 
       lines = line_texts.map.with_index do |text, line_idx|
-        # 计算行边界：使用 ASR 中该行首个汉字的时间 + 偏移
+        # 计算行边界：使用 ASR 中该行首个汉字的时间，经缩放+偏移映射到页面时间
         line_start_idx = line_offsets[line_idx]
         raw_start_ms = find_line_start_time(page_items, line_start_idx, end_ms)
-        line_start_ms = raw_start_ms + time_offset_ms
+        line_start_ms = (raw_start_ms * time_scale).round + time_offset_ms
 
         line_end_ms = if line_idx == line_texts.length - 1
                         end_ms
                       else
                         next_start_idx = line_offsets[line_idx + 1]
                         next_raw = find_line_start_time(page_items, next_start_idx, end_ms)
-                        next_raw + time_offset_ms
+                        (next_raw * time_scale).round + time_offset_ms
                       end
 
         # cursor 需要指向当前行的起始位置
@@ -569,7 +580,8 @@ module PictureBook
       if item_ch == ch || normalized_item == normalized_ch
         cursor[:index] += 1
         time_offset = cursor[:time_offset] || 0
-        item['begin_ms'] + time_offset
+        time_scale = cursor[:time_scale] || 1.0
+        (item['begin_ms'] * time_scale).round + time_offset
       else
         nil
       end
