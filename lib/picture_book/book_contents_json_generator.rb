@@ -80,9 +80,9 @@ module PictureBook
       tmp = Tempfile.new(['audio', audio_extension(audio_url)])
       begin
         tmp.binmode
-        response = HTTParty.get(signed_url, stream_body: true, timeout: 120)
+        response = HTTParty.get(signed_url, timeout: 120)
         raise Error, "音频下载失败: #{response.code}" unless response.success?
-        response.body.each { |chunk| tmp.write(chunk) }
+        tmp.write(response.body)
         tmp.close
 
         sentences = PictureBook::AsrClient.new(
