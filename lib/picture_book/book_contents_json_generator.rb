@@ -214,7 +214,6 @@ module PictureBook
           end
         end
         page_items = page_items.first(cut_idx)
-        actual_start_ms = start_ms
       elsif merge_until > 0 && index == 1
         # 正文第一页：包含从 0s 起的全文，跳过书名避免与封面重复
         page_items = asr_items.select { |item| item['begin_ms'] < end_ms }
@@ -229,11 +228,8 @@ module PictureBook
           end
         end
         page_items = page_items[skip_idx..] || []
-        # 封面合并：page.start 用第一个字的 ASR 时间，确保翻页与字幕同步
-        actual_start_ms = page_items.first&.fetch('begin_ms', start_ms) || start_ms
       else
         page_items = asr_items.select { |item| item['begin_ms'] >= start_ms && item['begin_ms'] < end_ms }
-        actual_start_ms = start_ms
       end
 
       # ASR 识别出的文字 → Segmenter 切成朗读行
@@ -242,8 +238,8 @@ module PictureBook
 
       # 按字数比例分配时间（与参考实现一致）
       total_chars = line_texts.sum { |t| t.length }
-      span_ms = end_ms - actual_start_ms
-      cursor_ms = actual_start_ms
+      span_ms = end_ms - start_ms
+      cursor_ms = start_ms
 
       lines = line_texts.map.with_index do |text, line_idx|
         len = text.length
@@ -260,7 +256,7 @@ module PictureBook
 
       char_times = lines.flat_map { |line| line[:char_times] }
 
-      { lines: lines.map { |l| l.except(:char_times) }, char_times: char_times, actual_start_ms: actual_start_ms }
+      { lines: lines.map { |l| l.except(:char_times) }, char_times: char_times }
     end
 
     # 按字数比例分配每个字的时间
@@ -414,17 +410,11 @@ module PictureBook
         'pageCount' => contents.size,
         'pages' => contents.each_with_index.map do |content, i|
           pd = pages_data[i]
-          # 封面合并：page 0 的 end 用 page 1 的 actual_start_ms，确保翻页与字幕同步
-          actual_end_ms = if i.zero? && pages_data[i + 1]&.[](:actual_start_ms)
-                            pages_data[i + 1][:actual_start_ms]
-                          else
-                            (parse_timestamp(content.deal_at) * 1000).round
-                          end
           {
             'index' => i,
             'image' => sign_url_if_needed(content.img_path.to_s, expires: LONG_EXPIRY),
-            'start' => pd[:actual_start_ms] ? (pd[:actual_start_ms] / 1000.0).round(3) : parse_timestamp(content.start_at),
-            'end' => (actual_end_ms / 1000.0).round(3),
+            'start' => parse_timestamp(content.start_at),
+            'end' => parse_timestamp(content.deal_at),
             'lines' => pd[:lines],
             'charTimes' => pd[:char_times]
           }
