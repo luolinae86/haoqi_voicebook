@@ -12,6 +12,6 @@ namespace :book do
     generator = PictureBook::BookContentsJsonGenerator.new(book: book)
     result = generator.call
 
-    puts "生成完成，共 #{result['pages'].length} 页"
+    puts "生成完成，共 #{result[:pages]} 页"
   end
 end
