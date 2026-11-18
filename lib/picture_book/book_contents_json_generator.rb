@@ -250,14 +250,38 @@ module PictureBook
 
       effective_start_ms = start_ms + page_delay_ms
 
-      # 使用 ASR 字级别时间戳进行精准对齐
-      cursor = { items: page_items, index: 0 }
+      # 计算每行在 page_items 中的字符偏移
+      line_offsets = []
+      offset = 0
+      line_texts.each do |text|
+        line_offsets << offset
+        offset += text.length
+      end
 
-      # 计算行边界：使用 ASR 中每行首个汉字的时间
-      line_boundaries = compute_line_boundaries_with_delay(line_texts, page_items, effective_start_ms, end_ms)
+      # 获取第一行的 ASR onset，用于计算偏移量
+      first_line_onset = find_line_start_time(page_items, 0, end_ms)
+      # 如果第一行 ASR onset 早于 effective_start_ms，需要偏移所有时间
+      time_offset_ms = [effective_start_ms - first_line_onset, 0].max
+
+      # 使用 ASR 字级别时间戳进行精准对齐
+      cursor = { items: page_items, index: 0, time_offset: time_offset_ms }
 
       lines = line_texts.map.with_index do |text, line_idx|
-        line_start_ms, line_end_ms = line_boundaries[line_idx]
+        # 计算行边界：使用 ASR 中该行首个汉字的时间 + 偏移
+        line_start_idx = line_offsets[line_idx]
+        raw_start_ms = find_line_start_time(page_items, line_start_idx, end_ms)
+        line_start_ms = raw_start_ms + time_offset_ms
+
+        line_end_ms = if line_idx == line_texts.length - 1
+                        end_ms
+                      else
+                        next_start_idx = line_offsets[line_idx + 1]
+                        next_raw = find_line_start_time(page_items, next_start_idx, end_ms)
+                        next_raw + time_offset_ms
+                      end
+
+        # cursor 需要指向当前行的起始位置
+        cursor[:index] = line_start_idx
         build_line(text, line_start_ms, line_end_ms, cursor)
       end
 
@@ -301,63 +325,19 @@ module PictureBook
       }
     end
 
-    # 计算行边界：使用 ASR 中每行首个汉字的时间，并考虑页面延迟
-    def compute_line_boundaries_with_delay(line_texts, page_items, page_start_ms, page_end_ms)
-      return [] if line_texts.empty?
+    # 找到一行在 ASR 中的起始时间（该行首个汉字的时间）
+    def find_line_start_time(page_items, line_start_idx, page_end_ms)
+      return page_end_ms if line_start_idx >= page_items.length
 
-      # 找每行首个汉字在 ASR 中的时间
-      onsets = []
-      idx = 0
-      line_texts.each do |text|
-        han_chars = text.each_char.grep(HAN)
-        onset = page_end_ms
-        han_chars.each do |ch|
-          # 考虑全半角转换
-          normalized_ch = WIDTH_MAP.fetch(ch, ch)
-          while idx < page_items.length
-            item_ch = page_items[idx]['ch']
-            normalized_item = WIDTH_MAP.fetch(item_ch, item_ch)
-            break if normalized_item == normalized_ch
-            idx += 1
-          end
-          if idx < page_items.length
-            onset = page_items[idx]['begin_ms']
-            idx += 1
-            break
-          end
+      # 从 line_start_idx 开始找第一个汉字
+      (line_start_idx...page_items.length).each do |idx|
+        item = page_items[idx]
+        if item['ch'].match?(HAN)
+          return item['begin_ms']
         end
-        onsets << onset
       end
 
-      # 确保第一个 onset 不早于 page_start_ms（页面延迟后）
-      onsets[0] = [onsets[0], page_start_ms].max if onsets[0]
-
-      # 计算每行的开始和结束时间
-      line_texts.map.with_index do |_text, i|
-        s = if i.zero?
-              onsets[0] || page_start_ms
-            else
-              prev_onset = onsets[i - 1] || page_start_ms
-              curr_onset = onsets[i] || page_end_ms
-              # 使用当前行的 ASR onset 作为开始时间
-              [curr_onset, prev_onset].max
-            end
-
-        e = if i < line_texts.length - 1
-              next_onset = onsets[i + 1] || page_end_ms
-              curr_onset = onsets[i] || page_start_ms
-              # 行结束时间 = 下一行开始前，留出一点间隔
-              [[next_onset, curr_onset].max, page_end_ms].min
-            else
-              page_end_ms
-            end
-
-        # 确保时间单调递增
-        s = [[s, page_start_ms].max, page_end_ms].min
-        e = [[e, s].max, page_end_ms].min
-
-        { start_ms: s, end_ms: e }
-      end.map { |b| [b[:start_ms], b[:end_ms]] }
+      page_end_ms
     end
 
     # 算行边界：每行起点 = 该行首个汉字在 ASR 里的时刻；
@@ -450,6 +430,7 @@ module PictureBook
     # 从 cursor 中消费一个条目，返回其时间戳（毫秒）。
     # 匹配时考虑 Segmenter.normalize 的全半角转换（，→, ！→! 等）。
     # 如果不匹配（ASR 和文本不一致），返回 nil 且不消费 cursor。
+    # 应用 cursor 中的 time_offset 偏移。
     def consume_cursor_time(cursor, ch)
       return nil if cursor[:index] >= cursor[:items].length
 
@@ -460,7 +441,8 @@ module PictureBook
 
       if item_ch == ch || normalized_item == normalized_ch
         cursor[:index] += 1
-        item['begin_ms']
+        time_offset = cursor[:time_offset] || 0
+        item['begin_ms'] + time_offset
       else
         nil
       end
