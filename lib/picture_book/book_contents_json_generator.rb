@@ -376,11 +376,17 @@ module PictureBook
         'pageCount' => contents.size,
         'pages' => contents.each_with_index.map do |content, i|
           pd = pages_data[i]
+          # 封面合并：page 0 的 end 用 page 1 的 actual_start_ms，确保翻页与字幕同步
+          actual_end_ms = if i.zero? && pages_data[i + 1]&.[](:actual_start_ms)
+                            pages_data[i + 1][:actual_start_ms]
+                          else
+                            (parse_timestamp(content.deal_at) * 1000).round
+                          end
           {
             'index' => i,
             'image' => sign_url_if_needed(content.img_path.to_s, expires: LONG_EXPIRY),
             'start' => pd[:actual_start_ms] ? (pd[:actual_start_ms] / 1000.0).round(3) : parse_timestamp(content.start_at),
-            'end' => parse_timestamp(content.deal_at),
+            'end' => (actual_end_ms / 1000.0).round(3),
             'lines' => pd[:lines],
             'charTimes' => pd[:char_times]
           }
