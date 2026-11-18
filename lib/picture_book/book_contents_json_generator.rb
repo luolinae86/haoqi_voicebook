@@ -78,6 +78,7 @@ module PictureBook
       require 'tempfile'
       require 'httparty'
       tmp = Tempfile.new(['audio', audio_extension(audio_url)])
+      mono_path = nil
       begin
         tmp.binmode
         response = HTTParty.get(signed_url, timeout: 120)
@@ -85,12 +86,21 @@ module PictureBook
         tmp.write(response.body)
         tmp.close
 
+        # 实时接口要求单声道，用 ffmpeg 转换
+        mono_file = Tempfile.new(['mono', '.mp3'])
+        mono_file.close
+        mono_path = mono_file.path
+        system('ffmpeg', '-y', '-i', tmp.path, '-ac', '1', '-ar', '16000', mono_path,
+               out: File::NULL, err: File::NULL)
+        raise Error, 'ffmpeg 音频转换失败' unless $?.success?
+
         sentences = PictureBook::AsrClient.new(
           api_key: ENV.fetch('DASHSCOPE_API_KEY'),
           format: audio_format(audio_url)
-        ).transcribe(tmp.path)
+        ).transcribe(mono_path)
       ensure
         tmp.close!
+        File.delete(mono_path) if mono_path && File.exist?(mono_path)
       end
 
       raise Error, 'ASR 未返回任何句子' if sentences.empty?
