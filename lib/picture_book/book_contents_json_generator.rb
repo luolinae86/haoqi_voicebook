@@ -236,13 +236,9 @@ module PictureBook
       page_text = page_items.map { |item| item['ch'] }.join
       line_texts = page_text.present? ? Segmenter.split(page_text).map { |l| Segmenter.normalize(l) }.reject(&:empty?) : []
 
-      # 按字数比例分配时间（与参考实现一致）
-      total_chars = line_texts.sum { |t| t.length }
       span_ms = end_ms - start_ms
 
-      # 参考实现中，每个页面开始后有延迟，让叙述者有时间开始说话
-      # 延迟时间根据页面时长动态计算（约 2% 的页面时长）
-      # 封面页和正文第一页使用固定延迟（与封面转场时间匹配）
+      # 页面开始后的延迟，让叙述者有时间开始说话
       page_delay_ms = if index.zero? && merge_until > 0
                          0  # 封面页：无延迟
                        elsif merge_until > 0 && index == 1
@@ -253,20 +249,16 @@ module PictureBook
                        end
 
       effective_start_ms = start_ms + page_delay_ms
-      effective_span_ms = end_ms - effective_start_ms
-      cursor_ms = effective_start_ms
+
+      # 使用 ASR 字级别时间戳进行精准对齐
+      cursor = { items: page_items, index: 0 }
+
+      # 计算行边界：使用 ASR 中每行首个汉字的时间
+      line_boundaries = compute_line_boundaries_with_delay(line_texts, page_items, effective_start_ms, end_ms)
 
       lines = line_texts.map.with_index do |text, line_idx|
-        len = text.length
-        line_start_ms = cursor_ms
-        line_end_ms = if line_idx == line_texts.length - 1
-                        end_ms
-                      else
-                        cursor_ms + (effective_span_ms * len) / total_chars
-                      end
-        cursor_ms = line_end_ms
-
-        build_line_proportional(text, line_start_ms, line_end_ms)
+        line_start_ms, line_end_ms = line_boundaries[line_idx]
+        build_line(text, line_start_ms, line_end_ms, cursor)
       end
 
       char_times = lines.flat_map { |line| line[:char_times] }
@@ -307,6 +299,65 @@ module PictureBook
         'tokens' => tokens,
         char_times: char_times
       }
+    end
+
+    # 计算行边界：使用 ASR 中每行首个汉字的时间，并考虑页面延迟
+    def compute_line_boundaries_with_delay(line_texts, page_items, page_start_ms, page_end_ms)
+      return [] if line_texts.empty?
+
+      # 找每行首个汉字在 ASR 中的时间
+      onsets = []
+      idx = 0
+      line_texts.each do |text|
+        han_chars = text.each_char.grep(HAN)
+        onset = page_end_ms
+        han_chars.each do |ch|
+          # 考虑全半角转换
+          normalized_ch = WIDTH_MAP.fetch(ch, ch)
+          while idx < page_items.length
+            item_ch = page_items[idx]['ch']
+            normalized_item = WIDTH_MAP.fetch(item_ch, item_ch)
+            break if normalized_item == normalized_ch
+            idx += 1
+          end
+          if idx < page_items.length
+            onset = page_items[idx]['begin_ms']
+            idx += 1
+            break
+          end
+        end
+        onsets << onset
+      end
+
+      # 确保第一个 onset 不早于 page_start_ms（页面延迟后）
+      onsets[0] = [onsets[0], page_start_ms].max if onsets[0]
+
+      # 计算每行的开始和结束时间
+      line_texts.map.with_index do |_text, i|
+        s = if i.zero?
+              onsets[0] || page_start_ms
+            else
+              prev_onset = onsets[i - 1] || page_start_ms
+              curr_onset = onsets[i] || page_end_ms
+              # 使用当前行的 ASR onset 作为开始时间
+              [curr_onset, prev_onset].max
+            end
+
+        e = if i < line_texts.length - 1
+              next_onset = onsets[i + 1] || page_end_ms
+              curr_onset = onsets[i] || page_start_ms
+              # 行结束时间 = 下一行开始前，留出一点间隔
+              [[next_onset, curr_onset].max, page_end_ms].min
+            else
+              page_end_ms
+            end
+
+        # 确保时间单调递增
+        s = [[s, page_start_ms].max, page_end_ms].min
+        e = [[e, s].max, page_end_ms].min
+
+        { start_ms: s, end_ms: e }
+      end.map { |b| [b[:start_ms], b[:end_ms]] }
     end
 
     # 算行边界：每行起点 = 该行首个汉字在 ASR 里的时刻；
@@ -363,7 +414,6 @@ module PictureBook
       last_time = line_start_ms
 
       text.each_char.with_index do |ch, i|
-        # 尝试从 cursor 中消费一个条目（匹配时考虑 Segmenter.normalize 的全半角转换）
         cursor_time = consume_cursor_time(cursor, ch)
 
         if ch.match?(HAN)
