@@ -9,16 +9,12 @@ module Api
       extend Grape::API::Helpers
 
       # 将 OSS 公网 URL 转换为临时签名 URL（私有 bucket 适用）
+      # 自动识别 URL 中的 bucket 和 region，使用对应凭证签名
       # @param url [String, nil] OSS 对象 URL，如 "https://bucket.endpoint/object_key"
       # @param expires [Integer] 过期时间（秒），默认 3600
       # @return [String, nil] 签名 URL，若原 url 为空则返回 nil
       def signed_oss_url(url, expires: 3600)
-        return nil if url.blank?
-
-        object_key = AliyunOssService.key_from_url(url)
-        AliyunOssService.new.generate_signed_url(object_key, expires: expires)
-      rescue StandardError
-        url
+        Book.sign_oss_url(url, expires: expires)
       end
 
       # 获取 OSS STS 临时授权 token

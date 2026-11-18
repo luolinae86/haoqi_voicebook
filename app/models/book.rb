@@ -103,12 +103,30 @@ class Book < ApplicationRecord
   }
 
   # OSS URL 签名辅助方法（统一使用，处理中文路径）
+  # 自动识别 URL 中的 bucket 和 region，使用对应凭证签名
   def self.sign_oss_url(url, expires: 3600)
     return nil if url.blank?
-    return url unless url.include?("aliyuncs.com")
+    return url unless url.include?("aliyuncs.com") && url.include?("oss-")
 
+    uri = URI.parse(url)
+    host_parts = uri.host.split('.')
+    bucket_name = host_parts[0]
+    region = host_parts[1].sub('oss-', '').sub('-internal', '')
     object_key = AliyunOssService.key_from_url(url)
-    AliyunOssService.new.generate_signed_url(object_key, expires: expires)
+
+    access_key_id, access_key_secret = if bucket_name == 'haoqi-read'
+                                         [ENV['HAOQI_READ_ACCESS_KEY_ID'], ENV['HAOQI_READ_ACCESS_KEY_SECRET']]
+                                       else
+                                         [OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET]
+                                       end
+
+    client = Aliyun::OSS::Client.new(
+      endpoint: "https://oss-#{region}.aliyuncs.com",
+      access_key_id: access_key_id,
+      access_key_secret: access_key_secret
+    )
+    bucket = client.get_bucket(bucket_name)
+    bucket.object_url(object_key, true, expires)
   rescue StandardError
     url
   end
