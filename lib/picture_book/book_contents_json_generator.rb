@@ -240,18 +240,56 @@ module PictureBook
       page_text = page_items.map { |item| item['ch'] }.join
       line_texts = page_text.present? ? Segmenter.split(page_text).map { |l| Segmenter.normalize(l) }.reject(&:empty?) : []
 
-      # 按顺序消费 page_items，给每行每个字分配时间
-      cursor = { index: 0, items: page_items }
-      line_boundaries = compute_line_boundaries(line_texts, page_items, actual_start_ms, end_ms)
+      # 按字数比例分配时间（与参考实现一致）
+      total_chars = line_texts.sum { |t| t.length }
+      span_ms = end_ms - actual_start_ms
+      cursor_ms = actual_start_ms
 
       lines = line_texts.map.with_index do |text, line_idx|
-        boundary = line_boundaries[line_idx]
-        build_line(text, boundary[:start_ms], boundary[:end_ms], cursor)
+        len = text.length
+        line_start_ms = cursor_ms
+        line_end_ms = if line_idx == line_texts.length - 1
+                        end_ms
+                      else
+                        cursor_ms + (span_ms * len) / total_chars
+                      end
+        cursor_ms = line_end_ms
+
+        build_line_proportional(text, line_start_ms, line_end_ms)
       end
 
       char_times = lines.flat_map { |line| line[:char_times] }
 
       { lines: lines.map { |l| l.except(:char_times) }, char_times: char_times, actual_start_ms: actual_start_ms }
+    end
+
+    # 按字数比例分配每个字的时间
+    def build_line_proportional(text, line_start_ms, line_end_ms)
+      syllables = Pinyin.annotate(text)
+      tokens = []
+      char_times = []
+
+      len = text.length
+      span_ms = line_end_ms - line_start_ms
+
+      text.each_char.with_index do |ch, i|
+        time_ms = line_start_ms + (span_ms * i) / [len, 1].max
+        time_ms = [[time_ms, line_start_ms].max, line_end_ms].min
+
+        if ch.match?(HAN)
+          tokens << { 'ch' => ch, 'py' => syllables[i].to_s }
+        else
+          tokens << { 'ch' => ch, 'py' => '' }
+        end
+        char_times << (time_ms / 1000.0).round(3)
+      end
+
+      {
+        'start' => (line_start_ms / 1000.0).round(3),
+        'end' => (line_end_ms / 1000.0).round(3),
+        'tokens' => tokens,
+        char_times: char_times
+      }
     end
 
     # 算行边界：每行起点 = 该行首个汉字在 ASR 里的时刻；
