@@ -275,7 +275,7 @@ module PictureBook
 
       line_texts.map.with_index do |_text, i|
         s = if i.zero?
-              page_start_ms
+              onsets[0]
             else
               from = onsets[i - 1]
               to = [onsets[i], from].max
