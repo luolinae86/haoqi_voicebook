@@ -177,35 +177,54 @@ module PictureBook
       corrected = DashScope::PunctuationCorrector.new.correct(full_text)
       return asr_items if corrected.blank? || corrected == full_text
 
-      # 验证 LLM 没有修改汉字（只应修改标点）
       orig_han = full_text.each_char.select { |c| c.match?(HAN) }.join
       corrected_han = corrected.each_char.select { |c| c.match?(HAN) }.join
 
-      if orig_han != corrected_han
-        Rails.logger.warn("[BookContentsJson] LLM 标点纠错修改了汉字，跳过")
+      # 允许 LLM 小幅修改汉字（≤5%），超出则跳过
+      han_diff = (orig_han.length - corrected_han.length).abs
+      if han_diff > orig_han.length * 0.05
+        Rails.logger.warn("[BookContentsJson] LLM 标点纠错汉字变化过大 (#{orig_han.length}→#{corrected_han.length})，跳过")
         return asr_items
       end
 
-      Rails.logger.info("[BookContentsJson] LLM 标点纠错: #{full_text.length}→#{corrected.length} 字符")
+      Rails.logger.info("[BookContentsJson] LLM 标点纠错: #{full_text.length}→#{corrected.length} 字符 (汉字差异 #{han_diff})")
 
       # 收集原始汉字的 asr_items（保留时间戳）
       han_items = asr_items.select { |item| item['ch'].match?(HAN) }
 
-      # 从修正后的文本重建 asr_items
-      han_index = 0
+      # 用贪心对齐将修正后的汉字映射到原始时间戳
+      orig_han_idx = 0
       result = []
 
-      corrected.each_char.with_index do |ch, ci|
+      corrected.each_char do |ch|
         if ch.match?(HAN)
-          # 汉字：使用对应的原始时间戳
-          if han_index < han_items.length
-            result << han_items[han_index].dup
+          # 汉字：贪心匹配原始汉字序列
+          if orig_han_idx < orig_han.length && ch == orig_han[orig_han_idx]
+            # 精确匹配：直接使用原始时间戳
+            result << han_items[orig_han_idx].dup if orig_han_idx < han_items.length
+            orig_han_idx += 1
+          else
+            # 不匹配：尝试在后续位置找到匹配（处理 LLM 插入的汉字）
+            found = false
+            (orig_han_idx + 1...[orig_han_idx + 5, orig_han.length].min).each do |lookahead|
+              if ch == orig_han[lookahead]
+                orig_han_idx = lookahead + 1
+                result << han_items[lookahead].dup if lookahead < han_items.length
+                found = true
+                break
+              end
+            end
+            unless found
+              # 仍然找不到：用前一个汉字的时间戳 + 偏移
+              time_ms = result.any? ? result.last['begin_ms'] + 300 : 0
+              result << { 'ch' => ch, 'begin_ms' => time_ms }
+              orig_han_idx += 1
+            end
           end
-          han_index += 1
         else
           # 标点：使用下一个汉字的时间戳（或前一个汉字 + 偏移）
-          punct_ms = if han_index < han_items.length
-                       han_items[han_index]['begin_ms']
+          punct_ms = if orig_han_idx < han_items.length
+                       han_items[orig_han_idx]['begin_ms']
                      elsif result.any?
                        result.last['begin_ms'] + 300
                      else
