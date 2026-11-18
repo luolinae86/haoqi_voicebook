@@ -9,8 +9,8 @@ require 'websocket/driver'
 
 module PictureBook
   # DashScope 实时语音识别(paraformer-realtime-v2)的 WebSocket 客户端。
-  # 只走实时口:文件转写接口给出的字级时间是按句匀速铺出来的(实测 R²=1),
-  # 撑不起逐字高亮,也定不出翻页切点;实时口的词时间才是声学对齐的。
+  # 实测文件转写和实时接口的词级时间戳都是按句匀速分布的(R²≈1)，
+  # 精确对齐依赖线性映射到页面时间范围。
   class AsrClient
     URL = 'wss://dashscope.aliyuncs.com/api-ws/v1/inference'
     MODEL = 'paraformer-realtime-v2'

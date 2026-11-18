@@ -72,51 +72,11 @@ module PictureBook
       raise Error, '绘本没有音频文件' if audio_url.blank?
 
       signed_url = sign_url_if_needed(audio_url, expires: 3600)
-
-      # 下载音频到临时文件，用实时接口获取声学对齐的时间戳
-      # （文件转写接口的词级时间是按句匀速分布的，无法支撑精确字幕对齐）
-      require 'tempfile'
-      require 'httparty'
-      tmp = Tempfile.new(['audio', audio_extension(audio_url)])
-      mono_path = nil
-      begin
-        tmp.binmode
-        response = HTTParty.get(signed_url, timeout: 120)
-        raise Error, "音频下载失败: #{response.code}" unless response.success?
-        tmp.write(response.body)
-        tmp.close
-
-        # 实时接口要求单声道，用 ffmpeg 转换
-        mono_file = Tempfile.new(['mono', '.mp3'])
-        mono_file.close
-        mono_path = mono_file.path
-        system('ffmpeg', '-y', '-i', tmp.path, '-ac', '1', '-ar', '16000', mono_path,
-               out: File::NULL, err: File::NULL)
-        raise Error, 'ffmpeg 音频转换失败' unless $?.success?
-
-        sentences = PictureBook::AsrClient.new(
-          api_key: ENV.fetch('DASHSCOPE_API_KEY'),
-          format: audio_format(audio_url)
-        ).transcribe(mono_path)
-      ensure
-        tmp.close!
-        File.delete(mono_path) if mono_path && File.exist?(mono_path)
-      end
-
+      sentences = DashScope::AsrService.new(api_key: ENV.fetch('DASHSCOPE_API_KEY')).transcribe(signed_url)
       raise Error, 'ASR 未返回任何句子' if sentences.empty?
 
       @book.update!(asr_raw: sentences)
       sentences
-    end
-
-    def audio_extension(url)
-      ext = url.to_s.sub(/[^?#]*\??.*/, '').split('.').last.to_s.downcase
-      %w[mp3 wav ogg flac m4a aac].include?(ext) ? ".#{ext}" : '.mp3'
-    end
-
-    def audio_format(url)
-      ext = url.to_s.sub(/[^?#]*\??.*/, '').split('.').last.to_s.downcase
-      %w[mp3 wav ogg flac m4a aac].include?(ext) ? ext : 'mp3'
     end
 
     # 音频可能在不同的 OSS bucket（如 haoqi-read@cn-hangzhou），需要签名才能访问
