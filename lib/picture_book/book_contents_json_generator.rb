@@ -314,18 +314,6 @@ module PictureBook
 
       span_ms = end_ms - start_ms
 
-      # 页面开始后的延迟，让叙述者有时间开始说话
-      page_delay_ms = if index.zero? && merge_until > 0
-                         0  # 封面页：无延迟
-                       elsif merge_until > 0 && index == 1
-                         600  # 正文第一页（封面合并后）：固定 600ms 延迟
-                       else
-                         # 后续页面：根据页面时长计算延迟（2%，范围 300-800ms）
-                         [(span_ms * 0.02).round, 300].max.tap { |d| [d, 800].min }
-                       end
-
-      effective_start_ms = start_ms + page_delay_ms
-
       # 计算每行在 page_items 中的字符偏移
       line_offsets = []
       offset = 0
@@ -339,16 +327,16 @@ module PictureBook
       asr_first_ms = han_items_page.first&.fetch('begin_ms', start_ms) || start_ms
       asr_last_ms = han_items_page.last&.fetch('begin_ms', end_ms) || end_ms
       asr_span_ms = asr_last_ms - asr_first_ms
-      page_span_ms = end_ms - effective_start_ms
+      page_span_ms = end_ms - start_ms
 
-      # 线性映射：将 ASR 时间戳从 [asr_first_ms, asr_last_ms] 映射到 [effective_start_ms, end_ms]
+      # 线性映射：将 ASR 时间戳从 [asr_first_ms, asr_last_ms] 映射到 [start_ms, end_ms]
       # 这样既保持 ASR 的相对时间关系，又确保不超出页面范围
       if asr_span_ms > 0
         time_scale = page_span_ms.to_f / asr_span_ms
       else
         time_scale = 1.0
       end
-      time_offset_ms = effective_start_ms - (asr_first_ms * time_scale).round
+      time_offset_ms = start_ms - (asr_first_ms * time_scale).round
 
       # 使用 ASR 字级别时间戳进行精准对齐（应用缩放 + 偏移）
       cursor = { items: page_items, index: 0, time_offset: time_offset_ms, time_scale: time_scale }
