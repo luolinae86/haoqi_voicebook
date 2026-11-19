@@ -57,6 +57,9 @@ module PictureBook
       result = Timeline.build(pages: page_structs, ocr_lines: ocr_lines, sentences: sentences)
       compute_match_rates(result, ocr_lines)
 
+      # 根据 picture_book_pages.keywords 标记 kw（必须在生成 JSON 之前）
+      mark_keywords_on_result(result, contents)
+
       book_json = build_book_json_from_timeline(contents, result)
       book_key = "#{@prefix}/book.json"
       @oss.upload_data(data: JSON.generate(book_json), object_key: book_key, content_type: 'application/json')
@@ -158,18 +161,38 @@ module PictureBook
 
     def build_dict_json_from_timeline(result)
       title_chars = @book.name.to_s.each_char.grep(HAN)
-      author_chars = @book.author&.name.to_s.each_char.grep(HAN)
+      author_chars = @book.author&.name.to_s.chars.grep(HAN)
       page_chars = result.pages.flat_map { |p| p.lines }
                       .flat_map { |l| l.tokens.map { |t| t['ch'] } }
                       .grep(HAN)
       chars = (title_chars + author_chars + page_chars).uniq
-      CharDict.build(chars)
+      keyword_chars = result.pages.flat_map { |p| p.lines }
+                       .flat_map { |l| l.tokens.select { |t| t['kw'] }.map { |t| t['ch'] } }
+                       .uniq
+      CharDict.build(chars, keyword_chars: keyword_chars)
+    end
+
+    # 根据 picture_book_pages.keywords 给 result 的 tokens 标记 kw: true
+    # 确保在生成 book.json / dict.json 之前调用
+    def mark_keywords_on_result(result, contents)
+      result.pages.each_with_index do |page, index|
+        record = @book.picture_book_pages.find_or_initialize_by(page_number: index + 1)
+        keyword_chars = Array(record.keywords).flat_map(&:chars).uniq.to_set
+        next if keyword_chars.empty?
+
+        page.lines.each do |line|
+          line.tokens.each do |token|
+            token['kw'] = true if keyword_chars.include?(token['ch'])
+          end
+        end
+      end
     end
 
     def store_pages_from_timeline(result, contents)
       result.pages.each_with_index do |page, index|
         content = contents[index]
         record = @book.picture_book_pages.find_or_initialize_by(page_number: index + 1)
+
         record.assign_attributes(
           image_key: content.img_path.to_s,
           start_ms: page.start_ms,

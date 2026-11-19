@@ -273,6 +273,23 @@ module Api
 
           present response: success_response(covers: covers)
         end
+
+        # ==================== 内部 API：重新生成绘本 JSON ====================
+        desc '重新生成绘本的 book.json/dict.json（供 haoqi_read 调用）'
+        params do
+          requires :api_token, type: String, desc: '内部 API token'
+          requires :book_id, type: Integer, desc: '图书ID'
+        end
+        post 'regenerate_json' do
+          error!('Invalid token', 401) unless params[:api_token] == ENV['INTERNAL_API_TOKEN']
+
+          book = Book.find_by(id: params[:book_id])
+          error!('Book not found', 404) unless book
+
+          BookContentsJsonWorker.perform_async(book_id: book.id)
+
+          present response: { success: true, message: 'Regeneration queued' }
+        end
       end
     end
   end

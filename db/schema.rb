@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_19_040342) do
   create_table "api_auths", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", comment: "API认证表", force: :cascade do |t|
     t.string "name", null: false, comment: "客户端名称"
     t.string "access_key_id", null: false, comment: "客户端ID"
@@ -164,6 +164,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
     t.string "book_json_oss_url", comment: "book.json 公网 URL"
     t.string "dict_json_oss_key", comment: "dict.json OSS 路径"
     t.string "dict_json_oss_url", comment: "dict.json 公网 URL"
+    t.bigint "media_id"
     t.index ["category_id"], name: "index_books_on_category_id"
     t.index ["import_status"], name: "index_books_on_import_status"
     t.index ["name"], name: "index_books_on_name"
@@ -366,7 +367,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
 
   create_table "daily_channel_stats", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "stat_date", null: false, comment: "统计日期 YYYY-MM-DD"
-    t.string "channel", limit: 32, comment: "渠道（NULL=全部）"
+    t.string "channel", limit: 32, default: "", null: false, comment: "æ¸ é\u0081“ï¼ˆç©ºå­—ç¬¦ä¸²=å…¨éƒ¨ï¼‰"
     t.integer "registrations", default: 0, comment: "当日注册量"
     t.integer "active_users", default: 0, comment: "当日活跃用户数"
     t.integer "paid_users", default: 0, comment: "当日付费用户数"
@@ -438,6 +439,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
     t.json "rich_content"
     t.integer "block_count", default: 0
     t.integer "image_count", default: 0
+    t.boolean "is_free", default: false
     t.index ["book_id", "page_number"], name: "index_ebook_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_ebook_pages_on_book_id"
   end
@@ -609,6 +611,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
     t.integer "word_count", default: 0, null: false, comment: "本页汉字数"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.json "keywords", comment: "本页重点字词（人工标注，用于 book.json 的 kw 标记）"
     t.index ["book_id", "page_number"], name: "index_picture_book_pages_on_book_id_and_page_number", unique: true
     t.index ["book_id"], name: "index_picture_book_pages_on_book_id"
   end
@@ -761,7 +764,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_09_000001) do
 
   create_table "user_analytics_daily", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "stat_date", null: false, comment: "日期 YYYY-MM-DD"
-    t.string "channel", limit: 32, comment: "渠道（NULL=全部）"
+    t.string "channel", limit: 32, default: "", null: false, comment: "æ¸ é\u0081“ï¼ˆç©ºå­—ç¬¦ä¸²=å…¨éƒ¨ï¼‰"
     t.integer "dau", default: 0, comment: "日活"
     t.integer "wau", default: 0, comment: "周活"
     t.integer "mau", default: 0, comment: "月活"
