@@ -16,7 +16,7 @@ end
 require "aliyun/oss"
 require "aliyun/sts"
 
-OSS_BUCKET_NAME = ENV.fetch("OSS_BUCKET_NAME", "epub-files")
+OSS_BUCKET_NAME = ENV.fetch("ALIYUN_OSS_BUCKET")
 OSS_REGION = ENV.fetch("ALIYUN_OSS_ENDPOINT", "cn-beijing")
 OSS_INTERNAL = ENV.fetch("ALIYUN_OSS_INTERNAL", "false") == "true"
 OSS_ACCESS_KEY_ID = ENV.fetch("ALIYUN_ACCESS_KEY_ID")
