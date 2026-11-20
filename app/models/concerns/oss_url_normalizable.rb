@@ -18,13 +18,11 @@ module OssUrlNormalizable
       .gsub(%r{\.aliyuncs\.com\.aliyuncs\.com}, ".aliyuncs.com")
   end
 
-  included do
-    class_methods do
-      # 声明需要规范化的 URL 字段
-      def normalizes_oss_urls(*fields)
-        before_save :normalize_oss_url_fields
-        define_method(:oss_url_fields) { fields }
-      end
+  class_methods do
+    # 声明需要规范化的 URL 字段
+    def normalizes_oss_urls(*fields)
+      before_save :normalize_oss_url_fields
+      define_method(:oss_url_fields) { fields }
     end
   end
 
