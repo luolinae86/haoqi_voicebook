@@ -55,7 +55,12 @@
 #  index_chapters_on_book_id  (book_id)
 #
 class Chapter < ApplicationRecord
+  include OssUrlNormalizable
+
   belongs_to :book
+
+  # 规范化 OSS URL 字段
+  normalizes_oss_urls :content_file_url, :cover_image_url, :ld_file_path, :hd_file_path, :sd_file_path
 
   # 内容文件类型
   FILE_TYPES = {

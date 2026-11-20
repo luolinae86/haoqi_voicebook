@@ -55,9 +55,14 @@
 #  fk_rails_...  (supplier_id => suppliers.id)
 #
 class Book < ApplicationRecord
+  include OssUrlNormalizable
+
   belongs_to :supplier, optional: true
   belongs_to :category, optional: true
   belongs_to :author, optional: true
+
+  # 规范化 OSS URL 字段
+  normalizes_oss_urls :file_url, :content_file_url, :cover_image_url
   has_and_belongs_to_many :grades, join_table: :book_grades
   has_and_belongs_to_many :compilations, join_table: :compilation_books
   has_and_belongs_to_many :category_subs, join_table: :category_sub_books
